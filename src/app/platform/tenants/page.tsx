@@ -97,10 +97,10 @@ export default function PlatformTenantsPage() {
     if (res.ok) load();
   }
 
-  if (loading) return <div className="p-8 text-slate-500">Loading…</div>;
+  if (loading) return <div className="text-slate-500">Loading…</div>;
   if (error || !getToken()) {
     return (
-      <div className="p-8">
+      <div>
         <p className="text-red-600">{error || "Unauthorized"}</p>
         <Link href="/login" className="mt-4 inline-block text-cyan-600 hover:underline">
           Go to login
@@ -110,24 +110,8 @@ export default function PlatformTenantsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link href="/dashboard" className="font-semibold text-cyan-800">
-            AquaTrack
-          </Link>
-          <nav className="flex gap-4">
-            <Link href="/dashboard" className="text-slate-600 hover:text-cyan-700">
-              Dashboard
-            </Link>
-            <Link href="/tenants" className="text-cyan-600 font-medium">
-              Tenants
-            </Link>
-          </nav>
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">
-        <h1 className="text-2xl font-bold text-slate-900">Tenants</h1>
+    <div>
+      <h1 className="text-2xl font-bold text-slate-900">Tenants</h1>
         <p className="mt-1 text-slate-500">Create and manage tenants. Suspended tenants cannot access portal or app.</p>
 
         <details className="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -232,7 +216,6 @@ export default function PlatformTenantsPage() {
             </table>
           </div>
         )}
-      </main>
     </div>
   );
 }

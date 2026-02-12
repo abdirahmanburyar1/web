@@ -10,7 +10,16 @@ export default function PlatformDashboardPage() {
     revenue: number;
     totalPaymentsVolume: number;
   } | null>(null);
-  const [tenants, setTenants] = useState<{ tenants: Array<{ id: string; name: string; slug: string; status: string; _count: { users: number; customers: number; payments: number } }>; total: number } | null>(null);
+  const [tenants, setTenants] = useState<{
+    tenants: Array<{
+      id: string;
+      name: string;
+      slug: string;
+      status: string;
+      _count: { users: number; customers: number; payments: number };
+    }>;
+    total: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -41,16 +50,10 @@ export default function PlatformDashboardPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 p-8">
-        <p className="text-slate-500">Loading dashboard…</p>
-      </div>
-    );
-  }
+  if (loading) return <div className="text-slate-500">Loading dashboard…</div>;
   if (error || !getToken()) {
     return (
-      <div className="min-h-screen bg-slate-50 p-8">
+      <div>
         <p className="text-red-600">{error || "Unauthorized"}</p>
         <Link href="/login" className="mt-4 inline-block text-cyan-600 hover:underline">
           Go to login
@@ -60,99 +63,82 @@ export default function PlatformDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link href="/dashboard" className="font-semibold text-cyan-800">
-            AquaTrack
+    <div>
+      <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+      <p className="mt-1 text-slate-500">Platform metrics and recent tenants.</p>
+      {metrics && (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">Active tenants</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{metrics.tenants.active}</p>
+            <p className="text-xs text-slate-400">of {metrics.tenants.total} total</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">Transactions</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{metrics.transactions}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">Revenue ($0.1/txn)</p>
+            <p className="mt-1 text-2xl font-bold text-emerald-600">
+              ${metrics.revenue.toFixed(2)}
+            </p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">Payments volume</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">
+              ${Number(metrics.totalPaymentsVolume).toFixed(2)}
+            </p>
+          </div>
+        </div>
+      )}
+      <div className="mt-10">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-slate-900">Recent tenants</h2>
+          <Link href="/tenants" className="text-sm font-medium text-cyan-600 hover:underline">
+            View all
           </Link>
-          <nav className="flex gap-4">
-            <Link href="/tenants" className="text-slate-600 hover:text-cyan-700">
-              Tenants
-            </Link>
-            <Link href="/" className="text-slate-500 hover:text-slate-700">Home</Link>
-          </nav>
         </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">
-        <h1 className="text-2xl font-bold text-slate-900">Platform metrics</h1>
-        {metrics && (
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-sm font-medium text-slate-500">Active tenants</p>
-              <p className="mt-1 text-2xl font-bold text-slate-900">{metrics.tenants.active}</p>
-              <p className="text-xs text-slate-400">of {metrics.tenants.total} total</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-sm font-medium text-slate-500">Transactions</p>
-              <p className="mt-1 text-2xl font-bold text-slate-900">{metrics.transactions}</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-sm font-medium text-slate-500">Revenue ($0.1/txn)</p>
-              <p className="mt-1 text-2xl font-bold text-emerald-600">
-                ${metrics.revenue.toFixed(2)}
-              </p>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-sm font-medium text-slate-500">Payments volume</p>
-              <p className="mt-1 text-2xl font-bold text-slate-900">
-                ${Number(metrics.totalPaymentsVolume).toFixed(2)}
-              </p>
-            </div>
-          </div>
-        )}
-        <div className="mt-10">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Recent tenants</h2>
-            <Link
-              href="/tenants"
-              className="text-sm font-medium text-cyan-600 hover:underline"
-            >
-              View all
-            </Link>
-          </div>
-          {tenants?.tenants?.length ? (
-            <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Slug</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Users</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Customers</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Payments</th>
+        {tenants?.tenants?.length ? (
+          <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Slug</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Users</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Customers</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Payments</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {tenants.tenants.map((t) => (
+                  <tr key={t.id}>
+                    <td className="px-4 py-3 text-sm font-medium text-slate-900">{t.name}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{t.slug}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={
+                          t.status === "ACTIVE"
+                            ? "rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800"
+                            : "rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
+                        }
+                      >
+                        {t.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{t._count.users}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{t._count.customers}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{t._count.payments}</td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {tenants.tenants.map((t) => (
-                    <tr key={t.id}>
-                      <td className="px-4 py-3 text-sm font-medium text-slate-900">{t.name}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{t.slug}</td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={
-                            t.status === "ACTIVE"
-                              ? "rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800"
-                              : "rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
-                          }
-                        >
-                          {t.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{t._count.users}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{t._count.customers}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{t._count.payments}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="mt-4 text-slate-500">No tenants yet. Create one from the Tenants page.</p>
-          )}
-        </div>
-      </main>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="mt-4 text-slate-500">No tenants yet. Create one from Tenants.</p>
+        )}
+      </div>
     </div>
   );
 }

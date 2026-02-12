@@ -48,6 +48,23 @@ Root domain = platform portal (login, dashboard, tenants). Companies use their s
 
    Create a tenant (and its first tenant admin) from the Platform dashboard or the Tenants page.
 
+## Deploy on Vercel
+
+1. **Connect the repo** – Push only the `web` folder (e.g. `git subtree push --prefix=web origin main`) or use a repo that has this app at the root. Connect that repo to a new Vercel project.
+
+2. **Environment variables** (Vercel → Project → Settings → Environment Variables):
+   - `DATABASE_URL` – PostgreSQL connection string (e.g. Neon). Use the **pooled** URL for serverless.
+   - `JWT_SECRET` – Set a strong secret in production (e.g. `openssl rand -base64 32`).
+
+3. **Domains** (Vercel → Project → Settings → Domains):
+   - Add `aquatrack.so` (root = platform).
+   - Add `*.aquatrack.so` so tenant subdomains (e.g. `acme.aquatrack.so`) resolve to the same project.
+
+4. **Build** – Default `npm run build` runs `prisma generate && next build`. No extra config needed.
+
+5. **Database** – Run migrations and seed once (from your machine or a one-off script):  
+   `npx prisma migrate deploy` (or `db push`) and `npx prisma db seed` with the same `DATABASE_URL`.
+
 ## Revenue model
 
 - **$0.1 per transaction** – Platform metrics use payment count × 0.1 for revenue.

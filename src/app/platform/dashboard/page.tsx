@@ -52,7 +52,7 @@ export default function PlatformDashboardPage() {
     return (
       <div className="min-h-screen bg-slate-50 p-8">
         <p className="text-red-600">{error || "Unauthorized"}</p>
-        <Link href="/platform/login" className="mt-4 inline-block text-cyan-600 hover:underline">
+        <Link href="/login" className="mt-4 inline-block text-cyan-600 hover:underline">
           Go to login
         </Link>
       </div>
@@ -63,11 +63,11 @@ export default function PlatformDashboardPage() {
     <div className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link href="/platform/dashboard" className="font-semibold text-cyan-800">
-            AquaTrack Platform
+          <Link href="/dashboard" className="font-semibold text-cyan-800">
+            AquaTrack
           </Link>
           <nav className="flex gap-4">
-            <Link href="/platform/tenants" className="text-slate-600 hover:text-cyan-700">
+            <Link href="/tenants" className="text-slate-600 hover:text-cyan-700">
               Tenants
             </Link>
             <Link href="/" className="text-slate-500 hover:text-slate-700">Home</Link>
@@ -105,7 +105,7 @@ export default function PlatformDashboardPage() {
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-900">Recent tenants</h2>
             <Link
-              href="/platform/tenants"
+              href="/tenants"
               className="text-sm font-medium text-cyan-600 hover:underline"
             >
               View all

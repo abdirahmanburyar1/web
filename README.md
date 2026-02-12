@@ -1,8 +1,8 @@
-# AquaTrack Web – Platform & Tenant Portals
+# AquaTrack Web
 
 **Domain: [aquatrack.so](https://aquatrack.so)**
 
-Next.js app with Platform Admin and Tenant portals, plus API for the Flutter collector app.
+Root domain = platform portal (login, dashboard, tenants). Companies use their subdomain (e.g. acme.aquatrack.so); tenant from session. API for the Flutter collector app.
 
 ## Setup
 
@@ -39,14 +39,12 @@ Next.js app with Platform Admin and Tenant portals, plus API for the Flutter col
    ```
 
    **Development:**
-   - Home: http://localhost:3000  
-   - Platform Admin: http://localhost:3000/platform/login  
-   - Tenant Portal: go to http://localhost:3000/enter, enter tenant slug, then use `/login?tenant=acme` (or open that URL directly).
+   - **Root = platform:** http://localhost:3000 → redirects to /login. Use /dashboard, /tenants. No separate "platform portal" — root is the platform.
+   - **Tenant (simulate subdomain):** http://localhost:3000/login?tenant=acme (tenant from session after login).
 
    **Production (aquatrack.so):**
-   - Home: https://aquatrack.so (no login; tenants cannot log in on the root domain).
-   - Platform Admin: https://aquatrack.so/platform/login  
-   - Tenant Portal: **subdomain per tenant** — e.g. https://acme.aquatrack.so/login, https://acme.aquatrack.so/dashboard. Tenant is identified by subdomain and `tenant_id` in session (JWT). Root domain has no tenant login; use **/enter** to type your tenant subdomain and get redirected to `https://{slug}.aquatrack.so`.
+   - **Root domain is the platform by default:** https://aquatrack.so → /login, /dashboard, /tenants. No "tenant portal" vs "platform portal" — root is the platform.
+   - **Companies use their subdomain:** e.g. https://acme.aquatrack.so/login. Tenant is from the user's session (JWT). Info: https://aquatrack.so/enter
 
    Create a tenant (and its first tenant admin) from the Platform dashboard or the Tenants page.
 

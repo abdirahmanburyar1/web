@@ -2,21 +2,6 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const MAIN_HOST = "aquatrack.so";
-const TENANT_PORTAL_PATHS = [
-  "/login",
-  "/dashboard",
-  "/customers",
-  "/invoices",
-  "/payments",
-  "/meter-readings",
-  "/reports",
-  "/users",
-  "/settings",
-];
-
-function isTenantPortalPath(pathname: string) {
-  return TENANT_PORTAL_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
-}
 
 export function middleware(request: NextRequest) {
   const host = request.headers.get("host") ?? "";
@@ -50,22 +35,35 @@ export function middleware(request: NextRequest) {
     return res;
   }
 
-  // Legacy /tenant/* → clean paths (subdomain + tenant_id in session; no /tenant in URL)
+  // Legacy /tenant/* → clean paths on subdomain
   if (url.pathname.startsWith("/tenant/")) {
     const rest = url.pathname.slice("/tenant".length) || "/dashboard";
     url.pathname = rest === "/login" ? "/login" : rest;
     return NextResponse.redirect(url);
   }
 
-  // Main domain: if user requested a tenant portal path, send to tenant entry
-  if (hostname === MAIN_HOST && isTenantPortalPath(url.pathname)) {
-    url.pathname = "/enter";
-    url.searchParams.set("next", request.nextUrl.pathname);
+  // Legacy /platform/* → clean URLs (root domain is platform by default)
+  if (url.pathname.startsWith("/platform/")) {
+    url.pathname = url.pathname.replace(/^\/platform/, "") || "/dashboard";
     return NextResponse.redirect(url);
   }
 
-  // Main domain: clear tenant_slug cookie so tenant is only set on subdomain (or dev ?tenant=)
-  if (hostname === MAIN_HOST) {
+  const isMainDomain =
+    hostname === MAIN_HOST ||
+    hostname === "localhost" ||
+    hostname === "127.0.0.1";
+
+  // Root domain (and localhost without ?tenant=): platform portal at clean URLs
+  if (isMainDomain && !slug) {
+    if (url.pathname === "/") {
+      url.pathname = "/login";
+      return NextResponse.redirect(url);
+    }
+    if (url.pathname === "/login" || url.pathname === "/dashboard" || url.pathname === "/tenants") {
+      const rewrite = NextResponse.rewrite(new URL(`/platform${url.pathname}`, request.url));
+      rewrite.cookies.delete("tenant_slug");
+      return rewrite;
+    }
     const res = NextResponse.next();
     res.cookies.delete("tenant_slug");
     return res;

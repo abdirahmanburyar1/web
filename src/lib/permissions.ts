@@ -35,7 +35,7 @@ export function userHasPermission(
   user: {
     roleType?: string;
     role?: { permissions: { permission: { code: string } }[] } | null;
-    directPermissions?: { permission: { code: string }[] };
+    directPermissions?: Array<{ permission: { code: string } }>;
   },
   code: PermissionCode
 ): boolean {

@@ -102,7 +102,7 @@ export default function PlatformTenantsPage() {
     return (
       <div className="p-8">
         <p className="text-red-600">{error || "Unauthorized"}</p>
-        <Link href="/platform/login" className="mt-4 inline-block text-cyan-600 hover:underline">
+        <Link href="/login" className="mt-4 inline-block text-cyan-600 hover:underline">
           Go to login
         </Link>
       </div>
@@ -113,14 +113,14 @@ export default function PlatformTenantsPage() {
     <div className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link href="/platform/dashboard" className="font-semibold text-cyan-800">
-            AquaTrack Platform
+          <Link href="/dashboard" className="font-semibold text-cyan-800">
+            AquaTrack
           </Link>
           <nav className="flex gap-4">
-            <Link href="/platform/dashboard" className="text-slate-600 hover:text-cyan-700">
+            <Link href="/dashboard" className="text-slate-600 hover:text-cyan-700">
               Dashboard
             </Link>
-            <Link href="/platform/tenants" className="text-cyan-600 font-medium">
+            <Link href="/tenants" className="text-cyan-600 font-medium">
               Tenants
             </Link>
           </nav>

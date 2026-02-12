@@ -60,7 +60,7 @@ export async function POST(req: Request) {
       amount,
       balance: amount,
       dueDate: new Date(dueDate),
-      items: items ?? null,
+      ...(items != null && { items: items as object }),
       status: amount === 0 ? 'PAID' : 'PENDING',
     },
     include: { customer: { select: { id: true, fullName: true } } },

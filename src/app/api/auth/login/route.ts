@@ -48,6 +48,7 @@ export async function POST(req: Request) {
         fullName: user.fullName,
         roleType: user.roleType,
         tenantId: user.tenantId,
+        tenantSlug: user.tenant?.slug ?? null,
         tenantName: user.tenant?.name,
         tenantStatus: user.tenant?.status,
       },

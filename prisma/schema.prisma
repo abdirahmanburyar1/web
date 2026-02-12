@@ -1,0 +1,275 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  PLATFORM_ADMIN
+  TENANT_ADMIN
+  STAFF
+  COLLECTOR
+  ACCOUNTANT
+}
+
+enum PaymentMethod {
+  CASH
+  MOBILE_MONEY
+  BANK_TRANSFER
+  OTHER
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum SubscriptionPlan {
+  BASIC
+  STANDARD
+  PREMIUM
+  ENTERPRISE
+}
+
+// Platform Models
+
+model Tenant {
+  id                String           @id @default(uuid())
+  name              String
+  slug              String           @unique
+  status            TenantStatus     @default(ACTIVE)
+  subscriptionPlan  SubscriptionPlan @default(BASIC)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  // Settings
+  billingCycle      String?          // e.g., "monthly", "quarterly"
+  currency          String           @default("USD")
+  // Plan limits (null = unlimited)
+  maxStaff          Int?
+  maxCustomers      Int?
+  maxTransactions   Int?             // per billing period
+
+  // Relations
+  users             User[]
+  roles             Role[]
+  customers         Customer[]
+  zones             Zone[]
+  invoices          Invoice[]
+  payments          Payment[]
+  auditLogs         AuditLog[]
+
+  @@map("tenants")
+}
+
+model User {
+  id             String    @id @default(uuid())
+  tenantId       String?
+  tenant         Tenant?   @relation(fields: [tenantId], references: [id])
+  roleId         String?
+  role           Role?     @relation(fields: [roleId], references: [id])
+  
+  email          String    @unique
+  passwordHash   String
+  fullName       String
+  phoneNumber    String?
+  
+  roleType       UserRole  @default(STAFF)  // quick check: PLATFORM_ADMIN, TENANT_ADMIN, etc.
+  isActive       Boolean   @default(true)
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  collectedPayments Payment[]   @relation("CollectorPayments")
+  directPermissions UserPermission[]
+  auditLogs         AuditLog[]
+  meterReadings     MeterReading[]
+
+  @@map("users")
+  @@index([tenantId])
+  @@index([email])
+  @@index([roleId])
+}
+
+// Permission codes (e.g. customers:read, invoices:manage) - platform-level list
+model Permission {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  module      String?
+  rolePerms   RolePermission[]
+  userPerms   UserPermission[]
+
+  @@map("permissions")
+}
+
+// Tenant-specific roles (admin, staff, collector, or custom)
+model Role {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  name        String
+  description String?
+  users       User[]
+  permissions RolePermission[]
+
+  @@map("roles")
+  @@index([tenantId])
+}
+
+model RolePermission {
+  roleId       String
+  role         Role       @relation(fields: [roleId], references: [id])
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// Direct permission assignment to a user (override/in addition to role)
+model UserPermission {
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([userId, permissionId])
+  @@map("user_permissions")
+}
+
+// Tenant Models
+
+model Zone {
+  id          String     @id @default(uuid())
+  tenantId    String
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
+  name        String
+  description String?
+  
+  customers   Customer[]
+
+  @@map("zones")
+  @@index([tenantId])
+}
+
+model Customer {
+  id             String    @id @default(uuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  
+  zoneId         String?
+  zone           Zone?     @relation(fields: [zoneId], references: [id])
+  
+  fullName       String
+  email          String?
+  phoneNumber    String?
+  address        String?
+  meterNumber    String?
+  
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  invoices       Invoice[]
+  payments       Payment[]
+  meterReadings  MeterReading[]
+
+  @@map("customers")
+  @@index([tenantId])
+  @@index([zoneId])
+}
+
+model MeterReading {
+  id           String   @id @default(uuid())
+  customerId   String
+  customer     Customer @relation(fields: [customerId], references: [id])
+  value        Decimal  @db.Decimal(12, 4)
+  unit         String?  @default("m³")
+  recordedAt   DateTime @default(now())
+  recordedById String?
+  recordedBy   User?    @relation(fields: [recordedById], references: [id])
+
+  @@map("meter_readings")
+  @@index([customerId])
+  @@index([recordedById])
+}
+
+model Invoice {
+  id             String    @id @default(uuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  
+  customerId     String
+  customer       Customer  @relation(fields: [customerId], references: [id])
+  
+  amount         Decimal   @db.Decimal(10, 2)
+  balance        Decimal   @db.Decimal(10, 2)
+  status         String    @default("PENDING") // PENDING, PAID, PARTIAL, OVERDUE
+  dueDate        DateTime
+  issuedDate     DateTime  @default(now())
+  
+  items          Json?     // Flexible JSON for line items
+  
+  payments       Payment[]
+
+  @@map("invoices")
+  @@index([tenantId])
+  @@index([customerId])
+}
+
+model Payment {
+  id             String        @id @default(uuid())
+  tenantId       String
+  tenant         Tenant        @relation(fields: [tenantId], references: [id])
+  
+  customerId     String
+  customer       Customer      @relation(fields: [customerId], references: [id])
+  
+  invoiceId      String?
+  invoice        Invoice?      @relation(fields: [invoiceId], references: [id])
+  
+  collectorId    String?
+  collector      User?         @relation("CollectorPayments", fields: [collectorId], references: [id])
+  
+  amount         Decimal       @db.Decimal(10, 2)
+  method         PaymentMethod @default(CASH)
+  reference      String?       // Transaction ID from external provider
+  
+  recordedAt     DateTime      @default(now())
+
+  @@map("payments")
+  @@index([tenantId])
+  @@index([customerId])
+  @@index([collectorId])
+  @@index([invoiceId])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  tenantId    String?
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
+  
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  
+  action      String
+  entityType  String
+  entityId    String?
+  details     Json?
+  
+  createdAt   DateTime @default(now())
+
+  @@map("audit_logs")
+  @@index([tenantId])
+  @@index([userId])
+}

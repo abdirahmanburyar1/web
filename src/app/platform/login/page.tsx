@@ -26,6 +26,10 @@ export default function PlatformLoginPage() {
         setError(data.error || "Login failed");
         return;
       }
+      if (data.user?.tenantId) {
+        setError("This account is a company user. Use your company's subdomain (e.g. acme.aquatrack.so) to sign in. Platform admin cannot sign in here.");
+        return;
+      }
       if (data.user?.roleType !== "PLATFORM_ADMIN") {
         setError("Platform admin access only.");
         return;
@@ -46,12 +50,15 @@ export default function PlatformLoginPage() {
       <header className="border-b border-slate-200 bg-white/80">
         <div className="mx-auto flex h-14 max-w-6xl items-center px-4">
           <Link href="/" className="font-semibold text-cyan-800">AquaTrack</Link>
+          <span className="ml-3 text-sm text-slate-500">Platform Admin</span>
         </div>
       </header>
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-lg">
-          <h1 className="text-xl font-bold text-slate-900">Sign in</h1>
-          <p className="mt-1 text-sm text-slate-500">Manage tenants and revenue.</p>
+          <h1 className="text-xl font-bold text-slate-900">Platform Admin Portal</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Sign in with your <strong>platform admin</strong> account. Not for company users—use your company’s subdomain (e.g. acme.aquatrack.so) to sign in as a tenant.
+          </p>
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             {error && (
               <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>

@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
+const PLATFORM_HOSTS = ["aquatrack.so", "www.aquatrack.so"];
 
 /** Get current tenant slug from subdomain (or dev ?tenant= / cookie). */
 function getCurrentSlug(): string | null {
@@ -27,7 +29,13 @@ export default function TenantLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isPlatformDomain, setIsPlatformDomain] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const host = typeof window !== "undefined" ? window.location.hostname : "";
+    setIsPlatformDomain(PLATFORM_HOSTS.includes(host));
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -70,15 +78,20 @@ export default function TenantLoginPage() {
       <header className="border-b border-slate-200 bg-white/80">
         <div className="mx-auto flex h-14 max-w-6xl items-center px-4">
           <Link href="/" className="font-semibold text-cyan-800">AquaTrack</Link>
-          <span className="ml-4 text-slate-500">Sign in</span>
+          <span className="ml-4 text-slate-500">Company sign in</span>
         </div>
       </header>
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-lg">
-          <h1 className="text-xl font-bold text-slate-900">Sign in</h1>
+          <h1 className="text-xl font-bold text-slate-900">Company sign in</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Your company is determined by your account (session). Use your company's subdomain to sign in.
+            Use your company’s subdomain (e.g. acme.aquatrack.so). Platform admins: <Link href="/login" className="text-cyan-600 hover:underline">Platform Admin Portal</Link>.
           </p>
+          {isPlatformDomain && (
+            <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
+              You’re on the platform domain. This form is for <strong>company users</strong>. Platform admins should see “Platform Admin Portal” here—if you don’t, do a hard refresh (Ctrl+Shift+R) or clear cache and redeploy.
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             {error && (
               <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>

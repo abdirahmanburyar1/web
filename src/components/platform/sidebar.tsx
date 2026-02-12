@@ -23,7 +23,7 @@ export function PlatformSidebar() {
       </div>
       <nav className="p-3 space-y-0.5 flex-1">
         {nav.map((item) => {
-          const active = pathname === item.href || pathname === `/platform${item.href}`;
+          const active = pathname === item.href;
           return (
             <Link
               key={item.href}

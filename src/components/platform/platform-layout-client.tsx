@@ -14,12 +14,36 @@ export function PlatformLayoutClient({ children }: { children: React.ReactNode }
   const pathname = usePathname();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
   const isLogin = pathname === "/login";
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (!mounted || isLogin) return;
-    if (!getToken()) router.replace("/login");
+    const token = getToken();
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
+    // Tenant users (session with tenantId) must not use platform on root domain
+    fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((user) => {
+        if (user?.tenantId) {
+          const slug = user?.tenant?.slug;
+          if (slug && typeof window !== "undefined") {
+            const origin = window.location.origin;
+            if (origin.includes("aquatrack.so")) {
+              window.location.replace(`https://${slug}.aquatrack.so${window.location.pathname}`);
+              return;
+            }
+          }
+          router.replace("/enter");
+          return;
+        }
+        setSessionChecked(true);
+      })
+      .catch(() => setSessionChecked(true));
   }, [mounted, isLogin, router]);
 
   if (!mounted) {
@@ -31,6 +55,13 @@ export function PlatformLayoutClient({ children }: { children: React.ReactNode }
   }
   if (isLogin) return <>{children}</>;
   if (!getToken()) return null;
+  if (!sessionChecked && !isLogin) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="text-slate-500">Loading…</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-slate-50">

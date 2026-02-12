@@ -42,19 +42,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Legacy /platform/* → clean URLs (root domain is platform by default)
-  if (url.pathname.startsWith("/platform/")) {
-    url.pathname = url.pathname.replace(/^\/platform/, "") || "/dashboard";
-    return NextResponse.redirect(url);
-  }
-
   const isMainDomain =
     hostname === MAIN_HOST ||
     hostname === `www.${MAIN_HOST}` ||
     hostname === "localhost" ||
     hostname === "127.0.0.1";
 
-  // Root domain (and localhost without ?tenant=): platform portal at clean URLs
+  // Root domain (and localhost without ?tenant=): platform portal at clean URLs (no /platform in URL)
   if (isMainDomain && !slug) {
     if (url.pathname === "/") {
       url.pathname = "/login";
@@ -69,6 +63,12 @@ export function middleware(request: NextRequest) {
     const res = NextResponse.next();
     res.cookies.delete("tenant_slug");
     return res;
+  }
+
+  // Legacy /platform/* on non-main (e.g. tenant subdomain): strip to clean path
+  if (url.pathname.startsWith("/platform/")) {
+    url.pathname = url.pathname.replace(/^\/platform/, "") || "/dashboard";
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.next();

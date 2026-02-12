@@ -50,6 +50,7 @@ export function middleware(request: NextRequest) {
 
   const isMainDomain =
     hostname === MAIN_HOST ||
+    hostname === `www.${MAIN_HOST}` ||
     hostname === "localhost" ||
     hostname === "127.0.0.1";
 

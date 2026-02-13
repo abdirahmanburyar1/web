@@ -99,11 +99,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'meterNumber and customerName required' }, { status: 400 });
   }
   const num = meterNumber.trim();
-  const existing = await prisma.meter.findFirst({
+  const existingMeter = await prisma.meter.findFirst({
     where: { tenantId, meterNumber: num },
   });
-  if (existing) {
+  if (existingMeter) {
     return NextResponse.json({ error: 'Meter number already exists for this tenant' }, { status: 400 });
+  }
+  const plate = plateNumber?.trim() || null;
+  if (plate) {
+    const existingPlate = await prisma.meter.findFirst({
+      where: { tenantId, plateNumber: plate },
+    });
+    if (existingPlate) {
+      return NextResponse.json({ error: 'Plate number already exists for this tenant' }, { status: 400 });
+    }
   }
   const statusVal = status && METER_STATUSES.includes(status as typeof METER_STATUSES[number]) ? status : 'PENDING';
   const meter = await prisma.meter.create({
@@ -116,7 +125,7 @@ export async function POST(req: Request) {
       section: section?.trim() || null,
       subSection: subSection?.trim() || null,
       zoneId: zoneId || null,
-      plateNumber: plateNumber?.trim() || null,
+      plateNumber: plate || null,
       status: statusVal as 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'OVERDUE' | 'INACTIVE',
       address: address?.trim() || null,
       meterType: meterType?.trim() || null,

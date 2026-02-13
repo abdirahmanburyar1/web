@@ -311,122 +311,60 @@ export default function TenantMetersPage() {
                         placeholder="Section name"
                       />
                     </div>
-                    {addNewSection && (
-                      <form onSubmit={handleAddSection} className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
-                        <Input
-                          value={newSectionName}
-                          onChange={(e) => setNewSectionName(e.target.value)}
-                          placeholder="New section name"
-                          className="max-w-[200px]"
-                        />
-                        <Button type="submit" size="sm" disabled={addingSection || !newSectionName.trim()}>
-                          {addingSection ? "Adding…" : "Add"}
-                        </Button>
-                        <button type="button" onClick={() => { setAddNewSection(false); setNewSectionName(""); }} className="text-sm text-slate-500 hover:text-slate-700">
-                          Cancel
-                        </button>
-                      </form>
-                    )}
                   </div>
                 </div>
                 <div>
                   <Label>Sub-section</Label>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex gap-2">
-                      <select
-                        value={addNewSubSection ? "__add_new__" : (subSections.find((s) => s.name === form.subSection)?.id ?? "")}
-                        onChange={(e) => {
-                          if (e.target.value === "__add_new__") {
-                            setAddNewSubSection(true);
-                            setForm((f) => ({ ...f, subSection: "" }));
-                          } else {
-                            setAddNewSubSection(false);
-                            const s = subSections.find((x) => x.id === e.target.value);
-                            setForm((f) => ({ ...f, subSection: s ? s.name : "" }));
-                          }
-                        }}
-                        className="w-40 shrink-0 rounded-xl border border-slate-300 px-3 py-2.5 text-sm"
-                      >
-                        <option value="">— Pick —</option>
-                        {subSections.map((s) => (
-                          <option key={s.id} value={s.id}>{s.name}</option>
-                        ))}
-                        <option value="__add_new__">+ Add New</option>
-                      </select>
-                      <Input
-                        className="flex-1"
-                        value={form.subSection}
-                        onChange={(e) => setForm((f) => ({ ...f, subSection: e.target.value }))}
-                        placeholder="Sub-section name"
-                      />
-                    </div>
-                    {addNewSubSection && (
-                      <form onSubmit={handleAddSubSection} className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
-                        <Input
-                          value={newSubSectionName}
-                          onChange={(e) => setNewSubSectionName(e.target.value)}
-                          placeholder="New sub-section name"
-                          className="max-w-[200px]"
-                        />
-                        <select
-                          value={newSubSectionSectionId}
-                          onChange={(e) => setNewSubSectionSectionId(e.target.value)}
-                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
-                        >
-                          <option value="">No section</option>
-                          {sections.map((s) => (
-                            <option key={s.id} value={s.id}>{s.name}</option>
-                          ))}
-                        </select>
-                        <Button type="submit" size="sm" disabled={addingSubSection || !newSubSectionName.trim()}>
-                          {addingSubSection ? "Adding…" : "Add"}
-                        </Button>
-                        <button type="button" onClick={() => { setAddNewSubSection(false); setNewSubSectionName(""); setNewSubSectionSectionId(""); }} className="text-sm text-slate-500 hover:text-slate-700">
-                          Cancel
-                        </button>
-                      </form>
-                    )}
+                  <div className="flex gap-2">
+                    <select
+                      value={addNewSubSection ? "__add_new__" : (subSections.find((s) => s.name === form.subSection)?.id ?? "")}
+                      onChange={(e) => {
+                        if (e.target.value === "__add_new__") {
+                          setAddNewSubSection(true);
+                          setForm((f) => ({ ...f, subSection: "" }));
+                        } else {
+                          setAddNewSubSection(false);
+                          const s = subSections.find((x) => x.id === e.target.value);
+                          setForm((f) => ({ ...f, subSection: s ? s.name : "" }));
+                        }
+                      }}
+                      className="w-40 shrink-0 rounded-xl border border-slate-300 px-3 py-2.5 text-sm"
+                    >
+                      <option value="">— Pick —</option>
+                      {subSections.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                      <option value="__add_new__">+ Add New</option>
+                    </select>
+                    <Input
+                      className="flex-1"
+                      value={form.subSection}
+                      onChange={(e) => setForm((f) => ({ ...f, subSection: e.target.value }))}
+                      placeholder="Sub-section name"
+                    />
                   </div>
                 </div>
                 <div>
                   <Label>Zone</Label>
-                  <div className="flex flex-col gap-2">
-                    <select
-                      value={addNewZone ? "__add_new__" : form.zoneId}
-                      onChange={(e) => {
-                        if (e.target.value === "__add_new__") {
-                          setAddNewZone(true);
-                          setForm((f) => ({ ...f, zoneId: "" }));
-                        } else {
-                          setAddNewZone(false);
-                          setForm((f) => ({ ...f, zoneId: e.target.value }));
-                        }
-                      }}
-                      className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
-                    >
-                      <option value="">—</option>
-                      {zones.map((z) => (
-                        <option key={z.id} value={z.id}>{z.name}</option>
-                      ))}
-                      <option value="__add_new__">+ Add New</option>
-                    </select>
-                    {addNewZone && (
-                      <form onSubmit={handleAddZone} className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
-                        <Input
-                          value={newZoneName}
-                          onChange={(e) => setNewZoneName(e.target.value)}
-                          placeholder="New zone name"
-                          className="max-w-[200px]"
-                        />
-                        <Button type="submit" size="sm" disabled={addingZone || !newZoneName.trim()}>
-                          {addingZone ? "Adding…" : "Add"}
-                        </Button>
-                        <button type="button" onClick={() => { setAddNewZone(false); setNewZoneName(""); }} className="text-sm text-slate-500 hover:text-slate-700">
-                          Cancel
-                        </button>
-                      </form>
-                    )}
-                  </div>
+                  <select
+                    value={addNewZone ? "__add_new__" : form.zoneId}
+                    onChange={(e) => {
+                      if (e.target.value === "__add_new__") {
+                        setAddNewZone(true);
+                        setForm((f) => ({ ...f, zoneId: "" }));
+                      } else {
+                        setAddNewZone(false);
+                        setForm((f) => ({ ...f, zoneId: e.target.value }));
+                      }
+                    }}
+                    className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                  >
+                    <option value="">—</option>
+                    {zones.map((z) => (
+                      <option key={z.id} value={z.id}>{z.name}</option>
+                    ))}
+                    <option value="__add_new__">+ Add New</option>
+                  </select>
                 </div>
                 <div>
                   <Label>Plate number</Label>
@@ -520,6 +458,106 @@ export default function TenantMetersPage() {
           </table>
           <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-3 text-sm text-slate-500">Total: {data?.total ?? 0} meters</div>
         </TableWrapper>
+      )}
+
+      {/* Add New Zone modal */}
+      {addNewZone && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-zone-title">
+          <div className="fixed inset-0 bg-slate-900/50" onClick={() => { setAddNewZone(false); setNewZoneName(""); }} aria-hidden />
+          <div className="relative w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 id="modal-zone-title" className="text-lg font-semibold text-slate-900">Add new zone</h2>
+            <form onSubmit={handleAddZone} className="mt-4 space-y-4">
+              <div>
+                <Label>Zone name</Label>
+                <Input
+                  value={newZoneName}
+                  onChange={(e) => setNewZoneName(e.target.value)}
+                  placeholder="e.g. North"
+                  autoFocus
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="secondary" onClick={() => { setAddNewZone(false); setNewZoneName(""); }}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={addingZone || !newZoneName.trim()}>
+                  {addingZone ? "Adding…" : "Add zone"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add New Section modal */}
+      {addNewSection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-section-title">
+          <div className="fixed inset-0 bg-slate-900/50" onClick={() => { setAddNewSection(false); setNewSectionName(""); }} aria-hidden />
+          <div className="relative w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 id="modal-section-title" className="text-lg font-semibold text-slate-900">Add new section</h2>
+            <form onSubmit={handleAddSection} className="mt-4 space-y-4">
+              <div>
+                <Label>Section name</Label>
+                <Input
+                  value={newSectionName}
+                  onChange={(e) => setNewSectionName(e.target.value)}
+                  placeholder="e.g. Block A"
+                  autoFocus
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="secondary" onClick={() => { setAddNewSection(false); setNewSectionName(""); }}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={addingSection || !newSectionName.trim()}>
+                  {addingSection ? "Adding…" : "Add section"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add New Sub-section modal */}
+      {addNewSubSection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-subsection-title">
+          <div className="fixed inset-0 bg-slate-900/50" onClick={() => { setAddNewSubSection(false); setNewSubSectionName(""); setNewSubSectionSectionId(""); }} aria-hidden />
+          <div className="relative w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 id="modal-subsection-title" className="text-lg font-semibold text-slate-900">Add new sub-section</h2>
+            <form onSubmit={handleAddSubSection} className="mt-4 space-y-4">
+              <div>
+                <Label>Sub-section name</Label>
+                <Input
+                  value={newSubSectionName}
+                  onChange={(e) => setNewSubSectionName(e.target.value)}
+                  placeholder="e.g. Unit 1"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <Label>Section (optional)</Label>
+                <select
+                  value={newSubSectionSectionId}
+                  onChange={(e) => setNewSubSectionSectionId(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                >
+                  <option value="">— None —</option>
+                  {sections.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="secondary" onClick={() => { setAddNewSubSection(false); setNewSubSectionName(""); setNewSubSectionSectionId(""); }}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={addingSubSection || !newSubSectionName.trim()}>
+                  {addingSubSection ? "Adding…" : "Add sub-section"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -219,7 +219,7 @@ model SubSection {
 
 model Meter {
   id                String      @id @default(uuid())
-  tenantId          String
+  tenantId          String      @map("tenant_id")
   tenant            Tenant      @relation(fields: [tenantId], references: [id])
   zoneId            String?
   zone              Zone?       @relation(fields: [zoneId], references: [id])
@@ -249,7 +249,11 @@ model Meter {
 
   @@map("meters")
   @@unique([tenantId, meterNumber])
+  @@unique([tenantId, plateNumber])
   @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([meterNumber])
+  @@index([plateNumber])
   @@index([zoneId])
   @@index([collectorId])
 }

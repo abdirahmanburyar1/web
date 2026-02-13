@@ -66,8 +66,25 @@ export async function PATCH(
   if (installationDate !== undefined) data.installationDate = installationDate ? new Date(installationDate) : null;
   if (serialNumber !== undefined) data.serialNumber = serialNumber?.trim() || null;
   if (collectorId !== undefined) data.collectorId = collectorId || null;
+  const tenantId = user.tenantId!;
+  if (data.meterNumber !== undefined) {
+    const existing = await prisma.meter.findFirst({
+      where: { tenantId, meterNumber: data.meterNumber as string, NOT: { id } },
+    });
+    if (existing) {
+      return NextResponse.json({ error: 'Meter number already exists for this tenant' }, { status: 400 });
+    }
+  }
+  if (data.plateNumber !== undefined && data.plateNumber !== null && String(data.plateNumber).trim() !== '') {
+    const existing = await prisma.meter.findFirst({
+      where: { tenantId, plateNumber: String(data.plateNumber).trim(), NOT: { id } },
+    });
+    if (existing) {
+      return NextResponse.json({ error: 'Plate number already exists for this tenant' }, { status: 400 });
+    }
+  }
   const updated = await prisma.meter.updateMany({
-    where: { id, tenantId: user.tenantId! },
+    where: { id, tenantId },
     data,
   });
   if (updated.count === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 });

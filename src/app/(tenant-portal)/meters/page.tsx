@@ -287,67 +287,49 @@ export default function TenantMetersPage() {
                 </div>
                 <div>
                   <Label>Section</Label>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex gap-2">
-                      <select
-                        value={addNewSection ? "__add_new__" : (sections.find((s) => s.name === form.section)?.id ?? "")}
-                        onChange={(e) => {
-                          if (e.target.value === "__add_new__") {
-                            setAddNewSection(true);
-                            setForm((f) => ({ ...f, section: "" }));
-                          } else {
-                            setAddNewSection(false);
-                            const s = sections.find((x) => x.id === e.target.value);
-                            setForm((f) => ({ ...f, section: s ? s.name : "" }));
-                          }
-                        }}
-                        className="w-40 shrink-0 rounded-xl border border-slate-300 px-3 py-2.5 text-sm"
-                      >
-                        <option value="">— Pick —</option>
-                        {sections.map((s) => (
-                          <option key={s.id} value={s.id}>{s.name}</option>
-                        ))}
-                        <option value="__add_new__">+ Add New</option>
-                      </select>
-                      <Input
-                        className="flex-1"
-                        value={form.section}
-                        onChange={(e) => setForm((f) => ({ ...f, section: e.target.value }))}
-                        placeholder="Section name"
-                      />
-                    </div>
-                  </div>
+                  <select
+                    value={addNewSection ? "__add_new__" : (sections.find((s) => s.name === form.section)?.id ?? "")}
+                    onChange={(e) => {
+                      if (e.target.value === "__add_new__") {
+                        setAddNewSection(true);
+                        setForm((f) => ({ ...f, section: "" }));
+                      } else {
+                        setAddNewSection(false);
+                        const s = sections.find((x) => x.id === e.target.value);
+                        setForm((f) => ({ ...f, section: s ? s.name : "" }));
+                      }
+                    }}
+                    className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                  >
+                    <option value="">— Pick —</option>
+                    {sections.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                    <option value="__add_new__">+ Add New</option>
+                  </select>
                 </div>
                 <div>
                   <Label>Sub-section</Label>
-                  <div className="flex gap-2">
-                    <select
-                      value={addNewSubSection ? "__add_new__" : (subSections.find((s) => s.name === form.subSection)?.id ?? "")}
-                      onChange={(e) => {
-                        if (e.target.value === "__add_new__") {
-                          setAddNewSubSection(true);
-                          setForm((f) => ({ ...f, subSection: "" }));
-                        } else {
-                          setAddNewSubSection(false);
-                          const s = subSections.find((x) => x.id === e.target.value);
-                          setForm((f) => ({ ...f, subSection: s ? s.name : "" }));
-                        }
-                      }}
-                      className="w-40 shrink-0 rounded-xl border border-slate-300 px-3 py-2.5 text-sm"
-                    >
-                      <option value="">— Pick —</option>
-                      {subSections.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                      <option value="__add_new__">+ Add New</option>
-                    </select>
-                    <Input
-                      className="flex-1"
-                      value={form.subSection}
-                      onChange={(e) => setForm((f) => ({ ...f, subSection: e.target.value }))}
-                      placeholder="Sub-section name"
-                    />
-                  </div>
+                  <select
+                    value={addNewSubSection ? "__add_new__" : (subSections.find((s) => s.name === form.subSection)?.id ?? "")}
+                    onChange={(e) => {
+                      if (e.target.value === "__add_new__") {
+                        setAddNewSubSection(true);
+                        setForm((f) => ({ ...f, subSection: "" }));
+                      } else {
+                        setAddNewSubSection(false);
+                        const s = subSections.find((x) => x.id === e.target.value);
+                        setForm((f) => ({ ...f, subSection: s ? s.name : "" }));
+                      }
+                    }}
+                    className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                  >
+                    <option value="">— Pick —</option>
+                    {subSections.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                    <option value="__add_new__">+ Add New</option>
+                  </select>
                 </div>
                 <div>
                   <Label>Zone</Label>

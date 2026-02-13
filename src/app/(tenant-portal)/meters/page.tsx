@@ -43,6 +43,16 @@ export default function TenantMetersPage() {
   const [error, setError] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [addNewZone, setAddNewZone] = useState(false);
+  const [addNewSection, setAddNewSection] = useState(false);
+  const [addNewSubSection, setAddNewSubSection] = useState(false);
+  const [newZoneName, setNewZoneName] = useState("");
+  const [newSectionName, setNewSectionName] = useState("");
+  const [newSubSectionName, setNewSubSectionName] = useState("");
+  const [newSubSectionSectionId, setNewSubSectionSectionId] = useState("");
+  const [addingZone, setAddingZone] = useState(false);
+  const [addingSection, setAddingSection] = useState(false);
+  const [addingSubSection, setAddingSubSection] = useState(false);
   const [form, setForm] = useState({
     meterNumber: "",
     customerName: "",
@@ -103,6 +113,85 @@ export default function TenantMetersPage() {
     load();
     setLoading(false);
   }, []);
+
+  async function handleAddZone(e: React.FormEvent) {
+    e.preventDefault();
+    const t = getToken();
+    if (!t || !newZoneName.trim()) return;
+    setAddingZone(true);
+    try {
+      const res = await fetch("/api/tenant/zones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+        body: JSON.stringify({ name: newZoneName.trim() }),
+      });
+      const z = await res.json();
+      if (!res.ok) {
+        setError(z.error || "Failed to add zone");
+        return;
+      }
+      setZones((prev) => [...prev, z]);
+      setForm((f) => ({ ...f, zoneId: z.id }));
+      setNewZoneName("");
+      setAddNewZone(false);
+    } finally {
+      setAddingZone(false);
+    }
+  }
+
+  async function handleAddSection(e: React.FormEvent) {
+    e.preventDefault();
+    const t = getToken();
+    if (!t || !newSectionName.trim()) return;
+    setAddingSection(true);
+    try {
+      const res = await fetch("/api/tenant/sections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+        body: JSON.stringify({ name: newSectionName.trim() }),
+      });
+      const s = await res.json();
+      if (!res.ok) {
+        setError(s.error || "Failed to add section");
+        return;
+      }
+      setSections((prev) => [...prev, s]);
+      setForm((f) => ({ ...f, section: s.name }));
+      setNewSectionName("");
+      setAddNewSection(false);
+    } finally {
+      setAddingSection(false);
+    }
+  }
+
+  async function handleAddSubSection(e: React.FormEvent) {
+    e.preventDefault();
+    const t = getToken();
+    if (!t || !newSubSectionName.trim()) return;
+    setAddingSubSection(true);
+    try {
+      const res = await fetch("/api/tenant/sub-sections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+        body: JSON.stringify({
+          name: newSubSectionName.trim(),
+          sectionId: newSubSectionSectionId || undefined,
+        }),
+      });
+      const ss = await res.json();
+      if (!res.ok) {
+        setError(ss.error || "Failed to add sub-section");
+        return;
+      }
+      setSubSections((prev) => [...prev, ss]);
+      setForm((f) => ({ ...f, subSection: ss.name }));
+      setNewSubSectionName("");
+      setNewSubSectionSectionId("");
+      setAddNewSubSection(false);
+    } finally {
+      setAddingSubSection(false);
+    }
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -193,13 +282,19 @@ export default function TenantMetersPage() {
                 </div>
                 <div>
                   <Label>Section</Label>
-                  <div className="flex gap-2">
-                    {sections.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
                       <select
-                        value={sections.find((s) => s.name === form.section)?.id ?? ""}
+                        value={addNewSection ? "__add_new__" : (sections.find((s) => s.name === form.section)?.id ?? "")}
                         onChange={(e) => {
-                          const s = sections.find((x) => x.id === e.target.value);
-                          setForm((f) => ({ ...f, section: s ? s.name : "" }));
+                          if (e.target.value === "__add_new__") {
+                            setAddNewSection(true);
+                            setForm((f) => ({ ...f, section: "" }));
+                          } else {
+                            setAddNewSection(false);
+                            const s = sections.find((x) => x.id === e.target.value);
+                            setForm((f) => ({ ...f, section: s ? s.name : "" }));
+                          }
                         }}
                         className="w-40 shrink-0 rounded-xl border border-slate-300 px-3 py-2.5 text-sm"
                       >
@@ -207,25 +302,48 @@ export default function TenantMetersPage() {
                         {sections.map((s) => (
                           <option key={s.id} value={s.id}>{s.name}</option>
                         ))}
+                        <option value="__add_new__">+ Add New</option>
                       </select>
+                      <Input
+                        className="flex-1"
+                        value={form.section}
+                        onChange={(e) => setForm((f) => ({ ...f, section: e.target.value }))}
+                        placeholder="Section name"
+                      />
+                    </div>
+                    {addNewSection && (
+                      <form onSubmit={handleAddSection} className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+                        <Input
+                          value={newSectionName}
+                          onChange={(e) => setNewSectionName(e.target.value)}
+                          placeholder="New section name"
+                          className="max-w-[200px]"
+                        />
+                        <Button type="submit" size="sm" disabled={addingSection || !newSectionName.trim()}>
+                          {addingSection ? "Adding…" : "Add"}
+                        </Button>
+                        <button type="button" onClick={() => { setAddNewSection(false); setNewSectionName(""); }} className="text-sm text-slate-500 hover:text-slate-700">
+                          Cancel
+                        </button>
+                      </form>
                     )}
-                    <Input
-                      className="flex-1"
-                      value={form.section}
-                      onChange={(e) => setForm((f) => ({ ...f, section: e.target.value }))}
-                      placeholder="Section name"
-                    />
                   </div>
                 </div>
                 <div>
                   <Label>Sub-section</Label>
-                  <div className="flex gap-2">
-                    {subSections.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
                       <select
-                        value={subSections.find((s) => s.name === form.subSection)?.id ?? ""}
+                        value={addNewSubSection ? "__add_new__" : (subSections.find((s) => s.name === form.subSection)?.id ?? "")}
                         onChange={(e) => {
-                          const s = subSections.find((x) => x.id === e.target.value);
-                          setForm((f) => ({ ...f, subSection: s ? s.name : "" }));
+                          if (e.target.value === "__add_new__") {
+                            setAddNewSubSection(true);
+                            setForm((f) => ({ ...f, subSection: "" }));
+                          } else {
+                            setAddNewSubSection(false);
+                            const s = subSections.find((x) => x.id === e.target.value);
+                            setForm((f) => ({ ...f, subSection: s ? s.name : "" }));
+                          }
                         }}
                         className="w-40 shrink-0 rounded-xl border border-slate-300 px-3 py-2.5 text-sm"
                       >
@@ -233,28 +351,82 @@ export default function TenantMetersPage() {
                         {subSections.map((s) => (
                           <option key={s.id} value={s.id}>{s.name}</option>
                         ))}
+                        <option value="__add_new__">+ Add New</option>
                       </select>
+                      <Input
+                        className="flex-1"
+                        value={form.subSection}
+                        onChange={(e) => setForm((f) => ({ ...f, subSection: e.target.value }))}
+                        placeholder="Sub-section name"
+                      />
+                    </div>
+                    {addNewSubSection && (
+                      <form onSubmit={handleAddSubSection} className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+                        <Input
+                          value={newSubSectionName}
+                          onChange={(e) => setNewSubSectionName(e.target.value)}
+                          placeholder="New sub-section name"
+                          className="max-w-[200px]"
+                        />
+                        <select
+                          value={newSubSectionSectionId}
+                          onChange={(e) => setNewSubSectionSectionId(e.target.value)}
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+                        >
+                          <option value="">No section</option>
+                          {sections.map((s) => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                          ))}
+                        </select>
+                        <Button type="submit" size="sm" disabled={addingSubSection || !newSubSectionName.trim()}>
+                          {addingSubSection ? "Adding…" : "Add"}
+                        </Button>
+                        <button type="button" onClick={() => { setAddNewSubSection(false); setNewSubSectionName(""); setNewSubSectionSectionId(""); }} className="text-sm text-slate-500 hover:text-slate-700">
+                          Cancel
+                        </button>
+                      </form>
                     )}
-                    <Input
-                      className="flex-1"
-                      value={form.subSection}
-                      onChange={(e) => setForm((f) => ({ ...f, subSection: e.target.value }))}
-                      placeholder="Sub-section name"
-                    />
                   </div>
                 </div>
                 <div>
                   <Label>Zone</Label>
-                  <select
-                    value={form.zoneId}
-                    onChange={(e) => setForm((f) => ({ ...f, zoneId: e.target.value }))}
-                    className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
-                  >
-                    <option value="">—</option>
-                    {zones.map((z) => (
-                      <option key={z.id} value={z.id}>{z.name}</option>
-                    ))}
-                  </select>
+                  <div className="flex flex-col gap-2">
+                    <select
+                      value={addNewZone ? "__add_new__" : form.zoneId}
+                      onChange={(e) => {
+                        if (e.target.value === "__add_new__") {
+                          setAddNewZone(true);
+                          setForm((f) => ({ ...f, zoneId: "" }));
+                        } else {
+                          setAddNewZone(false);
+                          setForm((f) => ({ ...f, zoneId: e.target.value }));
+                        }
+                      }}
+                      className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                    >
+                      <option value="">—</option>
+                      {zones.map((z) => (
+                        <option key={z.id} value={z.id}>{z.name}</option>
+                      ))}
+                      <option value="__add_new__">+ Add New</option>
+                    </select>
+                    {addNewZone && (
+                      <form onSubmit={handleAddZone} className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+                        <Input
+                          value={newZoneName}
+                          onChange={(e) => setNewZoneName(e.target.value)}
+                          placeholder="New zone name"
+                          className="max-w-[200px]"
+                        />
+                        <Button type="submit" size="sm" disabled={addingZone || !newZoneName.trim()}>
+                          {addingZone ? "Adding…" : "Add"}
+                        </Button>
+                        <button type="button" onClick={() => { setAddNewZone(false); setNewZoneName(""); }} className="text-sm text-slate-500 hover:text-slate-700">
+                          Cancel
+                        </button>
+                      </form>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <Label>Plate number</Label>

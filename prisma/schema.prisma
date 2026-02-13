@@ -177,19 +177,6 @@ model UserPermission {
 
 // Tenant Models
 
-model Zone {
-  id          String   @id @default(uuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  name        String
-  description String?
-
-  meters      Meter[]
-
-  @@map("zones")
-  @@index([tenantId])
-}
-
 model Section {
   id          String   @id @default(uuid())
   tenantId    String
@@ -204,17 +191,35 @@ model Section {
 }
 
 model SubSection {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
   sectionId   String?
-  section     Section? @relation(fields: [sectionId], references: [id])
+  section     Section?  @relation(fields: [sectionId], references: [id])
   name        String
   description String?
+
+  zones       Zone[]
 
   @@map("sub_sections")
   @@index([tenantId])
   @@index([sectionId])
+}
+
+model Zone {
+  id            String       @id @default(uuid())
+  tenantId      String
+  tenant        Tenant       @relation(fields: [tenantId], references: [id])
+  subSectionId  String?
+  subSection    SubSection?  @relation(fields: [subSectionId], references: [id])
+  name          String
+  description   String?
+
+  meters        Meter[]
+
+  @@map("zones")
+  @@index([tenantId])
+  @@index([subSectionId])
 }
 
 model Meter {

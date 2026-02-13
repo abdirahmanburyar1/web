@@ -9,9 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/input";
 import Link from "next/link";
 
-type Zone = { id: string; name: string; description?: string | null; _count?: { meters: number } };
+type Zone = { id: string; name: string; description?: string | null; subSectionId?: string | null; _count?: { meters: number }; subSection?: { id: string; name: string } | null };
 type Section = { id: string; name: string; description?: string | null; _count?: { subSections: number } };
-type SubSection = { id: string; name: string; description?: string | null; sectionId?: string | null; section?: { id: string; name: string } | null };
+type SubSection = { id: string; name: string; description?: string | null; sectionId?: string | null; section?: { id: string; name: string } | null; _count?: { zones: number } };
 
 export default function SetupPage() {
   const [zones, setZones] = useState<Zone[]>([]);
@@ -20,7 +20,7 @@ export default function SetupPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [zoneForm, setZoneForm] = useState({ name: "", description: "" });
+  const [zoneForm, setZoneForm] = useState({ name: "", description: "", subSectionId: "" });
   const [sectionForm, setSectionForm] = useState({ name: "", description: "" });
   const [subSectionForm, setSubSectionForm] = useState({ name: "", description: "", sectionId: "" });
 
@@ -43,9 +43,12 @@ export default function SetupPage() {
       fetch("/api/tenant/sub-sections", { headers }).then((r) => r.json()),
     ])
       .then(([z, s, ss]) => {
-        setZones(Array.isArray(z) ? z : []);
-        setSections(Array.isArray(s) ? s : []);
-        setSubSections(Array.isArray(ss) ? ss : []);
+        if (z?.error) setError(z.error);
+        else setZones(Array.isArray(z) ? z : []);
+        if (s?.error) setError(s.error);
+        else setSections(Array.isArray(s) ? s : []);
+        if (ss?.error) setError(ss.error);
+        else setSubSections(Array.isArray(ss) ? ss : []);
       })
       .catch(() => setError("Failed to load"))
       .finally(() => setLoading(false));
@@ -69,7 +72,11 @@ export default function SetupPage() {
       const res = await fetch("/api/tenant/zones", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
-        body: JSON.stringify({ name: zoneForm.name.trim(), description: zoneForm.description.trim() || undefined }),
+        body: JSON.stringify({
+          name: zoneForm.name.trim(),
+          description: zoneForm.description.trim() || undefined,
+          subSectionId: zoneForm.subSectionId || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -77,7 +84,7 @@ export default function SetupPage() {
         return;
       }
       setZones((prev) => [...prev, data]);
-      setZoneForm({ name: "", description: "" });
+      setZoneForm({ name: "", description: "", subSectionId: "" });
     } finally {
       setZoneSubmitting(false);
     }
@@ -155,45 +162,9 @@ export default function SetupPage() {
         <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{error}</div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="font-medium text-slate-900">Zones</CardHeader>
-          <CardContent className="space-y-4">
-            <form onSubmit={createZone} className="space-y-3">
-              <div>
-                <Label>Name</Label>
-                <Input
-                  value={zoneForm.name}
-                  onChange={(e) => setZoneForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="e.g. North"
-                  required
-                />
-              </div>
-              <div>
-                <Label>Description (optional)</Label>
-                <Input
-                  value={zoneForm.description}
-                  onChange={(e) => setZoneForm((f) => ({ ...f, description: e.target.value }))}
-                  placeholder="Optional"
-                />
-              </div>
-              <Button type="submit" disabled={zoneSubmitting}>{zoneSubmitting ? "Creating…" : "Add zone"}</Button>
-            </form>
-            <ul className="mt-4 space-y-1 border-t border-slate-100 pt-4">
-              {zones.length === 0 ? (
-                <li className="text-sm text-slate-500">No zones yet.</li>
-              ) : (
-                zones.map((z) => (
-                  <li key={z.id} className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-slate-800">{z.name}</span>
-                    {z._count != null && <span className="text-slate-500">{z._count.meters} meters</span>}
-                  </li>
-                ))
-              )}
-            </ul>
-          </CardContent>
-        </Card>
+      <p className="mb-4 text-sm text-slate-500">Order: Section → Sub-section → Zone. Create sections first, then sub-sections under a section, then zones under a sub-section.</p>
 
+      <div className="grid gap-6 lg:grid-cols-3">
         <Card>
           <CardHeader className="font-medium text-slate-900">Sections</CardHeader>
           <CardContent className="space-y-4">
@@ -273,9 +244,62 @@ export default function SetupPage() {
                 <li className="text-sm text-slate-500">No sub-sections yet.</li>
               ) : (
                 subSections.map((ss) => (
-                  <li key={ss.id} className="text-sm">
+                  <li key={ss.id} className="flex items-center justify-between text-sm">
                     <span className="font-medium text-slate-800">{ss.name}</span>
-                    {ss.section && <span className="ml-2 text-slate-500">({ss.section.name})</span>}
+                    {ss.section && <span className="text-slate-500">({ss.section.name})</span>}
+                    {ss._count != null && <span className="text-slate-500">{ss._count.zones} zones</span>}
+                  </li>
+                ))
+              )}
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="font-medium text-slate-900">Zones</CardHeader>
+          <CardContent className="space-y-4">
+            <form onSubmit={createZone} className="space-y-3">
+              <div>
+                <Label>Name</Label>
+                <Input
+                  value={zoneForm.name}
+                  onChange={(e) => setZoneForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="e.g. North"
+                  required
+                />
+              </div>
+              <div>
+                <Label>Sub-section (optional)</Label>
+                <select
+                  value={zoneForm.subSectionId}
+                  onChange={(e) => setZoneForm((f) => ({ ...f, subSectionId: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                >
+                  <option value="">— None —</option>
+                  {subSections.map((ss) => (
+                    <option key={ss.id} value={ss.id}>{ss.name}{ss.section ? ` (${ss.section.name})` : ""}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label>Description (optional)</Label>
+                <Input
+                  value={zoneForm.description}
+                  onChange={(e) => setZoneForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder="Optional"
+                />
+              </div>
+              <Button type="submit" disabled={zoneSubmitting}>{zoneSubmitting ? "Creating…" : "Add zone"}</Button>
+            </form>
+            <ul className="mt-4 space-y-1 border-t border-slate-100 pt-4">
+              {zones.length === 0 ? (
+                <li className="text-sm text-slate-500">No zones yet.</li>
+              ) : (
+                zones.map((z) => (
+                  <li key={z.id} className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-slate-800">{z.name}</span>
+                    {z.subSection && <span className="text-slate-500">({z.subSection.name})</span>}
+                    {z._count != null && <span className="text-slate-500">{z._count.meters} meters</span>}
                   </li>
                 ))
               )}

@@ -47,6 +47,7 @@ export default function TenantMetersPage() {
   const [addNewSection, setAddNewSection] = useState(false);
   const [addNewSubSection, setAddNewSubSection] = useState(false);
   const [newZoneName, setNewZoneName] = useState("");
+  const [newZoneSubSectionId, setNewZoneSubSectionId] = useState("");
   const [newSectionName, setNewSectionName] = useState("");
   const [newSubSectionName, setNewSubSectionName] = useState("");
   const [newSubSectionSectionId, setNewSubSectionSectionId] = useState("");
@@ -88,15 +89,15 @@ export default function TenantMetersPage() {
       .catch(() => setError("Failed to load"));
     fetch("/api/tenant/zones", { headers: { Authorization: `Bearer ${t}` } })
       .then((r) => r.json())
-      .then((z) => setZones(Array.isArray(z) ? z : []))
+      .then((z) => { if (z?.error) setError(z.error); else setZones(Array.isArray(z) ? z : []); })
       .catch(() => {});
     fetch("/api/tenant/sections", { headers: { Authorization: `Bearer ${t}` } })
       .then((r) => r.json())
-      .then((s) => setSections(Array.isArray(s) ? s : []))
+      .then((s) => { if (s?.error) setError(s.error); else setSections(Array.isArray(s) ? s : []); })
       .catch(() => {});
     fetch("/api/tenant/sub-sections", { headers: { Authorization: `Bearer ${t}` } })
       .then((r) => r.json())
-      .then((ss) => setSubSections(Array.isArray(ss) ? ss : []))
+      .then((ss) => { if (ss?.error) setError(ss.error); else setSubSections(Array.isArray(ss) ? ss : []); })
       .catch(() => {});
     fetch("/api/tenant/users", { headers: { Authorization: `Bearer ${t}` } })
       .then((r) => r.json())
@@ -123,7 +124,10 @@ export default function TenantMetersPage() {
       const res = await fetch("/api/tenant/zones", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
-        body: JSON.stringify({ name: newZoneName.trim() }),
+        body: JSON.stringify({
+          name: newZoneName.trim(),
+          subSectionId: newZoneSubSectionId || undefined,
+        }),
       });
       const z = await res.json();
       if (!res.ok) {
@@ -133,6 +137,7 @@ export default function TenantMetersPage() {
       setZones((prev) => [...prev, z]);
       setForm((f) => ({ ...f, zoneId: z.id }));
       setNewZoneName("");
+      setNewZoneSubSectionId("");
       setAddNewZone(false);
     } finally {
       setAddingZone(false);
@@ -463,7 +468,7 @@ export default function TenantMetersPage() {
       {/* Add New Zone modal */}
       {addNewZone && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-zone-title">
-          <div className="fixed inset-0 bg-slate-900/50" onClick={() => { setAddNewZone(false); setNewZoneName(""); }} aria-hidden />
+          <div className="fixed inset-0 bg-slate-900/50" onClick={() => { setAddNewZone(false); setNewZoneName(""); setNewZoneSubSectionId(""); }} aria-hidden />
           <div className="relative w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h2 id="modal-zone-title" className="text-lg font-semibold text-slate-900">Add new zone</h2>
             <form onSubmit={handleAddZone} className="mt-4 space-y-4">
@@ -476,8 +481,21 @@ export default function TenantMetersPage() {
                   autoFocus
                 />
               </div>
+              <div>
+                <Label>Sub-section (optional)</Label>
+                <select
+                  value={newZoneSubSectionId}
+                  onChange={(e) => setNewZoneSubSectionId(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                >
+                  <option value="">— None —</option>
+                  {subSections.map((ss) => (
+                    <option key={ss.id} value={ss.id}>{ss.name}</option>
+                  ))}
+                </select>
+              </div>
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="secondary" onClick={() => { setAddNewZone(false); setNewZoneName(""); }}>
+                <Button type="button" variant="secondary" onClick={() => { setAddNewZone(false); setNewZoneName(""); setNewZoneSubSectionId(""); }}>
                   Cancel
                 </Button>
                 <Button type="submit" disabled={addingZone || !newZoneName.trim()}>

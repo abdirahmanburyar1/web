@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageLoading } from "@/components/ui/loading";
+import { Button } from "@/components/ui/button";
 
 export default function TenantDashboardPage() {
   const [stats, setStats] = useState<{
@@ -35,44 +39,43 @@ export default function TenantDashboardPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="text-slate-500">Loading…</div>;
+  if (loading) return <PageLoading />;
   if (error || !getToken()) {
     return (
-      <div>
-        <p className="text-red-600">{error || "Unauthorized"}</p>
-        <Link href="/login" className="mt-4 inline-block text-cyan-600 hover:underline">
-          Go to login
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
+        <p className="text-red-700">{error || "Unauthorized"}</p>
+        <Link href="/login" className="mt-4 inline-block">
+          <Button variant="secondary">Go to login</Button>
         </Link>
       </div>
     );
   }
 
+  const statCards = [
+    { label: "Active customers", value: stats!.customersCount, color: "text-slate-900" },
+    { label: "Payments this month", value: stats!.paymentsThisMonth, color: "text-slate-900" },
+    { label: "Collected this month", value: `$${Number(stats!.totalCollectedThisMonth).toFixed(2)}`, color: "text-emerald-600" },
+    { label: "Overdue invoices", value: stats!.overdueInvoices, color: "text-amber-600" },
+  ];
+
   return (
     <div>
-      <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-      <p className="mt-1 text-slate-500">Overview of your customers and collections.</p>
-      {stats && (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Active customers</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{stats.customersCount}</p>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Payments this month</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{stats.paymentsThisMonth}</p>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Collected this month</p>
-            <p className="mt-1 text-2xl font-bold text-emerald-600">
-              ${Number(stats.totalCollectedThisMonth).toFixed(2)}
-            </p>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Overdue invoices</p>
-            <p className="mt-1 text-2xl font-bold text-amber-600">{stats.overdueInvoices}</p>
-          </div>
-        </div>
-      )}
+      <PageHeader
+        title="Dashboard"
+        description="Overview of your customers and collections."
+      />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {statCards.map((s) => (
+          <Card key={s.label} className="transition-shadow hover:shadow-md">
+            <CardContent className="p-5 sm:p-6">
+              <p className="text-sm font-medium text-slate-500">{s.label}</p>
+              <p className={`mt-2 text-2xl font-bold tracking-tight sm:text-3xl ${s.color}`}>
+                {s.value}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

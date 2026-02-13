@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageLoading } from "@/components/ui/loading";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/input";
 
 type PlanLimit = {
   plan: string;
@@ -87,13 +93,13 @@ export default function PlatformPlansPage() {
     }
   }
 
-  if (loading) return <div className="text-slate-500">Loading…</div>;
+  if (loading) return <PageLoading />;
   if (error && !limits.length) {
     return (
-      <div>
-        <p className="text-red-600">{error}</p>
-        <Link href="/login" className="mt-4 inline-block text-cyan-600 hover:underline">
-          Go to login
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
+        <p className="text-red-700">{error}</p>
+        <Link href="/login" className="mt-4 inline-block">
+          <Button variant="secondary">Go to login</Button>
         </Link>
       </div>
     );
@@ -101,79 +107,79 @@ export default function PlatformPlansPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-slate-900">Subscription plans</h1>
-      <p className="mt-1 text-slate-500">
-        Default limits per plan. Assign plans to tenants on the Tenants page; override limits per tenant when editing a tenant.
-      </p>
-      {error && <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">{error}</div>}
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <PageHeader
+        title="Subscription plans"
+        description="Default limits per plan. Assign plans to tenants on the Tenants page; override per tenant when editing."
+      />
+      {error && <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{error}</div>}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {limits.map((p) => {
           const e = editing[p.plan] ?? { maxStaff: "", maxCustomers: "", maxTransactions: "" };
           return (
-            <div
-              key={p.plan}
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-            >
-              <h2 className="font-semibold text-slate-900">{p.plan}</h2>
-              <div className="mt-3 space-y-2">
-                <div>
-                  <label className="block text-xs text-slate-500">Max staff</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={e.maxStaff}
-                    onChange={(ev) =>
-                      setEditing((prev) => ({
-                        ...prev,
-                        [p.plan]: { ...prev[p.plan], maxStaff: ev.target.value },
-                      }))
-                    }
-                    placeholder="Unlimited"
-                    className="mt-0.5 w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
-                  />
+            <Card key={p.plan} className="transition-shadow hover:shadow-md">
+              <CardContent className="p-5 sm:p-6">
+                <h2 className="font-semibold text-slate-900">{p.plan}</h2>
+                <div className="mt-4 space-y-3">
+                  <div>
+                    <Label className="text-xs text-slate-500">Max staff</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={e.maxStaff}
+                      onChange={(ev) =>
+                        setEditing((prev) => ({
+                          ...prev,
+                          [p.plan]: { ...prev[p.plan], maxStaff: ev.target.value },
+                        }))
+                      }
+                      placeholder="Unlimited"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-500">Max customers</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={e.maxCustomers}
+                      onChange={(ev) =>
+                        setEditing((prev) => ({
+                          ...prev,
+                          [p.plan]: { ...prev[p.plan], maxCustomers: ev.target.value },
+                        }))
+                      }
+                      placeholder="Unlimited"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-500">Max transactions/period</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={e.maxTransactions}
+                      onChange={(ev) =>
+                        setEditing((prev) => ({
+                          ...prev,
+                          [p.plan]: { ...prev[p.plan], maxTransactions: ev.target.value },
+                        }))
+                      }
+                      placeholder="Unlimited"
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs text-slate-500">Max customers</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={e.maxCustomers}
-                    onChange={(ev) =>
-                      setEditing((prev) => ({
-                        ...prev,
-                        [p.plan]: { ...prev[p.plan], maxCustomers: ev.target.value },
-                      }))
-                    }
-                    placeholder="Unlimited"
-                    className="mt-0.5 w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500">Max transactions/period</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={e.maxTransactions}
-                    onChange={(ev) =>
-                      setEditing((prev) => ({
-                        ...prev,
-                        [p.plan]: { ...prev[p.plan], maxTransactions: ev.target.value },
-                      }))
-                    }
-                    placeholder="Unlimited"
-                    className="mt-0.5 w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
-                  />
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleSave(p.plan)}
-                disabled={saving === p.plan}
-                className="mt-4 w-full rounded-lg bg-cyan-600 py-2 text-sm font-medium text-white hover:bg-cyan-700 disabled:opacity-50"
-              >
-                {saving === p.plan ? "Saving…" : "Save"}
-              </button>
-            </div>
+                <Button
+                  type="button"
+                  variant="platform"
+                  className="mt-4 w-full"
+                  onClick={() => handleSave(p.plan)}
+                  disabled={saving === p.plan}
+                >
+                  {saving === p.plan ? "Saving…" : "Save"}
+                </Button>
+              </CardContent>
+            </Card>
           );
         })}
       </div>

@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/ui/page-header";
+import { PageLoading } from "@/components/ui/loading";
+import { Button } from "@/components/ui/button";
+import { TableWrapper } from "@/components/ui/table-responsive";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty";
 
 export default function InvoicesPage() {
   const [data, setData] = useState<{ invoices: unknown[]; total: number } | null>(null);
@@ -30,12 +36,14 @@ export default function InvoicesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="text-slate-500">Loading…</div>;
-  if (error || !getToken()) {
+  if (loading) return <PageLoading />;
+  if (error && !data) {
     return (
-      <div>
-        <p className="text-red-600">{error || "Unauthorized"}</p>
-        <Link href="/login" className="mt-4 inline-block text-cyan-600 hover:underline">Go to login</Link>
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
+        <p className="text-red-700">{error}</p>
+        <Link href="/login" className="mt-4 inline-block">
+          <Button variant="secondary">Go to login</Button>
+        </Link>
       </div>
     );
   }
@@ -43,29 +51,34 @@ export default function InvoicesPage() {
   const invoices = (data?.invoices ?? []) as Array<{ id: string; amount: number; status: string; customer?: { fullName: string } }>;
   return (
     <div>
-      <h1 className="text-2xl font-bold text-slate-900">Invoices</h1>
-      <p className="mt-1 text-slate-500">View and manage invoices.</p>
-      <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <PageHeader title="Invoices" description="View and manage invoices." />
+      {invoices.length === 0 ? (
+        <EmptyState title="No invoices yet" description="Invoices will appear here when created." />
+      ) : (
+        <TableWrapper>
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Customer</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Amount</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Status</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Customer</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Amount</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200">
+          <tbody className="divide-y divide-slate-200 bg-white">
             {invoices.map((inv) => (
-              <tr key={inv.id}>
-                <td className="px-4 py-3 text-sm text-slate-900">{inv.customer?.fullName ?? "—"}</td>
+              <tr key={inv.id} className="hover:bg-slate-50/50">
+                <td className="px-4 py-3 text-sm font-medium text-slate-900">{inv.customer?.fullName ?? "—"}</td>
                 <td className="px-4 py-3 text-sm text-slate-600">${Number(inv.amount).toFixed(2)}</td>
-                <td className="px-4 py-3 text-sm text-slate-600">{inv.status}</td>
+                <td className="px-4 py-3">
+                  <Badge variant={inv.status === "PAID" ? "success" : inv.status === "OVERDUE" ? "danger" : "default"}>{inv.status}</Badge>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
-        <p className="px-4 py-2 text-sm text-slate-500">Total: {data?.total ?? 0}</p>
-      </div>
+        <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-3 text-sm text-slate-500">Total: {data?.total ?? 0}</div>
+        </TableWrapper>
+      )}
     </div>
   );
 }

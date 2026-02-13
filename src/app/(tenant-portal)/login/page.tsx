@@ -3,10 +3,13 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 const PLATFORM_HOSTS = ["aquatrack.so", "www.aquatrack.so"];
 
-/** Get current tenant slug from subdomain (or dev ?tenant= / cookie). */
 function getCurrentSlug(): string | null {
   if (typeof window === "undefined") return null;
   const host = window.location.hostname;
@@ -57,7 +60,6 @@ export default function TenantLoginPage() {
         setError("This account is not a company user. Use the Platform Admin portal for platform access.");
         return;
       }
-      // Tenant is from session only; user must be on their company's subdomain
       if (currentSlug && data.user?.tenantSlug && data.user.tenantSlug !== currentSlug) {
         setError(`This account is for ${data.user.tenantSlug}.aquatrack.so. Go to your company's portal to sign in.`);
         return;
@@ -74,50 +76,53 @@ export default function TenantLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-cyan-50 flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-lg">
-          <h1 className="text-xl font-bold text-slate-900">Sign in</h1>
+    <div className="min-h-screen bg-gradient-to-br from-teal-50/50 via-white to-cyan-50/30 flex flex-col items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-xl shadow-slate-200/50">
+        <CardContent className="p-6 sm:p-8">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Sign in</h1>
           {isPlatformDomain && (
-            <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
-              You're on the platform domain. This form is for <strong>company users</strong>. Platform admins should see "Platform Admin Portal" here—if you don't, do a hard refresh (Ctrl+Shift+R) or clear cache and redeploy.
+            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              You're on the platform domain. This form is for company users.{" "}
+              <Link href="/login" className="font-medium text-amber-800 underline">Platform Admin Portal</Link>
             </div>
           )}
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             {error && (
-              <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-slate-700">Email</label>
-              <input
+              <Label className="mb-1.5">Email</Label>
+              <Input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                 required
+                className="focus:ring-teal-500/20 focus:border-teal-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700">Password</label>
-              <input
+              <Label className="mb-1.5">Password</Label>
+              <Input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                 required
+                className="focus:ring-teal-500/20 focus:border-teal-500"
               />
             </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-lg bg-teal-600 py-2.5 font-medium text-white hover:bg-teal-700 disabled:opacity-50"
-            >
+            <Button type="submit" size="lg" className="w-full" disabled={loading}>
               {loading ? "Signing in…" : "Sign in"}
-            </button>
+            </Button>
           </form>
-          <p className="mt-4 text-center text-sm text-slate-500">
-            <Link href="/" className="text-cyan-600 hover:underline">Back to home</Link>
+          <p className="mt-6 text-center">
+            <Link href="/" className="text-sm text-slate-500 hover:text-teal-600 transition-colors">
+              ← Back to home
+            </Link>
           </p>
-        </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageLoading } from "@/components/ui/loading";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { TableWrapper } from "@/components/ui/table-responsive";
 
 export default function PlatformDashboardPage() {
   const [metrics, setMetrics] = useState<{
@@ -50,84 +56,75 @@ export default function PlatformDashboardPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="text-slate-500">Loading dashboard…</div>;
+  if (loading) return <PageLoading />;
   if (error || !getToken()) {
     return (
-      <div>
-        <p className="text-red-600">{error || "Unauthorized"}</p>
-        <Link href="/login" className="mt-4 inline-block text-cyan-600 hover:underline">
-          Go to login
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
+        <p className="text-red-700">{error || "Unauthorized"}</p>
+        <Link href="/login" className="mt-4 inline-block">
+          <Button variant="secondary">Go to login</Button>
         </Link>
       </div>
     );
   }
 
+  const statCards = [
+    { label: "Active tenants", value: metrics!.tenants.active, sub: `of ${metrics!.tenants.total} total` },
+    { label: "Transactions", value: metrics!.transactions.toLocaleString() },
+    { label: "Revenue ($0.1/txn)", value: `$${metrics!.revenue.toFixed(2)}`, color: "text-emerald-600" },
+    { label: "Payments volume", value: `$${Number(metrics!.totalPaymentsVolume).toFixed(2)}` },
+  ];
+
   return (
     <div>
-      <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-      <p className="mt-1 text-slate-500">Platform metrics and recent tenants.</p>
-      {metrics && (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Active tenants</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{metrics.tenants.active}</p>
-            <p className="text-xs text-slate-400">of {metrics.tenants.total} total</p>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Transactions</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{metrics.transactions}</p>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Revenue ($0.1/txn)</p>
-            <p className="mt-1 text-2xl font-bold text-emerald-600">
-              ${metrics.revenue.toFixed(2)}
-            </p>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Payments volume</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">
-              ${Number(metrics.totalPaymentsVolume).toFixed(2)}
-            </p>
-          </div>
-        </div>
-      )}
-      <div className="mt-10">
-        <div className="flex items-center justify-between">
+      <PageHeader
+        title="Dashboard"
+        description="Platform metrics and recent tenants."
+      />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {statCards.map((s) => (
+          <Card key={s.label} className="transition-shadow hover:shadow-md">
+            <CardContent className="p-5 sm:p-6">
+              <p className="text-sm font-medium text-slate-500">{s.label}</p>
+              <p className={`mt-2 text-2xl font-bold tracking-tight sm:text-3xl ${s.color ?? "text-slate-900"}`}>
+                {s.value}
+              </p>
+              {s.sub && <p className="mt-1 text-xs text-slate-400">{s.sub}</p>}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <div className="mt-8">
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-semibold text-slate-900">Recent tenants</h2>
-          <Link href="/tenants" className="text-sm font-medium text-cyan-600 hover:underline">
-            View all
+          <Link href="/tenants" className="text-sm font-medium text-cyan-600 hover:text-cyan-700 hover:underline">
+            View all →
           </Link>
         </div>
         {tenants?.tenants?.length ? (
-          <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <TableWrapper>
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Slug</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Users</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Customers</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Payments</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Slug</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Users</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Customers</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Payments</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-slate-200 bg-white">
                 {tenants.tenants.map((t) => (
-                  <tr key={t.id}>
-                    <td className="px-4 py-3 text-sm font-medium text-slate-900">
-                      <Link href={`/tenants/${t.id}`} className="text-cyan-600 hover:underline">{t.name}</Link>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{t.slug}</td>
+                  <tr key={t.id} className="hover:bg-slate-50/50">
                     <td className="px-4 py-3">
-                      <span
-                        className={
-                          t.status === "ACTIVE"
-                            ? "rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800"
-                            : "rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
-                        }
-                      >
-                        {t.status}
-                      </span>
+                      <Link href={`/tenants/${t.id}`} className="font-medium text-cyan-600 hover:text-cyan-700 hover:underline">
+                        {t.name}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-600 font-mono">{t.slug}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant={t.status === "ACTIVE" ? "success" : "warning"}>{t.status}</Badge>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{t._count.users}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{t._count.customers}</td>
@@ -136,9 +133,13 @@ export default function PlatformDashboardPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableWrapper>
         ) : (
-          <p className="mt-4 text-slate-500">No tenants yet. Create one from Tenants.</p>
+          <Card>
+            <CardContent className="py-12 text-center text-slate-500">
+              No tenants yet. Create one from <Link href="/tenants" className="text-cyan-600 hover:underline">Tenants</Link>.
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>

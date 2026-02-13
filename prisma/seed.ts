@@ -44,8 +44,26 @@ const PERMISSION_LIST = [
   { code: 'meter_readings:record', name: 'Record meter readings', module: 'meter_readings' },
 ];
 
+async function ensurePlanLimits() {
+  const plans: Array<{ plan: 'BASIC' | 'STANDARD' | 'PREMIUM' | 'ENTERPRISE'; maxStaff: number | null; maxCustomers: number | null; maxTransactions: number | null }> = [
+    { plan: 'BASIC', maxStaff: 5, maxCustomers: 500, maxTransactions: 1000 },
+    { plan: 'STANDARD', maxStaff: 20, maxCustomers: 2000, maxTransactions: 10000 },
+    { plan: 'PREMIUM', maxStaff: 100, maxCustomers: 10000, maxTransactions: 100000 },
+    { plan: 'ENTERPRISE', maxStaff: null, maxCustomers: null, maxTransactions: null },
+  ];
+  for (const pl of plans) {
+    await prisma.planLimit.upsert({
+      where: { plan: pl.plan },
+      create: pl,
+      update: { maxStaff: pl.maxStaff, maxCustomers: pl.maxCustomers, maxTransactions: pl.maxTransactions },
+    });
+  }
+  console.log('Seeded plan limits.');
+}
+
 async function main() {
   await ensurePlatformAdmin();
+  await ensurePlanLimits();
   for (const p of PERMISSION_LIST) {
     await prisma.permission.upsert({
       where: { code: p.code },

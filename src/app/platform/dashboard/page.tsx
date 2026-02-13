@@ -114,7 +114,9 @@ export default function PlatformDashboardPage() {
               <tbody className="divide-y divide-slate-200">
                 {tenants.tenants.map((t) => (
                   <tr key={t.id}>
-                    <td className="px-4 py-3 text-sm font-medium text-slate-900">{t.name}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-slate-900">
+                      <Link href={`/tenants/${t.id}`} className="text-cyan-600 hover:underline">{t.name}</Link>
+                    </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{t.slug}</td>
                     <td className="px-4 py-3">
                       <span

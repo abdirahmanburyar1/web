@@ -51,3 +51,24 @@ export async function PATCH(
   });
   return NextResponse.json(tenant);
 }
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const admin = await getPlatformAdminOrNull(req);
+  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const { id } = await params;
+  try {
+    await prisma.tenant.delete({ where: { id } });
+    return new NextResponse(null, { status: 204 });
+  } catch (e: unknown) {
+    if (e && typeof e === 'object' && 'code' in e && e.code === 'P2003') {
+      return NextResponse.json(
+        { error: 'Cannot delete tenant: it has users, customers, or other data. Remove them first or contact support.' },
+        { status: 400 }
+      );
+    }
+    throw e;
+  }
+}

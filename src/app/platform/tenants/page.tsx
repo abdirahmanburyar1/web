@@ -197,7 +197,13 @@ export default function PlatformTenantsPage() {
                     <td className="px-4 py-3 text-sm text-slate-600">{t._count.users}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{t._count.customers}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{t._count.payments}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 flex flex-wrap gap-2">
+                      <Link
+                        href={`/tenants/${t.id}`}
+                        className="text-cyan-600 hover:underline text-sm"
+                      >
+                        Edit
+                      </Link>
                       <button
                         type="button"
                         onClick={() => toggleSuspend(t.id, t.status)}

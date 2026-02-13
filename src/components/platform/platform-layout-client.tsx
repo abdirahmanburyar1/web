@@ -66,22 +66,7 @@ export function PlatformLayoutClient({ children }: { children: React.ReactNode }
   return (
     <div className="flex min-h-screen bg-slate-50">
       <PlatformSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 shrink-0 border-b border-slate-200 bg-white flex items-center justify-between px-6">
-          <span className="text-sm text-slate-500">Platform</span>
-          <Link
-            href="/login"
-            onClick={() => {
-              localStorage.removeItem("token");
-              localStorage.removeItem("portal");
-            }}
-            className="text-sm text-slate-600 hover:text-cyan-700"
-          >
-            Sign out
-          </Link>
-        </header>
-        <main className="flex-1 overflow-auto p-6">{children}</main>
-      </div>
+      <main className="flex-1 overflow-auto p-6 min-w-0">{children}</main>
     </div>
   );
 }

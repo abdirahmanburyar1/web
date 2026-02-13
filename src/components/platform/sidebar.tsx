@@ -40,12 +40,22 @@ export function PlatformSidebar() {
           );
         })}
       </nav>
-      <div className="border-t border-slate-200 p-3">
+      <div className="border-t border-slate-200 p-3 space-y-0.5">
         <Link
           href="/"
           className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 hover:text-slate-700"
         >
           ← Home
+        </Link>
+        <Link
+          href="/login"
+          onClick={() => {
+            localStorage.removeItem("token");
+            localStorage.removeItem("portal");
+          }}
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+        >
+          Sign out
         </Link>
       </div>
     </aside>

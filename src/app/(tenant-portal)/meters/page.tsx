@@ -36,6 +36,8 @@ type Meter = {
 export default function TenantMetersPage() {
   const [data, setData] = useState<{ meters: Meter[]; total: number } | null>(null);
   const [zones, setZones] = useState<Array<{ id: string; name: string }>>([]);
+  const [sections, setSections] = useState<Array<{ id: string; name: string }>>([]);
+  const [subSections, setSubSections] = useState<Array<{ id: string; name: string; sectionId?: string | null }>>([]);
   const [users, setUsers] = useState<Array<{ id: string; fullName: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -77,6 +79,14 @@ export default function TenantMetersPage() {
     fetch("/api/tenant/zones", { headers: { Authorization: `Bearer ${t}` } })
       .then((r) => r.json())
       .then((z) => setZones(Array.isArray(z) ? z : []))
+      .catch(() => {});
+    fetch("/api/tenant/sections", { headers: { Authorization: `Bearer ${t}` } })
+      .then((r) => r.json())
+      .then((s) => setSections(Array.isArray(s) ? s : []))
+      .catch(() => {});
+    fetch("/api/tenant/sub-sections", { headers: { Authorization: `Bearer ${t}` } })
+      .then((r) => r.json())
+      .then((ss) => setSubSections(Array.isArray(ss) ? ss : []))
       .catch(() => {});
     fetch("/api/tenant/users", { headers: { Authorization: `Bearer ${t}` } })
       .then((r) => r.json())
@@ -183,11 +193,55 @@ export default function TenantMetersPage() {
                 </div>
                 <div>
                   <Label>Section</Label>
-                  <Input value={form.section} onChange={(e) => setForm((f) => ({ ...f, section: e.target.value }))} />
+                  <div className="flex gap-2">
+                    {sections.length > 0 && (
+                      <select
+                        value={sections.find((s) => s.name === form.section)?.id ?? ""}
+                        onChange={(e) => {
+                          const s = sections.find((x) => x.id === e.target.value);
+                          setForm((f) => ({ ...f, section: s ? s.name : "" }));
+                        }}
+                        className="w-40 shrink-0 rounded-xl border border-slate-300 px-3 py-2.5 text-sm"
+                      >
+                        <option value="">— Pick —</option>
+                        {sections.map((s) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                    )}
+                    <Input
+                      className="flex-1"
+                      value={form.section}
+                      onChange={(e) => setForm((f) => ({ ...f, section: e.target.value }))}
+                      placeholder="Section name"
+                    />
+                  </div>
                 </div>
                 <div>
                   <Label>Sub-section</Label>
-                  <Input value={form.subSection} onChange={(e) => setForm((f) => ({ ...f, subSection: e.target.value }))} />
+                  <div className="flex gap-2">
+                    {subSections.length > 0 && (
+                      <select
+                        value={subSections.find((s) => s.name === form.subSection)?.id ?? ""}
+                        onChange={(e) => {
+                          const s = subSections.find((x) => x.id === e.target.value);
+                          setForm((f) => ({ ...f, subSection: s ? s.name : "" }));
+                        }}
+                        className="w-40 shrink-0 rounded-xl border border-slate-300 px-3 py-2.5 text-sm"
+                      >
+                        <option value="">— Pick —</option>
+                        {subSections.map((s) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                    )}
+                    <Input
+                      className="flex-1"
+                      value={form.subSection}
+                      onChange={(e) => setForm((f) => ({ ...f, subSection: e.target.value }))}
+                      placeholder="Sub-section name"
+                    />
+                  </div>
                 </div>
                 <div>
                   <Label>Zone</Label>

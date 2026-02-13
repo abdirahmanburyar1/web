@@ -88,6 +88,8 @@ model Tenant {
   roles             Role[]
   meters            Meter[]
   zones             Zone[]
+  sections          Section[]
+  subSections       SubSection[]
   invoices          Invoice[]
   payments          Payment[]
   auditLogs         AuditLog[]
@@ -186,6 +188,33 @@ model Zone {
 
   @@map("zones")
   @@index([tenantId])
+}
+
+model Section {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  name        String
+  description String?
+
+  subSections SubSection[]
+
+  @@map("sections")
+  @@index([tenantId])
+}
+
+model SubSection {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  sectionId   String?
+  section     Section? @relation(fields: [sectionId], references: [id])
+  name        String
+  description String?
+
+  @@map("sub_sections")
+  @@index([tenantId])
+  @@index([sectionId])
 }
 
 model Meter {

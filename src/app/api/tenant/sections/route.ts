@@ -5,26 +5,26 @@ import { prisma } from '@/lib/db';
 export async function GET(req: Request) {
   const user = await getTenantUserOrNull(req);
   if (!user) return NextResponse.json({ error: 'Unauthorized or tenant suspended' }, { status: 401 });
-  const zones = await prisma.zone.findMany({
+  const sections = await prisma.section.findMany({
     where: { tenantId: user.tenantId! },
     orderBy: { name: 'asc' },
-    include: { _count: { select: { meters: true } } },
+    include: { _count: { select: { subSections: true } } },
   });
-  return NextResponse.json(zones);
+  return NextResponse.json(sections);
 }
 
 export async function POST(req: Request) {
   const user = await getTenantUserOrNull(req);
   if (!user) return NextResponse.json({ error: 'Unauthorized or tenant suspended' }, { status: 401 });
-  const body = await req.json();
-  const { name, description } = body as { name: string; description?: string };
+  const body = await req.json().catch(() => ({}));
+  const { name, description } = body as { name?: string; description?: string };
   if (!name?.trim()) return NextResponse.json({ error: 'name required' }, { status: 400 });
-  const zone = await prisma.zone.create({
+  const section = await prisma.section.create({
     data: {
       tenantId: user.tenantId!,
       name: name.trim(),
       description: description?.trim() || null,
     },
   });
-  return NextResponse.json(zone);
+  return NextResponse.json(section);
 }

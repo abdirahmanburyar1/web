@@ -1,16 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getTenantUserOrNull } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { PERMISSIONS, userHasPermission } from '@/lib/permissions';
 
 const METER_STATUSES = ['PENDING', 'ACTIVE', 'SUSPENDED', 'OVERDUE', 'INACTIVE'] as const;
 
 export async function GET(req: Request) {
   const user = await getTenantUserOrNull(req);
   if (!user) return NextResponse.json({ error: 'Unauthorized or tenant suspended' }, { status: 401 });
-  if (!userHasPermission(user, PERMISSIONS.METERS_VIEW)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
   const { searchParams } = new URL(req.url);
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10)));
@@ -54,9 +50,6 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const user = await getTenantUserOrNull(req);
   if (!user) return NextResponse.json({ error: 'Unauthorized or tenant suspended' }, { status: 401 });
-  if (!userHasPermission(user, PERMISSIONS.METERS_CREATE)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
   const tenantId = user.tenantId!;
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
   if (tenant?.maxCustomers != null) {

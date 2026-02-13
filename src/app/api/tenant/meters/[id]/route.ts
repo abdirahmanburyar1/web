@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getTenantUserOrNull } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { PERMISSIONS, userHasPermission } from '@/lib/permissions';
 
 const METER_STATUSES = ['PENDING', 'ACTIVE', 'SUSPENDED', 'OVERDUE', 'INACTIVE'] as const;
 
@@ -11,9 +10,6 @@ export async function GET(
 ) {
   const user = await getTenantUserOrNull(req);
   if (!user) return NextResponse.json({ error: 'Unauthorized or tenant suspended' }, { status: 401 });
-  if (!userHasPermission(user, PERMISSIONS.METERS_VIEW)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
   const { id } = await params;
   const meter = await prisma.meter.findFirst({
     where: { id, tenantId: user.tenantId! },
@@ -35,9 +31,6 @@ export async function PATCH(
 ) {
   const user = await getTenantUserOrNull(req);
   if (!user) return NextResponse.json({ error: 'Unauthorized or tenant suspended' }, { status: 401 });
-  if (!userHasPermission(user, PERMISSIONS.METERS_EDIT)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
   const {
@@ -91,9 +84,6 @@ export async function DELETE(
 ) {
   const user = await getTenantUserOrNull(req);
   if (!user) return NextResponse.json({ error: 'Unauthorized or tenant suspended' }, { status: 401 });
-  if (!userHasPermission(user, PERMISSIONS.METERS_DELETE)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
   const { id } = await params;
   const meter = await prisma.meter.findFirst({
     where: { id, tenantId: user.tenantId! },

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { getPlatformAdminOrNull } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 
@@ -20,7 +21,10 @@ export async function POST(req: Request) {
   const existing = await prisma.platformSetting.findUnique({ where: { key: key.trim() } });
   if (existing) return NextResponse.json({ error: 'Setting key already exists' }, { status: 400 });
   const setting = await prisma.platformSetting.create({
-    data: { key: key.trim(), value: value ?? null },
+    data: {
+      key: key.trim(),
+      value: value != null ? (value as Prisma.InputJsonValue) : Prisma.JsonNull,
+    },
   });
   return NextResponse.json(setting);
 }

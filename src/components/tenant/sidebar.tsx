@@ -10,7 +10,8 @@ const nav = [
   { href: "/payments", label: "Payments", icon: "💰" },
   { href: "/meter-readings", label: "Meter readings", icon: "🔢" },
   { href: "/reports", label: "Reports", icon: "📈" },
-  { href: "/users", label: "Users", icon: "🔐" },
+  { href: "/users", label: "Users", icon: "👤" },
+  { href: "/roles", label: "Roles", icon: "🔐" },
   { href: "/settings", label: "Settings", icon: "⚙️" },
 ];
 

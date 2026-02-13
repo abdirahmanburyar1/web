@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { getPlatformAdminOrNull } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 
@@ -22,8 +23,8 @@ export async function PATCH(
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
-  const { key, value } = body as { key?: string; value?: unknown };
-  const data: { key?: string; value?: unknown } = {};
+  const { key, value } = body as { key?: string; value?: Prisma.InputJsonValue };
+  const data: Prisma.PlatformSettingUpdateInput = {};
   if (key !== undefined) data.key = key.trim();
   if (value !== undefined) data.value = value;
   const setting = await prisma.platformSetting.update({

@@ -47,10 +47,8 @@ export default function TenantMetersPage() {
   const [addNewSection, setAddNewSection] = useState(false);
   const [addNewSubSection, setAddNewSubSection] = useState(false);
   const [newZoneName, setNewZoneName] = useState("");
-  const [newZoneSubSectionId, setNewZoneSubSectionId] = useState("");
   const [newSectionName, setNewSectionName] = useState("");
   const [newSubSectionName, setNewSubSectionName] = useState("");
-  const [newSubSectionSectionId, setNewSubSectionSectionId] = useState("");
   const [addingZone, setAddingZone] = useState(false);
   const [addingSection, setAddingSection] = useState(false);
   const [addingSubSection, setAddingSubSection] = useState(false);
@@ -119,6 +117,7 @@ export default function TenantMetersPage() {
     e.preventDefault();
     const t = getToken();
     if (!t || !newZoneName.trim()) return;
+    const subSectionId = form.subSection ? subSections.find((ss) => ss.name === form.subSection)?.id : undefined;
     setAddingZone(true);
     try {
       const res = await fetch("/api/tenant/zones", {
@@ -126,7 +125,7 @@ export default function TenantMetersPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
         body: JSON.stringify({
           name: newZoneName.trim(),
-          subSectionId: newZoneSubSectionId || undefined,
+          subSectionId: subSectionId || undefined,
         }),
       });
       const z = await res.json();
@@ -137,7 +136,6 @@ export default function TenantMetersPage() {
       setZones((prev) => [...prev, z]);
       setForm((f) => ({ ...f, zoneId: z.id }));
       setNewZoneName("");
-      setNewZoneSubSectionId("");
       setAddNewZone(false);
     } finally {
       setAddingZone(false);
@@ -173,6 +171,7 @@ export default function TenantMetersPage() {
     e.preventDefault();
     const t = getToken();
     if (!t || !newSubSectionName.trim()) return;
+    const sectionId = form.section ? sections.find((s) => s.name === form.section)?.id : undefined;
     setAddingSubSection(true);
     try {
       const res = await fetch("/api/tenant/sub-sections", {
@@ -180,7 +179,7 @@ export default function TenantMetersPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
         body: JSON.stringify({
           name: newSubSectionName.trim(),
-          sectionId: newSubSectionSectionId || undefined,
+          sectionId: sectionId || undefined,
         }),
       });
       const ss = await res.json();
@@ -191,7 +190,6 @@ export default function TenantMetersPage() {
       setSubSections((prev) => [...prev, ss]);
       setForm((f) => ({ ...f, subSection: ss.name }));
       setNewSubSectionName("");
-      setNewSubSectionSectionId("");
       setAddNewSubSection(false);
     } finally {
       setAddingSubSection(false);
@@ -450,7 +448,7 @@ export default function TenantMetersPage() {
       {/* Add New Zone modal */}
       {addNewZone && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-zone-title">
-          <div className="fixed inset-0 bg-slate-900/50" onClick={() => { setAddNewZone(false); setNewZoneName(""); setNewZoneSubSectionId(""); }} aria-hidden />
+          <div className="fixed inset-0 bg-slate-900/50" onClick={() => { setAddNewZone(false); setNewZoneName(""); }} aria-hidden />
           <div className="relative w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h2 id="modal-zone-title" className="text-lg font-semibold text-slate-900">Add new zone</h2>
             <form onSubmit={handleAddZone} className="mt-4 space-y-4">
@@ -463,21 +461,11 @@ export default function TenantMetersPage() {
                   autoFocus
                 />
               </div>
-              <div>
-                <Label>Sub-section (optional)</Label>
-                <select
-                  value={newZoneSubSectionId}
-                  onChange={(e) => setNewZoneSubSectionId(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
-                >
-                  <option value="">— None —</option>
-                  {subSections.map((ss) => (
-                    <option key={ss.id} value={ss.id}>{ss.name}</option>
-                  ))}
-                </select>
-              </div>
+              {form.subSection && (
+                <p className="text-sm text-slate-500">Under sub-section: <span className="font-medium text-slate-700">{form.subSection}</span></p>
+              )}
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="secondary" onClick={() => { setAddNewZone(false); setNewZoneName(""); setNewZoneSubSectionId(""); }}>
+                <Button type="button" variant="secondary" onClick={() => { setAddNewZone(false); setNewZoneName(""); }}>
                   Cancel
                 </Button>
                 <Button type="submit" disabled={addingZone || !newZoneName.trim()}>
@@ -521,7 +509,7 @@ export default function TenantMetersPage() {
       {/* Add New Sub-section modal */}
       {addNewSubSection && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-subsection-title">
-          <div className="fixed inset-0 bg-slate-900/50" onClick={() => { setAddNewSubSection(false); setNewSubSectionName(""); setNewSubSectionSectionId(""); }} aria-hidden />
+          <div className="fixed inset-0 bg-slate-900/50" onClick={() => { setAddNewSubSection(false); setNewSubSectionName(""); }} aria-hidden />
           <div className="relative w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h2 id="modal-subsection-title" className="text-lg font-semibold text-slate-900">Add new sub-section</h2>
             <form onSubmit={handleAddSubSection} className="mt-4 space-y-4">
@@ -534,21 +522,11 @@ export default function TenantMetersPage() {
                   autoFocus
                 />
               </div>
-              <div>
-                <Label>Section (optional)</Label>
-                <select
-                  value={newSubSectionSectionId}
-                  onChange={(e) => setNewSubSectionSectionId(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
-                >
-                  <option value="">— None —</option>
-                  {sections.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
+              {form.section && (
+                <p className="text-sm text-slate-500">Under section: <span className="font-medium text-slate-700">{form.section}</span></p>
+              )}
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="secondary" onClick={() => { setAddNewSubSection(false); setNewSubSectionName(""); setNewSubSectionSectionId(""); }}>
+                <Button type="button" variant="secondary" onClick={() => { setAddNewSubSection(false); setNewSubSectionName(""); }}>
                   Cancel
                 </Button>
                 <Button type="submit" disabled={addingSubSection || !newSubSectionName.trim()}>

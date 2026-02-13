@@ -40,7 +40,7 @@ export default function MeterReadingsPage() {
     );
   }
 
-  const readings = (data?.readings ?? []) as Array<{ id: string; value: number; unit?: string; customer?: { fullName: string }; recordedAt: string }>;
+  const readings = (data?.readings ?? []) as Array<{ id: string; value: number; unit?: string; meter?: { meterNumber: string; customerName: string }; recordedAt: string }>;
   return (
     <div>
       <h1 className="text-2xl font-bold text-slate-900">Meter readings</h1>
@@ -49,7 +49,7 @@ export default function MeterReadingsPage() {
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Customer</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Meter / Customer</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Value</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Date</th>
             </tr>
@@ -57,7 +57,7 @@ export default function MeterReadingsPage() {
           <tbody className="divide-y divide-slate-200">
             {readings.map((r) => (
               <tr key={r.id}>
-                <td className="px-4 py-3 text-sm text-slate-900">{r.customer?.fullName ?? "—"}</td>
+                <td className="px-4 py-3 text-sm text-slate-900">{r.meter ? `${r.meter.meterNumber} — ${r.meter.customerName}` : "—"}</td>
                 <td className="px-4 py-3 text-sm text-slate-600">{Number(r.value)} {r.unit ?? "m³"}</td>
                 <td className="px-4 py-3 text-sm text-slate-600">{r.recordedAt ? new Date(r.recordedAt).toLocaleDateString() : "—"}</td>
               </tr>

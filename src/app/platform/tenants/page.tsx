@@ -19,7 +19,7 @@ export default function PlatformTenantsPage() {
       slug: string;
       status: string;
       subscriptionPlan: string;
-      _count: { users: number; customers: number; payments: number };
+      _count: { users: number; meters: number; payments: number };
     }>;
     total: number;
     page: number;
@@ -206,7 +206,7 @@ export default function PlatformTenantsPage() {
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Plan</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Status</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Users</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Customers</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Meters</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Payments</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Actions</th>
               </tr>
@@ -225,7 +225,7 @@ export default function PlatformTenantsPage() {
                     <Badge variant={t.status === "ACTIVE" ? "success" : "warning"}>{t.status}</Badge>
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-600">{t._count.users}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{t._count.customers}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600">{t._count.meters}</td>
                   <td className="px-4 py-3 text-sm text-slate-600">{t._count.payments}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">

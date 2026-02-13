@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   const tenants = await prisma.tenant.findMany({
     orderBy: { name: "asc" },
     include: {
-      _count: { select: { users: true, customers: true, payments: true } },
+      _count: { select: { users: true, meters: true, payments: true } },
     },
   });
 
@@ -25,13 +25,13 @@ export async function GET(req: Request) {
     status: t.status,
     plan: t.subscriptionPlan,
     users: t._count.users,
-    customers: t._count.customers,
+    meters: t._count.meters,
     transactions: t._count.payments,
     revenue: (t._count.payments * REVENUE_PER_TRANSACTION).toFixed(2),
   }));
 
   if (format === "csv") {
-    const headers = ["name", "slug", "status", "plan", "users", "customers", "transactions", "revenue"];
+    const headers = ["name", "slug", "status", "plan", "users", "meters", "transactions", "revenue"];
     const csv = [headers.join(","), ...rows.map((r) => headers.map((h) => JSON.stringify((r as Record<string, unknown>)[h])).join(","))].join("\n");
     return new NextResponse(csv, {
       headers: {

@@ -22,7 +22,7 @@ export default function PlatformDashboardPage() {
       name: string;
       slug: string;
       status: string;
-      _count: { users: number; customers: number; payments: number };
+      _count: { users: number; meters: number; payments: number };
     }>;
     total: number;
   } | null>(null);
@@ -110,7 +110,7 @@ export default function PlatformDashboardPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Slug</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Users</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Customers</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Meters</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Payments</th>
                 </tr>
               </thead>
@@ -127,7 +127,7 @@ export default function PlatformDashboardPage() {
                       <Badge variant={t.status === "ACTIVE" ? "success" : "warning"}>{t.status}</Badge>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{t._count.users}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{t._count.customers}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{t._count.meters}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{t._count.payments}</td>
                   </tr>
                 ))}

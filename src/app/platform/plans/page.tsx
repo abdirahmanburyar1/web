@@ -137,7 +137,7 @@ export default function PlatformPlansPage() {
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-500">Max customers</Label>
+                    <Label className="text-xs text-slate-500">Max meters</Label>
                     <Input
                       type="number"
                       min={0}

@@ -48,7 +48,7 @@ export default function InvoicesPage() {
     );
   }
 
-  const invoices = (data?.invoices ?? []) as Array<{ id: string; amount: number; status: string; customer?: { fullName: string } }>;
+  const invoices = (data?.invoices ?? []) as Array<{ id: string; amount: number; status: string; meter?: { meterNumber: string; customerName: string } }>;
   return (
     <div>
       <PageHeader title="Invoices" description="View and manage invoices." />
@@ -59,7 +59,7 @@ export default function InvoicesPage() {
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Customer</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Meter / Customer</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Amount</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Status</th>
             </tr>
@@ -67,7 +67,7 @@ export default function InvoicesPage() {
           <tbody className="divide-y divide-slate-200 bg-white">
             {invoices.map((inv) => (
               <tr key={inv.id} className="hover:bg-slate-50/50">
-                <td className="px-4 py-3 text-sm font-medium text-slate-900">{inv.customer?.fullName ?? "—"}</td>
+                <td className="px-4 py-3 text-sm font-medium text-slate-900">{inv.meter ? `${inv.meter.meterNumber} — ${inv.meter.customerName}` : "—"}</td>
                 <td className="px-4 py-3 text-sm text-slate-600">${Number(inv.amount).toFixed(2)}</td>
                 <td className="px-4 py-3">
                   <Badge variant={inv.status === "PAID" ? "success" : inv.status === "OVERDUE" ? "danger" : "default"}>{inv.status}</Badge>

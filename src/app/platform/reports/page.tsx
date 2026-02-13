@@ -9,7 +9,7 @@ type TenantRow = {
   slug: string;
   status: string;
   subscriptionPlan: string;
-  _count: { users: number; customers: number; payments: number };
+  _count: { users: number; meters: number; payments: number };
 };
 
 export default function PlatformReportsPage() {
@@ -93,7 +93,7 @@ export default function PlatformReportsPage() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Plan</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Status</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-slate-500">Users</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500">Customers</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500">Meters</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-slate-500">Transactions</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-slate-500">Revenue</th>
               </tr>
@@ -116,7 +116,7 @@ export default function PlatformReportsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-600 text-right">{t._count.users}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600 text-right">{t._count.customers}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600 text-right">{t._count.meters}</td>
                   <td className="px-4 py-3 text-sm text-slate-600 text-right">{t._count.payments}</td>
                   <td className="px-4 py-3 text-sm text-emerald-600 text-right">
                     ${(t._count.payments * revenuePerTxn).toFixed(2)}

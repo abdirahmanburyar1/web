@@ -39,6 +39,14 @@ enum SubscriptionPlan {
   ENTERPRISE
 }
 
+enum MeterStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  OVERDUE
+  INACTIVE
+}
+
 // Platform Models
 
 model PlanLimit {
@@ -78,7 +86,7 @@ model Tenant {
   // Relations
   users             User[]
   roles             Role[]
-  customers         Customer[]
+  meters            Meter[]
   zones             Zone[]
   invoices          Invoice[]
   payments          Payment[]
@@ -107,6 +115,7 @@ model User {
 
   // Relations
   collectedPayments Payment[]   @relation("CollectorPayments")
+  metersAssigned    Meter[]     @relation("CollectorMeters")
   directPermissions UserPermission[]
   auditLogs         AuditLog[]
   meterReadings     MeterReading[]
@@ -167,49 +176,59 @@ model UserPermission {
 // Tenant Models
 
 model Zone {
-  id          String     @id @default(uuid())
+  id          String   @id @default(uuid())
   tenantId    String
-  tenant      Tenant     @relation(fields: [tenantId], references: [id])
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   name        String
   description String?
-  
-  customers   Customer[]
+
+  meters      Meter[]
 
   @@map("zones")
   @@index([tenantId])
 }
 
-model Customer {
-  id             String    @id @default(uuid())
-  tenantId       String
-  tenant         Tenant    @relation(fields: [tenantId], references: [id])
-  
-  zoneId         String?
-  zone           Zone?     @relation(fields: [zoneId], references: [id])
-  
-  fullName       String
-  email          String?
-  phoneNumber    String?
-  address        String?
-  meterNumber    String?
-  
-  isActive       Boolean   @default(true)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+model Meter {
+  id                String      @id @default(uuid())
+  tenantId          String
+  tenant            Tenant      @relation(fields: [tenantId], references: [id])
+  zoneId            String?
+  zone              Zone?       @relation(fields: [zoneId], references: [id])
+  collectorId       String?
+  collector         User?       @relation("CollectorMeters", fields: [collectorId], references: [id])
 
-  invoices       Invoice[]
-  payments       Payment[]
-  meterReadings  MeterReading[]
+  meterNumber       String
+  customerName      String
+  customerPhone     String?
+  residentPhone     String?
+  section           String?
+  subSection        String?
+  plateNumber       String?
+  status            MeterStatus @default(PENDING)
+  address           String?
+  meterType         String?
+  meterModel        String?
+  installationDate  DateTime?
+  serialNumber      String?
 
-  @@map("customers")
+  createdAt         DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  invoices          Invoice[]
+  payments          Payment[]
+  meterReadings     MeterReading[]
+
+  @@map("meters")
+  @@unique([tenantId, meterNumber])
   @@index([tenantId])
   @@index([zoneId])
+  @@index([collectorId])
 }
 
 model MeterReading {
   id           String   @id @default(uuid())
-  customerId   String
-  customer     Customer @relation(fields: [customerId], references: [id])
+  meterId      String
+  meter        Meter    @relation(fields: [meterId], references: [id])
   value        Decimal  @db.Decimal(12, 4)
   unit         String?  @default("m³")
   recordedAt   DateTime @default(now())
@@ -217,7 +236,7 @@ model MeterReading {
   recordedBy   User?    @relation(fields: [recordedById], references: [id])
 
   @@map("meter_readings")
-  @@index([customerId])
+  @@index([meterId])
   @@index([recordedById])
 }
 
@@ -225,48 +244,41 @@ model Invoice {
   id             String    @id @default(uuid())
   tenantId       String
   tenant         Tenant    @relation(fields: [tenantId], references: [id])
-  
-  customerId     String
-  customer       Customer  @relation(fields: [customerId], references: [id])
-  
+  meterId        String
+  meter         Meter     @relation(fields: [meterId], references: [id])
+
   amount         Decimal   @db.Decimal(10, 2)
   balance        Decimal   @db.Decimal(10, 2)
   status         String    @default("PENDING") // PENDING, PAID, PARTIAL, OVERDUE
   dueDate        DateTime
   issuedDate     DateTime  @default(now())
-  
-  items          Json?     // Flexible JSON for line items
-  
+  items          Json?
+
   payments       Payment[]
 
   @@map("invoices")
   @@index([tenantId])
-  @@index([customerId])
+  @@index([meterId])
 }
 
 model Payment {
   id             String        @id @default(uuid())
   tenantId       String
   tenant         Tenant        @relation(fields: [tenantId], references: [id])
-  
-  customerId     String
-  customer       Customer      @relation(fields: [customerId], references: [id])
-  
+  meterId        String
+  meter         Meter         @relation(fields: [meterId], references: [id])
   invoiceId      String?
   invoice        Invoice?      @relation(fields: [invoiceId], references: [id])
-  
   collectorId    String?
   collector      User?         @relation("CollectorPayments", fields: [collectorId], references: [id])
-  
   amount         Decimal       @db.Decimal(10, 2)
   method         PaymentMethod @default(CASH)
-  reference      String?       // Transaction ID from external provider
-  
+  reference      String?
   recordedAt     DateTime      @default(now())
 
   @@map("payments")
   @@index([tenantId])
-  @@index([customerId])
+  @@index([meterId])
   @@index([collectorId])
   @@index([invoiceId])
 }

@@ -18,7 +18,7 @@ export async function GET(req: Request) {
       take: limit,
       orderBy: { createdAt: 'desc' },
       include: {
-        _count: { select: { users: true, customers: true, payments: true } },
+        _count: { select: { users: true, meters: true, payments: true } },
       },
     }),
     prisma.tenant.count(),

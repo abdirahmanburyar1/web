@@ -15,7 +15,7 @@ type Tenant = {
   maxStaff: number | null;
   maxCustomers: number | null;
   maxTransactions: number | null;
-  _count?: { users: number; customers: number; invoices: number; payments: number };
+  _count?: { users: number; meters: number; invoices: number; payments: number };
 };
 
 export default function PlatformTenantDetailPage() {
@@ -158,7 +158,7 @@ export default function PlatformTenantDetailPage() {
             Slug: <span className="font-mono">{tenant.slug}</span>
             {tenant._count && (
               <span className="ml-4">
-                Users: {tenant._count.users} · Customers: {tenant._count.customers} · Payments: {tenant._count.payments}
+                Users: {tenant._count.users} · Meters: {tenant._count.meters} · Payments: {tenant._count.payments}
               </span>
             )}
           </p>
@@ -220,7 +220,7 @@ export default function PlatformTenantDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700">Max customers</label>
+                <label className="block text-sm font-medium text-slate-700">Max meters</label>
                 <input
                   type="number"
                   min={0}

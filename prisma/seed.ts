@@ -23,10 +23,10 @@ async function ensurePlatformAdmin() {
 }
 
 const PERMISSION_LIST = [
-  { code: 'customers:view', name: 'View customers', module: 'customers' },
-  { code: 'customers:create', name: 'Create customers', module: 'customers' },
-  { code: 'customers:edit', name: 'Edit customers', module: 'customers' },
-  { code: 'customers:delete', name: 'Delete customers', module: 'customers' },
+  { code: 'meters:view', name: 'View meters', module: 'meters' },
+  { code: 'meters:create', name: 'Create meters', module: 'meters' },
+  { code: 'meters:edit', name: 'Edit meters', module: 'meters' },
+  { code: 'meters:delete', name: 'Delete meters', module: 'meters' },
   { code: 'invoices:view', name: 'View invoices', module: 'invoices' },
   { code: 'invoices:create', name: 'Create invoices', module: 'invoices' },
   { code: 'invoices:edit', name: 'Edit invoices', module: 'invoices' },

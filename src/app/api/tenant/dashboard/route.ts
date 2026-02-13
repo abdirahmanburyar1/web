@@ -6,14 +6,14 @@ import { PERMISSIONS, userHasPermission } from '@/lib/permissions';
 export async function GET(req: Request) {
   const user = await getTenantUserOrNull(req);
   if (!user) return NextResponse.json({ error: 'Unauthorized or tenant suspended' }, { status: 401 });
-  if (!userHasPermission(user, PERMISSIONS.PAYMENTS_VIEW) && !userHasPermission(user, PERMISSIONS.CUSTOMERS_VIEW)) {
+  if (!userHasPermission(user, PERMISSIONS.PAYMENTS_VIEW) && !userHasPermission(user, PERMISSIONS.METERS_VIEW)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const tenantId = user.tenantId!;
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const [customersCount, paymentsThisMonth, totalCollectedThisMonth, overdueInvoices] = await Promise.all([
-    prisma.customer.count({ where: { tenantId, isActive: true } }),
+  const [metersCount, paymentsThisMonth, totalCollectedThisMonth, overdueInvoices] = await Promise.all([
+    prisma.meter.count({ where: { tenantId, status: 'ACTIVE' } }),
     prisma.payment.count({
       where: { tenantId, recordedAt: { gte: startOfMonth } },
     }),
@@ -30,7 +30,7 @@ export async function GET(req: Request) {
     }),
   ]);
   return NextResponse.json({
-    customersCount,
+    metersCount,
     paymentsThisMonth,
     totalCollectedThisMonth: totalCollectedThisMonth._sum.amount ?? 0,
     overdueInvoices,

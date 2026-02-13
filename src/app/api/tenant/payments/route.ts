@@ -4,8 +4,6 @@ import { prisma } from '@/lib/db';
 import { PERMISSIONS, userHasPermission } from '@/lib/permissions';
 import type { PaymentMethod } from '@prisma/client';
 
-const REVENUE_PER_TRANSACTION = 0.1;
-
 export async function GET(req: Request) {
   const user = await getTenantUserOrNull(req);
   if (!user) return NextResponse.json({ error: 'Unauthorized or tenant suspended' }, { status: 401 });
@@ -23,7 +21,7 @@ export async function GET(req: Request) {
       take: limit,
       orderBy: { recordedAt: 'desc' },
       include: {
-        customer: { select: { id: true, fullName: true } },
+        meter: { select: { id: true, meterNumber: true, customerName: true } },
         collector: { select: { id: true, fullName: true } },
         invoice: { select: { id: true } },
       },
@@ -55,28 +53,28 @@ export async function POST(req: Request) {
       );
     }
   }
-  const body = await req.json();
-  const { customerId, amount, method, invoiceId, reference } = body as {
-    customerId: string;
+  const body = await req.json().catch(() => ({}));
+  const { meterId, amount, method, invoiceId, reference } = body as {
+    meterId: string;
     amount: number;
     method?: string;
     invoiceId?: string;
     reference?: string;
   };
-  if (!customerId || amount == null || amount <= 0) {
-    return NextResponse.json({ error: 'customerId and positive amount required' }, { status: 400 });
+  if (!meterId || amount == null || amount <= 0) {
+    return NextResponse.json({ error: 'meterId and positive amount required' }, { status: 400 });
   }
-  const customer = await prisma.customer.findFirst({
-    where: { id: customerId, tenantId },
+  const meter = await prisma.meter.findFirst({
+    where: { id: meterId, tenantId },
   });
-  if (!customer) {
-    return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
+  if (!meter) {
+    return NextResponse.json({ error: 'Meter not found' }, { status: 404 });
   }
   const paymentMethod = (method ?? 'CASH') as PaymentMethod;
   const payment = await prisma.payment.create({
     data: {
       tenantId,
-      customerId,
+      meterId,
       amount,
       method: paymentMethod,
       invoiceId: invoiceId || null,
@@ -84,7 +82,7 @@ export async function POST(req: Request) {
       collectorId: user.roleType === 'COLLECTOR' ? user.id : null,
     },
     include: {
-      customer: { select: { id: true, fullName: true } },
+      meter: { select: { id: true, meterNumber: true, customerName: true } },
       collector: { select: { id: true, fullName: true } },
     },
   });

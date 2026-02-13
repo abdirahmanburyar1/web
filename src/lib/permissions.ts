@@ -1,10 +1,10 @@
 // Permission codes used for RBAC and direct user permissions
 export const PERMISSIONS = {
-  // Customers
-  CUSTOMERS_VIEW: 'customers:view',
-  CUSTOMERS_CREATE: 'customers:create',
-  CUSTOMERS_EDIT: 'customers:edit',
-  CUSTOMERS_DELETE: 'customers:delete',
+  // Meters (meter machine / account)
+  METERS_VIEW: 'meters:view',
+  METERS_CREATE: 'meters:create',
+  METERS_EDIT: 'meters:edit',
+  METERS_DELETE: 'meters:delete',
   // Invoices
   INVOICES_VIEW: 'invoices:view',
   INVOICES_CREATE: 'invoices:create',

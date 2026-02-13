@@ -12,7 +12,7 @@ export async function GET(
   const tenant = await prisma.tenant.findUnique({
     where: { id },
     include: {
-      _count: { select: { users: true, customers: true, invoices: true, payments: true } },
+      _count: { select: { users: true, meters: true, invoices: true, payments: true } },
     },
   });
   if (!tenant) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -65,7 +65,7 @@ export async function DELETE(
   } catch (e: unknown) {
     if (e && typeof e === 'object' && 'code' in e && e.code === 'P2003') {
       return NextResponse.json(
-        { error: 'Cannot delete tenant: it has users, customers, or other data. Remove them first or contact support.' },
+        { error: 'Cannot delete tenant: it has users, meters, or other data. Remove them first or contact support.' },
         { status: 400 }
       );
     }

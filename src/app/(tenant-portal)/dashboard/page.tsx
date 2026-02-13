@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 
 export default function TenantDashboardPage() {
   const [stats, setStats] = useState<{
-    customersCount: number;
+    metersCount: number;
     paymentsThisMonth: number;
     totalCollectedThisMonth: number;
     overdueInvoices: number;
@@ -52,7 +52,7 @@ export default function TenantDashboardPage() {
   }
 
   const statCards = [
-    { label: "Active customers", value: stats!.customersCount, color: "text-slate-900" },
+    { label: "Active meters", value: stats!.metersCount, color: "text-slate-900" },
     { label: "Payments this month", value: stats!.paymentsThisMonth, color: "text-slate-900" },
     { label: "Collected this month", value: `$${Number(stats!.totalCollectedThisMonth).toFixed(2)}`, color: "text-emerald-600" },
     { label: "Overdue invoices", value: stats!.overdueInvoices, color: "text-amber-600" },
@@ -62,7 +62,7 @@ export default function TenantDashboardPage() {
     <div>
       <PageHeader
         title="Dashboard"
-        description="Overview of your customers and collections."
+        description="Overview of your meters and collections."
       />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {statCards.map((s) => (

@@ -40,7 +40,7 @@ export default function PaymentsPage() {
     );
   }
 
-  const payments = (data?.payments ?? []) as Array<{ id: string; amount: number; method: string; customer?: { fullName: string }; recordedAt: string }>;
+  const payments = (data?.payments ?? []) as Array<{ id: string; amount: number; method: string; meter?: { meterNumber: string; customerName: string }; recordedAt: string }>;
   return (
     <div>
       <h1 className="text-2xl font-bold text-slate-900">Payments</h1>
@@ -49,7 +49,7 @@ export default function PaymentsPage() {
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Customer</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Meter / Customer</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Amount</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Method</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Date</th>
@@ -58,7 +58,7 @@ export default function PaymentsPage() {
           <tbody className="divide-y divide-slate-200">
             {payments.map((p) => (
               <tr key={p.id}>
-                <td className="px-4 py-3 text-sm text-slate-900">{p.customer?.fullName ?? "—"}</td>
+                <td className="px-4 py-3 text-sm text-slate-900">{p.meter ? `${p.meter.meterNumber} — ${p.meter.customerName}` : "—"}</td>
                 <td className="px-4 py-3 text-sm text-slate-600">${Number(p.amount).toFixed(2)}</td>
                 <td className="px-4 py-3 text-sm text-slate-600">{p.method}</td>
                 <td className="px-4 py-3 text-sm text-slate-600">{p.recordedAt ? new Date(p.recordedAt).toLocaleDateString() : "—"}</td>

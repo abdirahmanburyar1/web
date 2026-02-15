@@ -39,6 +39,12 @@ enum SubscriptionPlan {
   ENTERPRISE
 }
 
+enum PlatformPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
 enum MeterStatus {
   PENDING
   ACTIVE
@@ -64,6 +70,37 @@ model PlatformSetting {
   value Json
 
   @@map("platform_settings")
+}
+
+model PlatformPayment {
+  id          String                @id @default(uuid())
+  tenantId    String
+  tenant      Tenant                @relation(fields: [tenantId], references: [id])
+  amount      Decimal                @db.Decimal(10, 2)
+  currency    String                 @default("USD")
+  status      PlatformPaymentStatus @default(PENDING)
+  description String?
+  paidAt      DateTime?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  receipts    PlatformReceipt[]
+
+  @@map("platform_payments")
+  @@index([tenantId])
+}
+
+model PlatformReceipt {
+  id                 String         @id @default(uuid())
+  platformPaymentId String
+  platformPayment   PlatformPayment @relation(fields: [platformPaymentId], references: [id])
+  receiptNumber     String?
+  url               String?         // e.g. link to stored file
+  issuedAt          DateTime        @default(now())
+  createdAt         DateTime       @default(now())
+
+  @@map("platform_receipts")
+  @@index([platformPaymentId])
 }
 
 model Tenant {
@@ -92,6 +129,7 @@ model Tenant {
   subSections       SubSection[]
   invoices          Invoice[]
   payments          Payment[]
+  platformPayments  PlatformPayment[]
   auditLogs         AuditLog[]
 
   @@map("tenants")

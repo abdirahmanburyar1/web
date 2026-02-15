@@ -11,16 +11,31 @@ export async function GET(req: Request) {
   }
   const { searchParams } = new URL(req.url);
   const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') ?? '50', 10)));
+  const searchRaw = searchParams.get('search')?.trim() ?? '';
+  const terms = searchRaw.length > 0
+    ? searchRaw.split(/\s+/).map((t) => t.trim()).filter((t) => t.length > 0)
+    : [];
+  const tenantId = user.tenantId!;
+  type OrItem = { meterNumber?: { contains: string; mode: 'insensitive' }; plateNumber?: { contains: string; mode: 'insensitive' } };
+  const where: { tenantId: string; collectorId?: string; OR?: OrItem[] } = { tenantId };
+  if (terms.length > 0) {
+    const orClauses: OrItem[] = [];
+    for (const term of terms) {
+      orClauses.push({ meterNumber: { contains: term, mode: 'insensitive' } });
+      orClauses.push({ plateNumber: { contains: term, mode: 'insensitive' } });
+    }
+    where.OR = orClauses;
+  } else {
+    where.collectorId = user.id;
+  }
   const meters = await prisma.meter.findMany({
-    where: { tenantId: user.tenantId!, collectorId: user.id },
+    where,
     orderBy: { meterNumber: 'asc' },
     take: limit,
     include: {
       zone: { select: { id: true, name: true } },
     },
   });
-  const total = await prisma.meter.count({
-    where: { tenantId: user.tenantId!, collectorId: user.id },
-  });
+  const total = await prisma.meter.count({ where });
   return NextResponse.json({ meters, total });
 }

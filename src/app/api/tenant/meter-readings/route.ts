@@ -48,9 +48,17 @@ export async function POST(req: Request) {
     where: { id: meterId, tenantId: user.tenantId! },
   });
   if (!meter) return NextResponse.json({ error: 'Meter not found' }, { status: 404 });
-  if (user.roleType === 'COLLECTOR' && meter.collectorId !== user.id) {
-    return NextResponse.json({ error: 'You can only record readings for meters assigned to you' }, { status: 403 });
-  }
+  const valueNum = Number(value);
+  const previousReading = await prisma.meterReading.findFirst({
+    where: { meterId },
+    orderBy: { recordedAt: 'desc' },
+    select: { value: true },
+  });
+  const previousValue = previousReading ? Number(previousReading.value) : 0;
+  const usageThisPeriod = Math.max(0, valueNum - previousValue);
+  const pricePerCubic = 0.3;
+  const amountDue = Math.round(usageThisPeriod * pricePerCubic * 100) / 100;
+
   const reading = await prisma.meterReading.create({
     data: {
       meterId,
@@ -62,5 +70,11 @@ export async function POST(req: Request) {
       meter: { select: { id: true, meterNumber: true, customerName: true } },
     },
   });
-  return NextResponse.json(reading);
+
+  return NextResponse.json({
+    reading,
+    usageThisPeriod,
+    pricePerCubic,
+    amountDue,
+  });
 }

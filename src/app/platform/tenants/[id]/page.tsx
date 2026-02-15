@@ -62,7 +62,7 @@ export default function PlatformTenantDetailPage() {
     maxCustomers: "" as string | number,
     maxTransactions: "" as string | number,
   });
-  const [paymentForm, setPaymentForm] = useState({ amount: "", currency: "USD", status: "PENDING", description: "" });
+  const [paymentForm, setPaymentForm] = useState({ amount: "", status: "PENDING", description: "" });
   const [addingPayment, setAddingPayment] = useState(false);
   const [userForm, setUserForm] = useState({ email: "", fullName: "", password: "" });
   const [addingUser, setAddingUser] = useState(false);
@@ -117,7 +117,6 @@ export default function PlatformTenantDetailPage() {
         });
         setPayments(Array.isArray(paymentsData) ? paymentsData : []);
         setUsers(Array.isArray(usersData) ? usersData : []);
-        setPaymentForm((f) => ({ ...f, currency: t.currency || "USD" }));
       })
       .catch((e) => setError(e.message || "Failed to load"))
       .finally(() => setLoading(false));
@@ -195,7 +194,7 @@ export default function PlatformTenantDetailPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
         body: JSON.stringify({
           amount: Number(paymentForm.amount),
-          currency: paymentForm.currency,
+          currency: "USD",
           status: paymentForm.status,
           description: paymentForm.description.trim() || undefined,
         }),
@@ -203,7 +202,7 @@ export default function PlatformTenantDetailPage() {
       const data = (await parseJson(res)) as PlatformPayment & { error?: string };
       if (!res.ok) throw new Error(data?.error || "Failed to add payment");
       if (data && !("error" in data)) setPayments((prev) => [data, ...prev]);
-      setPaymentForm({ amount: "", currency: tenant?.currency || "USD", status: "PENDING", description: "" });
+      setPaymentForm({ amount: "", status: "PENDING", description: "" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to add payment");
     } finally {
@@ -381,7 +380,7 @@ export default function PlatformTenantDetailPage() {
             <CardContent className="pt-4">
               <form onSubmit={handleAddPayment} className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-slate-100 bg-slate-50/50 p-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-500">Amount</label>
+                  <label className="block text-xs font-medium text-slate-500">Amount (USD)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -390,18 +389,6 @@ export default function PlatformTenantDetailPage() {
                     placeholder="0.00"
                     className="mt-1 w-28 rounded-lg border border-slate-300 px-3 py-2 text-sm"
                   />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500">Currency</label>
-                  <select
-                    value={paymentForm.currency}
-                    onChange={(e) => setPaymentForm((f) => ({ ...f, currency: e.target.value }))}
-                    className="mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  >
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="SOS">SOS</option>
-                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500">Status</label>
@@ -450,7 +437,7 @@ export default function PlatformTenantDetailPage() {
                       payments.map((p) => (
                         <tr key={p.id} className="hover:bg-slate-50/50">
                           <td className="px-4 py-3 font-medium">
-                            {Number(p.amount).toLocaleString()} {p.currency}
+                            ${Number(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
                           <td className="px-4 py-3">
                             <span

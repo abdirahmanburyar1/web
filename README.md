@@ -65,9 +65,13 @@ Root domain = platform portal (login, dashboard, tenants). Companies use their s
 5. **Database** – Run migrations and seed once (from your machine or a one-off script):  
    `npx prisma migrate deploy` (or `db push`) and `npx prisma db seed` with the same `DATABASE_URL`.
 
+## Currency
+
+- The system is **USD-based**. All amounts (subscription billing, revenue, payments volume) are in US dollars.
+
 ## Revenue model
 
-- **$0.1 per transaction** – Platform metrics use payment count × 0.1 for revenue.
+- **$0.1 per transaction** – Platform metrics use payment count × 0.1 for revenue (USD).
 - Tenant subscription limits: `maxStaff`, `maxCustomers`, `maxTransactions` (optional, per tenant).
 
 ## Flutter collector app

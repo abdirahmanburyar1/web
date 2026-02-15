@@ -74,7 +74,15 @@ export async function POST(req: Request) {
   const previousValue = previousReading ? Number(previousReading.value) : 0;
   const usageThisPeriod = Math.max(0, valueNum - previousValue);
   const pricePerCubic = 0.3;
-  const amountDue = Math.round(usageThisPeriod * pricePerCubic * 100) / 100;
+  const currentPeriodAmount = Math.round(usageThisPeriod * pricePerCubic * 100) / 100;
+
+  const previousPayment = await prisma.payment.findFirst({
+    where: { meterId },
+    orderBy: { recordedAt: 'desc' },
+    select: { amount: true },
+  });
+  const previousBalance = previousPayment ? Number(previousPayment.amount) : 0;
+  const amountDue = Math.round((previousBalance + currentPeriodAmount) * 100) / 100;
 
   const tenantId = user.tenantId!;
   const existingPayments = await prisma.payment.findMany({
@@ -118,6 +126,8 @@ export async function POST(req: Request) {
     reading,
     usageThisPeriod,
     pricePerCubic,
+    currentPeriodAmount,
+    previousBalance,
     amountDue,
     oldBalance: previousValue,
     currentBalance: valueNum,

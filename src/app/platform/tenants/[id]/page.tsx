@@ -72,35 +72,52 @@ export default function PlatformTenantDetailPage() {
     return localStorage.getItem("token");
   }
 
+  async function parseJson(res: Response): Promise<unknown> {
+    const text = await res.text();
+    if (!text?.trim()) return null;
+    try {
+      return JSON.parse(text);
+    } catch {
+      return null;
+    }
+  }
+
   function load() {
     const t = getToken();
     if (!t) return;
     Promise.all([
-      fetch(`/api/platform/tenants/${id}`, { headers: { Authorization: `Bearer ${t}` } }).then((r) =>
-        r.status === 404 ? Promise.reject(new Error("Not found")) : r.json()
-      ),
-      fetch(`/api/platform/tenants/${id}/payments`, { headers: { Authorization: `Bearer ${t}` } }).then((r) =>
-        r.json().then((d) => (d.error ? [] : d))
-      ),
-      fetch(`/api/platform/tenants/${id}/users`, { headers: { Authorization: `Bearer ${t}` } }).then((r) =>
-        r.json().then((d) => (d.error ? [] : d))
-      ),
+      fetch(`/api/platform/tenants/${id}`, { headers: { Authorization: `Bearer ${t}` } }).then(async (r) => {
+        if (r.status === 404) return Promise.reject(new Error("Not found"));
+        const data = await parseJson(r);
+        return data as Tenant & { error?: string };
+      }),
+      fetch(`/api/platform/tenants/${id}/payments`, { headers: { Authorization: `Bearer ${t}` } }).then(async (r) => {
+        const d = await parseJson(r);
+        return d && typeof d === "object" && "error" in d ? [] : (Array.isArray(d) ? d : []);
+      }),
+      fetch(`/api/platform/tenants/${id}/users`, { headers: { Authorization: `Bearer ${t}` } }).then(async (r) => {
+        const d = await parseJson(r);
+        return d && typeof d === "object" && "error" in d ? [] : (Array.isArray(d) ? d : []);
+      }),
     ])
       .then(([tenantData, paymentsData, usersData]) => {
-        if (tenantData.error) throw new Error(tenantData.error);
-        setTenant(tenantData);
+        if (!tenantData || (tenantData as { error?: string }).error) {
+          throw new Error((tenantData as { error?: string })?.error || "Failed to load tenant");
+        }
+        setTenant(tenantData as Tenant);
+        const t = tenantData as Tenant;
         setForm({
-          name: tenantData.name,
-          status: tenantData.status,
-          subscriptionPlan: tenantData.subscriptionPlan,
-          billingCycle: tenantData.billingCycle ?? "",
-          maxStaff: tenantData.maxStaff ?? "",
-          maxCustomers: tenantData.maxCustomers ?? "",
-          maxTransactions: tenantData.maxTransactions ?? "",
+          name: t.name,
+          status: t.status,
+          subscriptionPlan: t.subscriptionPlan,
+          billingCycle: t.billingCycle ?? "",
+          maxStaff: t.maxStaff ?? "",
+          maxCustomers: t.maxCustomers ?? "",
+          maxTransactions: t.maxTransactions ?? "",
         });
         setPayments(Array.isArray(paymentsData) ? paymentsData : []);
         setUsers(Array.isArray(usersData) ? usersData : []);
-        setPaymentForm((f) => ({ ...f, currency: tenantData.currency || "USD" }));
+        setPaymentForm((f) => ({ ...f, currency: t.currency || "USD" }));
       })
       .catch((e) => setError(e.message || "Failed to load"))
       .finally(() => setLoading(false));
@@ -135,9 +152,9 @@ export default function PlatformTenantDetailPage() {
           maxTransactions: form.maxTransactions === "" ? undefined : Number(form.maxTransactions),
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to update");
-      setTenant(data);
+      const data = (await parseJson(res)) as Tenant & { error?: string };
+      if (!res.ok) throw new Error(data?.error || "Failed to update");
+      if (data) setTenant(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to update");
     } finally {
@@ -154,8 +171,8 @@ export default function PlatformTenantDetailPage() {
     try {
       const res = await fetch(`/api/platform/tenants/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${t}` } });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to delete");
+        const data = (await parseJson(res)) as { error?: string } | null;
+        throw new Error(data?.error || "Failed to delete");
       }
       router.replace("/tenants");
       router.refresh();
@@ -183,9 +200,9 @@ export default function PlatformTenantDetailPage() {
           description: paymentForm.description.trim() || undefined,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to add payment");
-      setPayments((prev) => [data, ...prev]);
+      const data = (await parseJson(res)) as PlatformPayment & { error?: string };
+      if (!res.ok) throw new Error(data?.error || "Failed to add payment");
+      if (data && !("error" in data)) setPayments((prev) => [data, ...prev]);
       setPaymentForm({ amount: "", currency: tenant?.currency || "USD", status: "PENDING", description: "" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to add payment");
@@ -211,9 +228,9 @@ export default function PlatformTenantDetailPage() {
           roleType: "TENANT_ADMIN",
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to create user");
-      setUsers((prev) => [data, ...prev]);
+      const data = (await parseJson(res)) as TenantUser & { error?: string };
+      if (!res.ok) throw new Error(data?.error || "Failed to create user");
+      if (data && !("error" in data)) setUsers((prev) => [data, ...prev]);
       setUserForm({ email: "", fullName: "", password: "" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to create user");

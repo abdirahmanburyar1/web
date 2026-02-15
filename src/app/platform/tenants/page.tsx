@@ -103,6 +103,42 @@ export default function PlatformTenantsPage() {
     if (res.ok) load();
   }
 
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Delete tenant "${name}" and all its data? This cannot be undone.`)) return;
+    const t = getToken();
+    if (!t) return;
+    setError("");
+    try {
+      const res = await fetch(`/api/platform/tenants/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        let msg = "Failed to delete";
+        try {
+          const data = text ? JSON.parse(text) : {};
+          msg = data.error || msg;
+        } catch {
+          // ignore
+        }
+        setError(msg);
+        return;
+      }
+      setTenants((prev) =>
+        prev
+          ? {
+              ...prev,
+              tenants: prev.tenants.filter((x) => x.id !== id),
+              total: Math.max(0, prev.total - 1),
+            }
+          : null
+      );
+    } catch {
+      setError("Failed to delete tenant");
+    }
+  }
+
   if (loading) return <PageLoading />;
   if (error && !tenants) {
     return (
@@ -238,6 +274,13 @@ export default function PlatformTenantsPage() {
                         className={`text-sm font-medium ${t.status === "ACTIVE" ? "text-amber-600 hover:underline" : "text-emerald-600 hover:underline"}`}
                       >
                         {t.status === "ACTIVE" ? "Suspend" : "Reactivate"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(t.id, t.name)}
+                        className="text-sm font-medium text-red-600 hover:underline"
+                      >
+                        Delete
                       </button>
                     </div>
                   </td>

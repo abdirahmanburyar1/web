@@ -52,7 +52,7 @@ export function middleware(request: NextRequest) {
       url.pathname = "/login";
       return NextResponse.redirect(url);
     }
-    const platformPaths = ["/login", "/dashboard", "/tenants", "/plans", "/settings", "/reports"];
+    const platformPaths = ["/login", "/dashboard", "/tenants", "/plans", "/reports"];
     if (platformPaths.some((p) => url.pathname === p || url.pathname.startsWith(p + "/"))) {
       const rewrite = NextResponse.rewrite(new URL(`/platform${url.pathname}`, request.url));
       rewrite.cookies.delete("tenant_slug");

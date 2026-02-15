@@ -8,7 +8,6 @@ const nav = [
   { href: "/dashboard", label: "Dashboard", icon: "📊" },
   { href: "/tenants", label: "Tenants", icon: "🏢" },
   { href: "/plans", label: "Subscription plans", icon: "📋" },
-  { href: "/settings", label: "Settings", icon: "⚙️" },
   { href: "/reports", label: "Reports", icon: "📈" },
 ];
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Swal from "sweetalert2";
 
 type Permission = { id: string; code: string; name: string; module: string | null };
 type Role = { id: string; name: string; description: string | null };
@@ -177,7 +178,16 @@ export default function TenantUsersPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Remove this user? They will lose access immediately.")) return;
+    const result = await Swal.fire({
+      title: "Remove this user?",
+      text: "They will lose access immediately.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, remove",
+    });
+    if (!result.isConfirmed) return;
     const t = getToken();
     if (!t) return;
     setDeletingId(id);

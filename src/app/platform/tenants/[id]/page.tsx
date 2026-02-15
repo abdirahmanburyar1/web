@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
+import Swal from "sweetalert2";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -124,7 +125,16 @@ export default function PlatformTenantDetailPage() {
   }
 
   async function handleDelete() {
-    if (!confirm("Delete this tenant and all its data? This cannot be undone.")) return;
+    const result = await Swal.fire({
+      title: "Delete tenant?",
+      text: "This tenant and all its data will be permanently deleted. This cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, delete",
+    });
+    if (!result.isConfirmed) return;
     const t = getToken();
     if (!t) return;
     setDeleting(true);

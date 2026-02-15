@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Swal from "sweetalert2";
 
 type Permission = { id: string; code: string; name: string; module: string | null };
 type RolePerm = { permission: { id: string; code: string; name: string } };
@@ -128,7 +129,16 @@ export default function TenantRolesPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this role? Users must be reassigned first.")) return;
+    const result = await Swal.fire({
+      title: "Delete this role?",
+      text: "Users must be reassigned first.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, delete",
+    });
+    if (!result.isConfirmed) return;
     const t = getToken();
     if (!t) return;
     setDeletingId(id);

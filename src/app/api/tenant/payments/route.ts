@@ -24,6 +24,7 @@ export async function GET(req: Request) {
         meter: { select: { id: true, meterNumber: true, customerName: true } },
         collector: { select: { id: true, fullName: true } },
         invoice: { select: { id: true } },
+        _count: { select: { receipts: true } },
       },
     }),
     prisma.payment.count({ where: { tenantId: user.tenantId! } }),

@@ -15,17 +15,6 @@ type Tenant = {
   _count?: { users: number; meters: number; invoices: number; payments: number };
 };
 
-type PlatformPayment = {
-  id: string;
-  amount: string | number;
-  currency: string;
-  status: string;
-  description: string | null;
-  paidAt: string | null;
-  createdAt: string;
-  receipts: { id: string; receiptNumber: string | null; url: string | null; issuedAt: string }[];
-};
-
 type TenantUser = {
   id: string;
   email: string;
@@ -40,7 +29,6 @@ export default function PlatformTenantDetailPage() {
   const router = useRouter();
   const id = params.id as string;
   const [tenant, setTenant] = useState<Tenant | null>(null);
-  const [payments, setPayments] = useState<PlatformPayment[]>([]);
   const [users, setUsers] = useState<TenantUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,8 +39,6 @@ export default function PlatformTenantDetailPage() {
     status: "ACTIVE",
     feePerPayment: "0.2",
   });
-  const [paymentForm, setPaymentForm] = useState({ amount: "", status: "PENDING", description: "" });
-  const [addingPayment, setAddingPayment] = useState(false);
   const [userForm, setUserForm] = useState({ email: "", fullName: "", password: "" });
   const [addingUser, setAddingUser] = useState(false);
 
@@ -80,16 +66,12 @@ export default function PlatformTenantDetailPage() {
         const data = await parseJson(r);
         return data as Tenant & { error?: string };
       }),
-      fetch(`/api/platform/tenants/${id}/payments`, { headers: { Authorization: `Bearer ${t}` } }).then(async (r) => {
-        const d = await parseJson(r);
-        return d && typeof d === "object" && "error" in d ? [] : (Array.isArray(d) ? d : []);
-      }),
       fetch(`/api/platform/tenants/${id}/users`, { headers: { Authorization: `Bearer ${t}` } }).then(async (r) => {
         const d = await parseJson(r);
         return d && typeof d === "object" && "error" in d ? [] : (Array.isArray(d) ? d : []);
       }),
     ])
-      .then(([tenantData, paymentsData, usersData]) => {
+      .then(([tenantData, usersData]) => {
         if (!tenantData || (tenantData as { error?: string }).error) {
           throw new Error((tenantData as { error?: string })?.error || "Failed to load tenant");
         }
@@ -100,7 +82,6 @@ export default function PlatformTenantDetailPage() {
           status: t.status,
           feePerPayment: t.feePerPayment != null ? String(t.feePerPayment) : "0.2",
         });
-        setPayments(Array.isArray(paymentsData) ? paymentsData : []);
         setUsers(Array.isArray(usersData) ? usersData : []);
       })
       .catch((e) => setError(e.message || "Failed to load"))
@@ -160,34 +141,6 @@ export default function PlatformTenantDetailPage() {
       setError(e instanceof Error ? e.message : "Failed to delete");
     } finally {
       setDeleting(false);
-    }
-  }
-
-  async function handleAddPayment(e: React.FormEvent) {
-    e.preventDefault();
-    const t = getToken();
-    if (!t || !paymentForm.amount.trim()) return;
-    setAddingPayment(true);
-    setError("");
-    try {
-      const res = await fetch(`/api/platform/tenants/${id}/payments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
-        body: JSON.stringify({
-          amount: Number(paymentForm.amount),
-          currency: "USD",
-          status: paymentForm.status,
-          description: paymentForm.description.trim() || undefined,
-        }),
-      });
-      const data = (await parseJson(res)) as PlatformPayment & { error?: string };
-      if (!res.ok) throw new Error(data?.error || "Failed to add payment");
-      if (data && !("error" in data)) setPayments((prev) => [data, ...prev]);
-      setPaymentForm({ amount: "", status: "PENDING", description: "" });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to add payment");
-    } finally {
-      setAddingPayment(false);
     }
   }
 
@@ -306,100 +259,6 @@ export default function PlatformTenantDetailPage() {
                   {saving ? "Saving…" : "Save"}
                 </Button>
               </form>
-            </CardContent>
-          </Card>
-
-          {/* Subscription billing (platform) → receipts */}
-          <Card className="mb-6">
-            <CardHeader className="font-semibold text-slate-900">Subscription billing</CardHeader>
-            <CardContent className="pt-4">
-              <form onSubmit={handleAddPayment} className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-slate-100 bg-slate-50/50 p-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-500">Amount (USD)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={paymentForm.amount}
-                    onChange={(e) => setPaymentForm((f) => ({ ...f, amount: e.target.value }))}
-                    placeholder="0.00"
-                    className="mt-1 w-28 rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500">Status</label>
-                  <select
-                    value={paymentForm.status}
-                    onChange={(e) => setPaymentForm((f) => ({ ...f, status: e.target.value }))}
-                    className="mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  >
-                    <option value="PENDING">PENDING</option>
-                    <option value="PAID">PAID</option>
-                    <option value="FAILED">FAILED</option>
-                  </select>
-                </div>
-                <div className="min-w-[200px] flex-1">
-                  <label className="block text-xs font-medium text-slate-500">Description</label>
-                  <input
-                    value={paymentForm.description}
-                    onChange={(e) => setPaymentForm((f) => ({ ...f, description: e.target.value }))}
-                    placeholder="Optional"
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  />
-                </div>
-                <Button type="submit" disabled={addingPayment || !paymentForm.amount.trim()} size="sm" variant="platform">
-                  {addingPayment ? "Adding…" : "Add billing record"}
-                </Button>
-              </form>
-              <div className="overflow-hidden rounded-xl border border-slate-200">
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                  <thead className="bg-slate-50">
-                    <tr>
-                      <th className="px-4 py-2 text-left font-medium text-slate-600">Amount</th>
-                      <th className="px-4 py-2 text-left font-medium text-slate-600">Status</th>
-                      <th className="px-4 py-2 text-left font-medium text-slate-600">Description</th>
-                      <th className="px-4 py-2 text-left font-medium text-slate-600">Date</th>
-                      <th className="px-4 py-2 text-left font-medium text-slate-600">Receipts</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white">
-                    {payments.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
-                          No billing records yet.
-                        </td>
-                      </tr>
-                    ) : (
-                      payments.map((p) => (
-                        <tr key={p.id} className="hover:bg-slate-50/50">
-                          <td className="px-4 py-3 font-medium">
-                            ${Number(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`rounded-full px-2 py-0.5 text-xs ${
-                                p.status === "PAID" ? "bg-emerald-100 text-emerald-800" : p.status === "FAILED" ? "bg-red-100 text-red-800" : "bg-slate-100 text-slate-700"
-                              }`}
-                            >
-                              {p.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-slate-600">{p.description || "—"}</td>
-                          <td className="px-4 py-3 text-slate-600">
-                            {new Date(p.createdAt).toLocaleDateString()}
-                          </td>
-                          <td className="px-4 py-3">
-                            {p.receipts?.length ? (
-                              <span className="text-slate-600">{p.receipts.length} receipt(s)</span>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
             </CardContent>
           </Card>
 

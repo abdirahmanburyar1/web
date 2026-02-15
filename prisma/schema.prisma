@@ -340,25 +340,40 @@ model Invoice {
 }
 
 model Payment {
-  id             String        @id @default(uuid())
+  id             String           @id @default(uuid())
   tenantId       String
-  tenant         Tenant        @relation(fields: [tenantId], references: [id])
+  tenant         Tenant           @relation(fields: [tenantId], references: [id])
   meterId        String
-  meter         Meter         @relation(fields: [meterId], references: [id])
+  meter         Meter             @relation(fields: [meterId], references: [id])
   invoiceId      String?
-  invoice        Invoice?      @relation(fields: [invoiceId], references: [id])
+  invoice        Invoice?         @relation(fields: [invoiceId], references: [id])
   collectorId    String?
-  collector      User?         @relation("CollectorPayments", fields: [collectorId], references: [id])
-  amount         Decimal       @db.Decimal(10, 2)
-  method         PaymentMethod @default(CASH)
+  collector      User?            @relation("CollectorPayments", fields: [collectorId], references: [id])
+  amount         Decimal          @db.Decimal(10, 2)
+  method         PaymentMethod    @default(CASH)
   reference      String?
-  recordedAt     DateTime      @default(now())
+  recordedAt     DateTime         @default(now())
+
+  receipts       PaymentReceipt[]
 
   @@map("payments")
   @@index([tenantId])
   @@index([meterId])
   @@index([collectorId])
   @@index([invoiceId])
+}
+
+model PaymentReceipt {
+  id             String   @id @default(uuid())
+  paymentId      String
+  payment        Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  receiptNumber  String?
+  url            String?  // e.g. link to stored file
+  issuedAt       DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  @@map("payment_receipts")
+  @@index([paymentId])
 }
 
 model AuditLog {

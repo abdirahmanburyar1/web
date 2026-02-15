@@ -50,6 +50,7 @@ export async function PATCH(
     installationDate,
     serialNumber,
     collectorId,
+    priceId,
   } = body;
   const data: Record<string, unknown> = {};
   if (meterNumber !== undefined) data.meterNumber = String(meterNumber).trim();
@@ -67,6 +68,7 @@ export async function PATCH(
   if (installationDate !== undefined) data.installationDate = installationDate ? new Date(installationDate) : null;
   if (serialNumber !== undefined) data.serialNumber = serialNumber?.trim() || null;
   if (collectorId !== undefined) data.collectorId = collectorId || null;
+  if (priceId !== undefined) data.priceId = priceId?.trim() || null;
   const tenantId = user.tenantId!;
   if (data.meterNumber !== undefined) {
     const existing = await prisma.meter.findFirst({
@@ -82,6 +84,14 @@ export async function PATCH(
     });
     if (existing) {
       return NextResponse.json({ error: 'Plate number already exists for this tenant' }, { status: 400 });
+    }
+  }
+  if (data.priceId !== undefined && data.priceId !== null && String(data.priceId).trim() !== '') {
+    const price = await prisma.price.findFirst({
+      where: { id: String(data.priceId).trim(), tenantId },
+    });
+    if (!price) {
+      return NextResponse.json({ error: 'Price not found or not in this tenant' }, { status: 400 });
     }
   }
   const updated = await prisma.meter.updateMany({

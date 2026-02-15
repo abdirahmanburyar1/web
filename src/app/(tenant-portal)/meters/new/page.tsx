@@ -29,6 +29,7 @@ const initialForm = {
   installationDate: "",
   serialNumber: "",
   collectorId: "",
+  priceId: "",
 };
 
 export default function NewMeterPage() {
@@ -37,6 +38,7 @@ export default function NewMeterPage() {
   const [sections, setSections] = useState<Array<{ id: string; name: string }>>([]);
   const [subSections, setSubSections] = useState<Array<{ id: string; name: string; sectionId?: string | null }>>([]);
   const [users, setUsers] = useState<Array<{ id: string; fullName: string }>>([]);
+  const [prices, setPrices] = useState<Array<{ id: string; name: string; pricePerCubic: number; isDefault?: boolean }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
@@ -74,6 +76,10 @@ export default function NewMeterPage() {
     fetch("/api/tenant/users", { headers: { Authorization: `Bearer ${t}` } })
       .then((r) => r.json())
       .then((u) => setUsers(u?.users ?? []))
+      .catch(() => {});
+    fetch("/api/tenant/prices", { headers: { Authorization: `Bearer ${t}` } })
+      .then((r) => r.json())
+      .then((p) => { if (!p?.error) setPrices(Array.isArray(p) ? p : []); })
       .catch(() => {});
   }
 
@@ -190,6 +196,7 @@ export default function NewMeterPage() {
           installationDate: form.installationDate || undefined,
           serialNumber: form.serialNumber.trim() || undefined,
           collectorId: form.collectorId || undefined,
+          priceId: form.priceId.trim() || undefined,
         }),
       });
       const out = await res.json();
@@ -358,6 +365,21 @@ export default function NewMeterPage() {
                   <option value="">—</option>
                   {users.map((u) => (
                     <option key={u.id} value={u.id}>{u.fullName}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label>Price (per m³)</Label>
+                <select
+                  value={form.priceId}
+                  onChange={(e) => setForm((f) => ({ ...f, priceId: e.target.value }))}
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                >
+                  <option value="">— Use tenant default —</option>
+                  {prices.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} — ${Number(p.pricePerCubic).toFixed(4)}/m³{p.isDefault ? " (default)" : ""}
+                    </option>
                   ))}
                 </select>
               </div>

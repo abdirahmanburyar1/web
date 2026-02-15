@@ -23,7 +23,7 @@ export async function GET(req: Request) {
       take: limit,
       orderBy: { recordedAt: 'desc' },
       include: {
-        meter: { select: { id: true, meterNumber: true, customerName: true } },
+        meter: { select: { id: true, meterNumber: true, customerName: true, price: { select: { id: true, name: true, pricePerCubic: true } } } },
         recordedBy: { select: { id: true, fullName: true } },
       },
     }),
@@ -126,6 +126,7 @@ export async function POST(req: Request) {
       meterId,
       value,
       unit: unit ?? 'm³',
+      pricePerCubic,
       recordedById: user.id,
     },
     include: {

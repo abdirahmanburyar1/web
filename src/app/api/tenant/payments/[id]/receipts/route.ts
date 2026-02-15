@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import type { PaymentMethod } from '@prisma/client';
 import { getTenantUserOrNull } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { PERMISSIONS, userHasPermission } from '@/lib/permissions';
@@ -60,9 +61,9 @@ export async function POST(
     amountReceived != null && Number.isFinite(amountReceived)
       ? amountReceived
       : Number(payment.amount);
-  const method =
+  const method: PaymentMethod =
     paymentMethod && ['CASH', 'MOBILE_MONEY', 'BANK_TRANSFER', 'OTHER'].includes(paymentMethod)
-      ? paymentMethod
+      ? (paymentMethod as PaymentMethod)
       : payment.method;
   const receipt = await prisma.paymentReceipt.create({
     data: {

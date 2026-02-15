@@ -125,6 +125,7 @@ model Tenant {
   // Relations
   users             User[]
   roles             Role[]
+  prices            Price[]
   meters            Meter[]
   zones             Zone[]
   sections          Section[]
@@ -135,6 +136,22 @@ model Tenant {
   auditLogs         AuditLog[]
 
   @@map("tenants")
+}
+
+model Price {
+  id            String   @id @default(uuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  name          String   // e.g. "Residential", "Commercial", "Default"
+  pricePerCubic Decimal  @db.Decimal(10, 4) // per m³
+  isDefault     Boolean  @default(false)    // one default per tenant for meters without a price
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  meters        Meter[]
+
+  @@map("prices")
+  @@index([tenantId])
 }
 
 model User {
@@ -267,6 +284,8 @@ model Meter {
   id                String      @id @default(uuid())
   tenantId          String      @map("tenant_id")
   tenant            Tenant      @relation(fields: [tenantId], references: [id])
+  priceId           String?
+  price             Price?      @relation(fields: [priceId], references: [id])
   zoneId            String?
   zone              Zone?       @relation(fields: [zoneId], references: [id])
   collectorId       String?
@@ -302,6 +321,7 @@ model Meter {
   @@index([plateNumber])
   @@index([zoneId])
   @@index([collectorId])
+  @@index([priceId])
 }
 
 model MeterReading {

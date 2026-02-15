@@ -15,6 +15,7 @@ export async function GET(
     where: { id, tenantId: user.tenantId! },
     include: {
       zone: true,
+      price: { select: { id: true, name: true, pricePerCubic: true } },
       collector: { select: { id: true, fullName: true, email: true } },
       invoices: { orderBy: { issuedDate: 'desc' }, take: 10 },
       payments: { orderBy: { recordedAt: 'desc' }, take: 10 },

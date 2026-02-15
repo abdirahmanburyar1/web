@@ -40,6 +40,7 @@ export async function GET(req: Request) {
       include: {
         zone: { select: { id: true, name: true } },
         collector: { select: { id: true, fullName: true } },
+        price: { select: { id: true, name: true, pricePerCubic: true } },
       },
     }),
     prisma.meter.count({ where }),
@@ -78,6 +79,7 @@ export async function POST(req: Request) {
     installationDate,
     serialNumber,
     collectorId,
+    priceId,
   } = body as {
     meterNumber: string;
     customerName: string;
@@ -94,6 +96,7 @@ export async function POST(req: Request) {
     installationDate?: string;
     serialNumber?: string;
     collectorId?: string;
+    priceId?: string | null;
   };
   if (!meterNumber?.trim() || !customerName?.trim()) {
     return NextResponse.json({ error: 'meterNumber and customerName required' }, { status: 400 });
@@ -114,6 +117,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Plate number already exists for this tenant' }, { status: 400 });
     }
   }
+  if (priceId && priceId.trim()) {
+    const price = await prisma.price.findFirst({
+      where: { id: priceId.trim(), tenantId },
+    });
+    if (!price) {
+      return NextResponse.json({ error: 'Price not found' }, { status: 400 });
+    }
+  }
   const statusVal = status && METER_STATUSES.includes(status as typeof METER_STATUSES[number]) ? status : 'PENDING';
   const meter = await prisma.meter.create({
     data: {
@@ -126,6 +137,7 @@ export async function POST(req: Request) {
       subSection: subSection?.trim() || null,
       zoneId: zoneId || null,
       plateNumber: plate || null,
+      priceId: priceId?.trim() || null,
       status: statusVal as 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'OVERDUE' | 'INACTIVE',
       address: address?.trim() || null,
       meterType: meterType?.trim() || null,
@@ -137,6 +149,7 @@ export async function POST(req: Request) {
     include: {
       zone: { select: { id: true, name: true } },
       collector: { select: { id: true, fullName: true } },
+      price: { select: { id: true, name: true, pricePerCubic: true } },
     },
   });
   return NextResponse.json(meter);

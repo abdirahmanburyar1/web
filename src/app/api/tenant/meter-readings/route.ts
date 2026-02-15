@@ -44,8 +44,10 @@ export async function POST(req: Request) {
   if (!meterId || value == null) {
     return NextResponse.json({ error: 'meterId and value required' }, { status: 400 });
   }
+  const tenantId = user.tenantId!;
   const meter = await prisma.meter.findFirst({
-    where: { id: meterId, tenantId: user.tenantId! },
+    where: { id: meterId, tenantId },
+    include: { price: true },
   });
   if (!meter) return NextResponse.json({ error: 'Meter not found' }, { status: 404 });
 
@@ -65,6 +67,32 @@ export async function POST(req: Request) {
     );
   }
 
+  let pricePerCubic: number;
+  if (meter.price) {
+    pricePerCubic = Number(meter.price.pricePerCubic);
+  } else {
+    const defaultPrice = await prisma.price.findFirst({
+      where: { tenantId, isDefault: true },
+      select: { pricePerCubic: true },
+    });
+    if (defaultPrice) {
+      pricePerCubic = Number(defaultPrice.pricePerCubic);
+    } else {
+      const fallback = await prisma.price.findFirst({
+        where: { tenantId },
+        select: { pricePerCubic: true },
+        orderBy: { createdAt: 'asc' },
+      });
+      if (!fallback) {
+        return NextResponse.json(
+          { error: 'No price defined for this tenant. Create a price in Settings → Prices.' },
+          { status: 400 }
+        );
+      }
+      pricePerCubic = Number(fallback.pricePerCubic);
+    }
+  }
+
   const valueNum = Number(value);
   const previousReading = await prisma.meterReading.findFirst({
     where: { meterId },
@@ -73,7 +101,6 @@ export async function POST(req: Request) {
   });
   const previousValue = previousReading ? Number(previousReading.value) : 0;
   const usageThisPeriod = Math.max(0, valueNum - previousValue);
-  const pricePerCubic = 0.3;
   const currentPeriodAmount = Math.round(usageThisPeriod * pricePerCubic * 100) / 100;
 
   const previousPayment = await prisma.payment.findFirst({
@@ -84,7 +111,6 @@ export async function POST(req: Request) {
   const previousBalance = previousPayment ? Number(previousPayment.amount) : 0;
   const amountDue = Math.round((previousBalance + currentPeriodAmount) * 100) / 100;
 
-  const tenantId = user.tenantId!;
   const existingPayments = await prisma.payment.findMany({
     where: { tenantId, paymentNumber: { not: null } },
     select: { paymentNumber: true },

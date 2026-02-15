@@ -48,6 +48,23 @@ export async function POST(req: Request) {
     where: { id: meterId, tenantId: user.tenantId! },
   });
   if (!meter) return NextResponse.json({ error: 'Meter not found' }, { status: 404 });
+
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const existingThisMonth = await prisma.meterReading.findFirst({
+    where: {
+      meterId,
+      recordedAt: { gte: startOfMonth },
+    },
+    select: { id: true },
+  });
+  if (existingThisMonth) {
+    return NextResponse.json(
+      { error: 'This meter has already been read this month. Please move on to the next meter.' },
+      { status: 400 }
+    );
+  }
+
   const valueNum = Number(value);
   const previousReading = await prisma.meterReading.findFirst({
     where: { meterId },
@@ -59,6 +76,17 @@ export async function POST(req: Request) {
   const pricePerCubic = 0.3;
   const amountDue = Math.round(usageThisPeriod * pricePerCubic * 100) / 100;
 
+  const tenantId = user.tenantId!;
+  const existingPayments = await prisma.payment.findMany({
+    where: { tenantId, paymentNumber: { not: null } },
+    select: { paymentNumber: true },
+  });
+  const numbers = existingPayments
+    .map((p) => (p.paymentNumber && /^\d+$/.test(p.paymentNumber) ? parseInt(p.paymentNumber, 10) : 0))
+    .filter((n) => n > 0);
+  const nextNum = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+  const paymentNumber = String(nextNum).padStart(6, '0');
+
   const reading = await prisma.meterReading.create({
     data: {
       meterId,
@@ -67,7 +95,22 @@ export async function POST(req: Request) {
       recordedById: user.id,
     },
     include: {
-      meter: { select: { id: true, meterNumber: true, customerName: true } },
+      meter: { select: { id: true, meterNumber: true, customerName: true, plateNumber: true, address: true } },
+    },
+  });
+
+  const payment = await prisma.payment.create({
+    data: {
+      tenantId,
+      meterId,
+      paymentNumber,
+      amount: amountDue,
+      method: 'CASH',
+      collectorId: user.id,
+      reference: `Reading ${reading.id}`,
+    },
+    include: {
+      meter: { select: { id: true, meterNumber: true, customerName: true, plateNumber: true, address: true } },
     },
   });
 
@@ -76,5 +119,15 @@ export async function POST(req: Request) {
     usageThisPeriod,
     pricePerCubic,
     amountDue,
+    oldBalance: previousValue,
+    currentBalance: valueNum,
+    payment: {
+      id: payment.id,
+      paymentNumber: payment.paymentNumber,
+      amount: Number(payment.amount),
+      recordedAt: payment.recordedAt,
+      meter: payment.meter,
+    },
+    meter: reading.meter,
   });
 }

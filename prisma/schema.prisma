@@ -346,6 +346,7 @@ model Payment {
   tenant         Tenant           @relation(fields: [tenantId], references: [id])
   meterId        String
   meter         Meter             @relation(fields: [meterId], references: [id])
+  paymentNumber  String?          // per-tenant sequential e.g. 000001
   invoiceId      String?
   invoice        Invoice?         @relation(fields: [invoiceId], references: [id])
   collectorId    String?

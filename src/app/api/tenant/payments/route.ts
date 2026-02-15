@@ -75,11 +75,21 @@ export async function POST(req: Request) {
   if (user.roleType === 'COLLECTOR' && meter.collectorId !== user.id) {
     return NextResponse.json({ error: 'You can only record payments for meters assigned to you' }, { status: 403 });
   }
+  const existingPayments = await prisma.payment.findMany({
+    where: { tenantId, paymentNumber: { not: null } },
+    select: { paymentNumber: true },
+  });
+  const numbers = existingPayments
+    .map((p) => (p.paymentNumber && /^\d+$/.test(p.paymentNumber) ? parseInt(p.paymentNumber, 10) : 0))
+    .filter((n) => n > 0);
+  const nextNum = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+  const paymentNumber = String(nextNum).padStart(6, '0');
   const paymentMethod = (method ?? 'CASH') as PaymentMethod;
   const payment = await prisma.payment.create({
     data: {
       tenantId,
       meterId,
+      paymentNumber,
       amount,
       method: paymentMethod,
       invoiceId: invoiceId || null,

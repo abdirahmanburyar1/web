@@ -9,6 +9,7 @@ type Role = { id: string; name: string; description: string | null };
 type UserRow = {
   id: string;
   email: string;
+  username: string | null;
   fullName: string;
   phoneNumber: string | null;
   roleType: string;
@@ -336,6 +337,7 @@ export default function TenantUsersPage() {
           <thead className="bg-slate-50">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Name</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Username</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Email</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Role type</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Role</th>
@@ -347,7 +349,7 @@ export default function TenantUsersPage() {
             {users.map((u) => (
               <tr key={u.id}>
                 {editingId === u.id ? (
-                  <td colSpan={6} className="px-4 py-3 bg-teal-50/50">
+                  <td colSpan={7} className="px-4 py-3 bg-teal-50/50">
                     <div className="space-y-2">
                       <div className="grid gap-2 sm:grid-cols-2">
                         <input
@@ -428,6 +430,7 @@ export default function TenantUsersPage() {
                 ) : (
                   <>
                     <td className="px-4 py-3 text-sm font-medium text-slate-900">{u.fullName}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600 font-mono">{u.username ?? "—"}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{u.email}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{u.roleType}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{u.role?.name ?? "—"}</td>

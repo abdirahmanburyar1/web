@@ -19,6 +19,7 @@ export async function GET(
     select: {
       id: true,
       email: true,
+      username: true,
       fullName: true,
       phoneNumber: true,
       roleType: true,
@@ -108,6 +109,7 @@ export async function PATCH(
     select: {
       id: true,
       email: true,
+      username: true,
       fullName: true,
       phoneNumber: true,
       roleType: true,

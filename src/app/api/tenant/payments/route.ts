@@ -35,7 +35,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const user = await getTenantUserOrNull(req);
   if (!user) return NextResponse.json({ error: 'Unauthorized or tenant suspended' }, { status: 401 });
-  if (!userHasPermission(user, PERMISSIONS.PAYMENTS_RECORD)) {
+  const canRecord = userHasPermission(user, PERMISSIONS.PAYMENTS_RECORD) || user.roleType === 'COLLECTOR';
+  if (!canRecord) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const tenantId = user.tenantId!;
@@ -70,6 +71,9 @@ export async function POST(req: Request) {
   });
   if (!meter) {
     return NextResponse.json({ error: 'Meter not found' }, { status: 404 });
+  }
+  if (user.roleType === 'COLLECTOR' && meter.collectorId !== user.id) {
+    return NextResponse.json({ error: 'You can only record payments for meters assigned to you' }, { status: 403 });
   }
   const paymentMethod = (method ?? 'CASH') as PaymentMethod;
   const payment = await prisma.payment.create({

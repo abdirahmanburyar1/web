@@ -68,7 +68,7 @@ export default function TenantLoginPage() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("portal", "tenant");
       }
-      router.push("/dashboard");
+      router.push(data.user?.roleType === "COLLECTOR" ? "/collector" : "/dashboard");
       router.refresh();
     } finally {
       setLoading(false);

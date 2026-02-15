@@ -145,6 +145,7 @@ model User {
   role           Role?     @relation(fields: [roleId], references: [id])
   
   email          String    @unique
+  username       String?   // system-generated sequential for collectors (e.g. 000001, 000002)
   passwordHash   String
   fullName       String
   phoneNumber    String?

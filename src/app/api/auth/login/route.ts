@@ -5,7 +5,11 @@ import { verifyPassword, createToken } from '@/lib/auth';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { email, password } = body as { email?: string; password?: string };
+    const { email, password, tenantSlug } = body as {
+      email?: string;
+      password?: string;
+      tenantSlug?: string;
+    };
     if (!email || !password) {
       return NextResponse.json(
         { error: 'Email and password required' },
@@ -26,6 +30,22 @@ export async function POST(req: Request) {
     if (!user.isActive) {
       return NextResponse.json({ error: 'Account is deactivated' }, { status: 403 });
     }
+    const requestedSlug = (tenantSlug as string | undefined)?.trim()?.toLowerCase();
+    if (requestedSlug && requestedSlug.length > 0) {
+      if (!user.tenantId || !user.tenant) {
+        return NextResponse.json(
+          { error: 'This app is configured for a specific tenant. Your account is not in that tenant.' },
+          { status: 403 }
+        );
+      }
+      const userSlug = user.tenant.slug?.toLowerCase();
+      if (userSlug !== requestedSlug) {
+        return NextResponse.json(
+          { error: `This app is configured for tenant "${requestedSlug}". Your account belongs to a different tenant.` },
+          { status: 403 }
+        );
+      }
+    }
     // Tenant users: block if tenant is suspended
     if (user.tenantId && user.tenant?.status === 'SUSPENDED') {
       return NextResponse.json(
@@ -45,6 +65,7 @@ export async function POST(req: Request) {
       user: {
         id: user.id,
         email: user.email,
+        username: user.username,
         fullName: user.fullName,
         roleType: user.roleType,
         tenantId: user.tenantId,

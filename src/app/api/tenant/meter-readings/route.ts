@@ -35,7 +35,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const user = await getTenantUserOrNull(req);
   if (!user) return NextResponse.json({ error: 'Unauthorized or tenant suspended' }, { status: 401 });
-  if (!userHasPermission(user, PERMISSIONS.METER_READINGS_RECORD)) {
+  const canRecord = userHasPermission(user, PERMISSIONS.METER_READINGS_RECORD) || user.roleType === 'COLLECTOR';
+  if (!canRecord) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const body = await req.json().catch(() => ({}));
@@ -47,6 +48,9 @@ export async function POST(req: Request) {
     where: { id: meterId, tenantId: user.tenantId! },
   });
   if (!meter) return NextResponse.json({ error: 'Meter not found' }, { status: 404 });
+  if (user.roleType === 'COLLECTOR' && meter.collectorId !== user.id) {
+    return NextResponse.json({ error: 'You can only record readings for meters assigned to you' }, { status: 403 });
+  }
   const reading = await prisma.meterReading.create({
     data: {
       meterId,

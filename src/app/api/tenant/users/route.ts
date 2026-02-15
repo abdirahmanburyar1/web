@@ -22,6 +22,7 @@ export async function GET(req: Request) {
       select: {
         id: true,
         email: true,
+        username: true,
         fullName: true,
         phoneNumber: true,
         roleType: true,
@@ -95,10 +96,23 @@ export async function POST(req: Request) {
     }
   }
   const passwordHash = await hashPassword(password);
+  let username: string | null = null;
+  if (roleTypeVal === 'COLLECTOR') {
+    const existing = await prisma.user.findMany({
+      where: { tenantId, username: { not: null } },
+      select: { username: true },
+    });
+    const numbers = existing
+      .map((u) => u.username && /^\d+$/.test(u.username) ? parseInt(u.username, 10) : 0)
+      .filter((n) => n > 0);
+    const nextNum = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+    username = String(nextNum).padStart(6, '0');
+  }
   const created = await prisma.user.create({
     data: {
       tenantId,
       email: emailNorm,
+      username,
       passwordHash,
       fullName: fullName.trim(),
       phoneNumber: phoneNumber?.trim() || null,
@@ -116,6 +130,7 @@ export async function POST(req: Request) {
     select: {
       id: true,
       email: true,
+      username: true,
       fullName: true,
       roleType: true,
       roleId: true,

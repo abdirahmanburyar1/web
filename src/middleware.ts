@@ -17,14 +17,12 @@ export function middleware(request: NextRequest) {
     return res;
   }
 
-  // Tenant subdomain: acme.aquatrack.so → slug = acme (tenant_id comes from session/JWT)
+  // Tenant subdomain: water.aquatrack.so → slug = water. Root aquatrack.so is platform, not a tenant.
+  const isTenantSubdomain = hostname.endsWith("." + MAIN_HOST); // e.g. water.aquatrack.so, not aquatrack.so
   const parts = hostname.split(".");
-  const isSubdomain =
-    parts.length >= 2 &&
-    (hostname.endsWith(MAIN_HOST) || hostname.endsWith(`.${MAIN_HOST}`));
   const reservedSubdomains = ["www", "admin", "platform", "api", "app"];
   const slug =
-    isSubdomain && !reservedSubdomains.includes(parts[0])
+    isTenantSubdomain && parts.length > 0 && !reservedSubdomains.includes(parts[0])
       ? parts[0]
       : null;
 

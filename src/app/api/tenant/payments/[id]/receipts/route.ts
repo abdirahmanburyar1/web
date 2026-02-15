@@ -18,7 +18,16 @@ export async function GET(
     include: { receipts: true },
   });
   if (!payment) return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
-  return NextResponse.json(payment.receipts);
+  const receipts = payment.receipts.map((r) => ({
+    id: r.id,
+    receiptNumber: r.receiptNumber,
+    amountReceived: r.amountReceived != null ? Number(r.amountReceived) : null,
+    paymentMethod: r.paymentMethod,
+    url: r.url,
+    issuedAt: r.issuedAt,
+    createdAt: r.createdAt,
+  }));
+  return NextResponse.json(receipts);
 }
 
 export async function POST(
@@ -36,13 +45,37 @@ export async function POST(
   });
   if (!payment) return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
   const body = await req.json().catch(() => ({}));
-  const { receiptNumber, url } = body as { receiptNumber?: string; url?: string };
+  const {
+    receiptNumber,
+    amountReceived,
+    paymentMethod,
+    url,
+  } = body as {
+    receiptNumber?: string;
+    amountReceived?: number;
+    paymentMethod?: string;
+    url?: string;
+  };
+  const amount =
+    amountReceived != null && Number.isFinite(amountReceived)
+      ? amountReceived
+      : Number(payment.amount);
+  const method =
+    paymentMethod && ['CASH', 'MOBILE_MONEY', 'BANK_TRANSFER', 'OTHER'].includes(paymentMethod)
+      ? paymentMethod
+      : payment.method;
   const receipt = await prisma.paymentReceipt.create({
     data: {
       paymentId,
       receiptNumber: receiptNumber?.trim() || null,
+      amountReceived: amount,
+      paymentMethod: method,
       url: url?.trim() || null,
     },
   });
-  return NextResponse.json(receipt);
+  return NextResponse.json({
+    ...receipt,
+    amountReceived: receipt.amountReceived != null ? Number(receipt.amountReceived) : null,
+    paymentMethod: receipt.paymentMethod,
+  });
 }

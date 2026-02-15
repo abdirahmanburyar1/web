@@ -386,13 +386,15 @@ model Payment {
 }
 
 model PaymentReceipt {
-  id             String   @id @default(uuid())
-  paymentId      String
-  payment        Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  receiptNumber  String?
-  url            String?  // e.g. link to stored file
-  issuedAt       DateTime @default(now())
-  createdAt      DateTime @default(now())
+  id              String        @id @default(uuid())
+  paymentId       String
+  payment         Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  receiptNumber   String?       // official receipt number (e.g. from receipt book)
+  amountReceived  Decimal?      @db.Decimal(10, 2) // amount on this receipt; when null, use payment.amount
+  paymentMethod   PaymentMethod? // how this receipt was paid; when null, use payment.method
+  url             String?       // e.g. link to scanned receipt
+  issuedAt        DateTime     @default(now())
+  createdAt       DateTime     @default(now())
 
   @@map("payment_receipts")
   @@index([paymentId])

@@ -5,25 +5,45 @@ import { verifyPassword, createToken } from '@/lib/auth';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { email, password, tenantSlug } = body as {
+    const { email, username: usernameInput, password, tenantSlug } = body as {
       email?: string;
+      username?: string;
       password?: string;
       tenantSlug?: string;
     };
-    if (!email || !password) {
+    const passwordTrimmed = (password as string | undefined)?.trim();
+    if (!passwordTrimmed) {
       return NextResponse.json(
-        { error: 'Email and password required' },
+        { error: 'Password is required' },
         { status: 400 }
       );
     }
-    const user = await prisma.user.findUnique({
-      where: { email: email.trim().toLowerCase() },
-      include: { tenant: true },
-    });
+    // Mobile (collector) app sends username; web can send email
+    const byUsername = (usernameInput as string | undefined)?.trim();
+    const byEmail = (email as string | undefined)?.trim()?.toLowerCase();
+    if (!byUsername && !byEmail) {
+      return NextResponse.json(
+        { error: 'Username or email is required' },
+        { status: 400 }
+      );
+    }
+    let user = null;
+    if (byUsername) {
+      user = await prisma.user.findFirst({
+        where: { username: byUsername, tenantId: { not: null } },
+        include: { tenant: true },
+      });
+    }
+    if (!user && byEmail) {
+      user = await prisma.user.findUnique({
+        where: { email: byEmail },
+        include: { tenant: true },
+      });
+    }
     if (!user || !user.passwordHash) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
-    const ok = await verifyPassword(password, user.passwordHash);
+    const ok = await verifyPassword(passwordTrimmed, user.passwordHash);
     if (!ok) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }

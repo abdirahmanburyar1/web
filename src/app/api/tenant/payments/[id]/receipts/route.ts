@@ -24,7 +24,6 @@ export async function GET(
     receiptNumber: r.receiptNumber,
     amountReceived: r.amountReceived != null ? Number(r.amountReceived) : null,
     paymentMethod: r.paymentMethod,
-    url: r.url,
     issuedAt: r.issuedAt,
     createdAt: r.createdAt,
   }));
@@ -46,16 +45,9 @@ export async function POST(
   });
   if (!payment) return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
   const body = await req.json().catch(() => ({}));
-  const {
-    receiptNumber,
-    amountReceived,
-    paymentMethod,
-    url,
-  } = body as {
-    receiptNumber?: string;
+  const { amountReceived, paymentMethod } = body as {
     amountReceived?: number;
     paymentMethod?: string;
-    url?: string;
   };
   const amount =
     amountReceived != null && Number.isFinite(amountReceived)
@@ -65,13 +57,26 @@ export async function POST(
     paymentMethod && ['CASH', 'MOBILE_MONEY', 'BANK_TRANSFER', 'OTHER'].includes(paymentMethod)
       ? (paymentMethod as PaymentMethod)
       : payment.method;
+
+  const tenantId = payment.tenantId;
+  const existing = await prisma.paymentReceipt.findMany({
+    where: { payment: { tenantId } },
+    select: { receiptNumber: true },
+  });
+  const numbers = existing
+    .map((r) => r.receiptNumber)
+    .filter((n): n is string => !!n)
+    .map((n) => parseInt(n.replace(/^R-0*/, ''), 10))
+    .filter((n) => !Number.isNaN(n));
+  const nextNum = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+  const receiptNumber = `R-${String(nextNum).padStart(6, '0')}`;
+
   const receipt = await prisma.paymentReceipt.create({
     data: {
       paymentId,
-      receiptNumber: receiptNumber?.trim() || null,
+      receiptNumber,
       amountReceived: amount,
       paymentMethod: method,
-      url: url?.trim() || null,
     },
   });
   return NextResponse.json({

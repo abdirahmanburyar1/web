@@ -18,7 +18,6 @@ type Receipt = {
   receiptNumber: string | null;
   amountReceived: number | null;
   paymentMethod: string | null;
-  url: string | null;
   issuedAt: string;
   createdAt?: string;
 };
@@ -37,10 +36,8 @@ export default function PaymentsPage() {
   } | null>(null);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loadingReceipts, setLoadingReceipts] = useState(false);
-  const [addReceiptNumber, setAddReceiptNumber] = useState("");
   const [addAmountReceived, setAddAmountReceived] = useState("");
   const [addPaymentMethod, setAddPaymentMethod] = useState<string>("CASH");
-  const [addReceiptUrl, setAddReceiptUrl] = useState("");
   const [addingReceipt, setAddingReceipt] = useState(false);
 
   function getToken() {
@@ -74,10 +71,8 @@ export default function PaymentsPage() {
   function openReceipts(paymentId: string, meterLabel: string, paymentAmount: number, paymentMethod: string) {
     setReceiptsModal({ paymentId, meterLabel, paymentAmount, paymentMethod });
     setReceipts([]);
-    setAddReceiptNumber("");
     setAddAmountReceived(String(paymentAmount));
     setAddPaymentMethod(paymentMethod || "CASH");
-    setAddReceiptUrl("");
     const t = getToken();
     if (!t) return;
     setLoadingReceipts(true);
@@ -100,19 +95,15 @@ export default function PaymentsPage() {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
       body: JSON.stringify({
-        receiptNumber: addReceiptNumber.trim() || undefined,
         amountReceived: amount,
         paymentMethod: addPaymentMethod,
-        url: addReceiptUrl.trim() || undefined,
       }),
     })
       .then((r) => r.json())
       .then((receipt) => {
         if (receipt.id) setReceipts((prev) => [receipt, ...prev]);
-        setAddReceiptNumber("");
         setAddAmountReceived(String(receiptsModal.paymentAmount));
         setAddPaymentMethod(receiptsModal.paymentMethod || "CASH");
-        setAddReceiptUrl("");
         load();
       })
       .finally(() => setAddingReceipt(false));
@@ -173,22 +164,13 @@ export default function PaymentsPage() {
             <div className="border-b border-slate-200 px-4 py-3">
               <h2 className="text-lg font-semibold text-slate-900">Receipts — {receiptsModal.meterLabel}</h2>
               <p className="text-sm text-slate-500">
-                Payment recorded in office: <strong>${receiptsModal.paymentAmount.toFixed(2)}</strong> · {receiptsModal.paymentMethod.replace(/_/g, " ")}. Add receipt records (receipt number, amount received, payment method) below.
+                Payment recorded in office: <strong>${receiptsModal.paymentAmount.toFixed(2)}</strong> · {receiptsModal.paymentMethod.replace(/_/g, " ")}. Add a receipt below; receipt number is generated automatically.
               </p>
             </div>
             <div className="max-h-[60vh] overflow-y-auto p-4">
               <form onSubmit={handleAddReceipt} className="mb-4 rounded-lg border border-slate-200 bg-slate-50/50 p-4">
                 <p className="mb-3 text-xs font-medium text-slate-600">Add receipt (office record)</p>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500">Receipt number</label>
-                    <input
-                      value={addReceiptNumber}
-                      onChange={(e) => setAddReceiptNumber(e.target.value)}
-                      placeholder="e.g. R-001"
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    />
-                  </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
                     <label className="block text-xs font-medium text-slate-500">Amount received</label>
                     <input
@@ -213,15 +195,6 @@ export default function PaymentsPage() {
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500">Link (optional)</label>
-                    <input
-                      value={addReceiptUrl}
-                      onChange={(e) => setAddReceiptUrl(e.target.value)}
-                      placeholder="URL to receipt"
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    />
-                  </div>
                 </div>
                 <div className="mt-3 flex justify-end">
                   <Button type="submit" size="sm" disabled={addingReceipt}>{(addingReceipt ? "Adding…" : "Add receipt")}</Button>
@@ -240,7 +213,6 @@ export default function PaymentsPage() {
                         <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Amount received</th>
                         <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Method</th>
                         <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Date</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Link</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 bg-white">
@@ -250,11 +222,6 @@ export default function PaymentsPage() {
                           <td className="px-3 py-2 text-slate-700">${(r.amountReceived ?? 0).toFixed(2)}</td>
                           <td className="px-3 py-2 text-slate-600">{(r.paymentMethod ?? "").replace(/_/g, " ")}</td>
                           <td className="px-3 py-2 text-slate-600">{new Date(r.issuedAt).toLocaleString()}</td>
-                          <td className="px-3 py-2">
-                            {r.url ? (
-                              <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">Open</a>
-                            ) : "—"}
-                          </td>
                         </tr>
                       ))}
                     </tbody>

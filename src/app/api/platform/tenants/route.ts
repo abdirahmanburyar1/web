@@ -36,23 +36,17 @@ export async function POST(req: Request) {
     const {
       name,
       slug,
-      subscriptionPlan,
       adminEmail,
       adminPassword,
       adminFullName,
-      maxStaff,
-      maxCustomers,
-      maxTransactions,
+      feePerPayment,
     } = body as {
       name: string;
       slug: string;
-      subscriptionPlan?: string;
       adminEmail: string;
       adminPassword: string;
       adminFullName: string;
-      maxStaff?: number;
-      maxCustomers?: number;
-      maxTransactions?: number;
+      feePerPayment?: number;
     };
     if (!name || !slug || !adminEmail || !adminPassword || !adminFullName) {
       return NextResponse.json(
@@ -71,15 +65,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Admin email already registered' }, { status: 400 });
     }
     const passwordHash = await hashPassword(adminPassword);
-    const plan = subscriptionPlan ?? 'BASIC';
+    const fee = feePerPayment != null && !Number.isNaN(Number(feePerPayment)) ? Number(feePerPayment) : 0.2;
     const tenant = await prisma.tenant.create({
       data: {
         name: name.trim(),
         slug: slugNorm,
-        subscriptionPlan: plan as 'BASIC' | 'STANDARD' | 'PREMIUM' | 'ENTERPRISE',
-        maxStaff: maxStaff ?? null,
-        maxCustomers: maxCustomers ?? null,
-        maxTransactions: maxTransactions ?? null,
+        feePerPayment: fee,
         users: {
           create: {
             email: emailNorm,

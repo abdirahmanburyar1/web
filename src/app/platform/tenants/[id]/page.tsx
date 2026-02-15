@@ -11,12 +11,7 @@ type Tenant = {
   name: string;
   slug: string;
   status: string;
-  subscriptionPlan: string;
-  billingCycle: string | null;
-  currency: string;
-  maxStaff: number | null;
-  maxCustomers: number | null;
-  maxTransactions: number | null;
+  feePerPayment: string | number;
   _count?: { users: number; meters: number; invoices: number; payments: number };
 };
 
@@ -40,8 +35,6 @@ type TenantUser = {
   createdAt: string;
 };
 
-const PLANS = ["BASIC", "STANDARD", "PREMIUM", "ENTERPRISE"] as const;
-
 export default function PlatformTenantDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -56,11 +49,7 @@ export default function PlatformTenantDetailPage() {
   const [form, setForm] = useState({
     name: "",
     status: "ACTIVE",
-    subscriptionPlan: "BASIC",
-    billingCycle: "",
-    maxStaff: "" as string | number,
-    maxCustomers: "" as string | number,
-    maxTransactions: "" as string | number,
+    feePerPayment: "0.2",
   });
   const [paymentForm, setPaymentForm] = useState({ amount: "", status: "PENDING", description: "" });
   const [addingPayment, setAddingPayment] = useState(false);
@@ -109,11 +98,7 @@ export default function PlatformTenantDetailPage() {
         setForm({
           name: t.name,
           status: t.status,
-          subscriptionPlan: t.subscriptionPlan,
-          billingCycle: t.billingCycle ?? "",
-          maxStaff: t.maxStaff ?? "",
-          maxCustomers: t.maxCustomers ?? "",
-          maxTransactions: t.maxTransactions ?? "",
+          feePerPayment: t.feePerPayment != null ? String(t.feePerPayment) : "0.2",
         });
         setPayments(Array.isArray(paymentsData) ? paymentsData : []);
         setUsers(Array.isArray(usersData) ? usersData : []);
@@ -144,11 +129,7 @@ export default function PlatformTenantDetailPage() {
         body: JSON.stringify({
           name: form.name,
           status: form.status,
-          subscriptionPlan: form.subscriptionPlan,
-          billingCycle: form.billingCycle || undefined,
-          maxStaff: form.maxStaff === "" ? undefined : Number(form.maxStaff),
-          maxCustomers: form.maxCustomers === "" ? undefined : Number(form.maxCustomers),
-          maxTransactions: form.maxTransactions === "" ? undefined : Number(form.maxTransactions),
+          feePerPayment: form.feePerPayment ? parseFloat(form.feePerPayment) : 0.2,
         }),
       });
       const data = (await parseJson(res)) as Tenant & { error?: string };
@@ -281,9 +262,9 @@ export default function PlatformTenantDetailPage() {
             </div>
           )}
 
-          {/* Subscription & plans */}
+          {/* Tenant settings: name, status, fee per payment */}
           <Card className="mb-6">
-            <CardHeader className="font-semibold text-slate-900">Subscription & plans</CardHeader>
+            <CardHeader className="font-semibold text-slate-900">Tenant settings</CardHeader>
             <CardContent className="pt-4">
               <form onSubmit={handleSave} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -308,67 +289,21 @@ export default function PlatformTenantDetailPage() {
                       <option value="PENDING">PENDING</option>
                     </select>
                   </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">Plan</label>
-                    <select
-                      value={form.subscriptionPlan}
-                      onChange={(e) => setForm((f) => ({ ...f, subscriptionPlan: e.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    >
-                      {PLANS.map((p) => (
-                        <option key={p} value={p}>{p}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">Billing cycle</label>
-                    <input
-                      value={form.billingCycle}
-                      onChange={(e) => setForm((f) => ({ ...f, billingCycle: e.target.value }))}
-                      placeholder="e.g. monthly, quarterly"
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">Max staff</label>
+                    <label className="block text-sm font-medium text-slate-700">Fee per payment (USD)</label>
                     <input
                       type="number"
-                      min={0}
-                      value={form.maxStaff}
-                      onChange={(e) => setForm((f) => ({ ...f, maxStaff: e.target.value }))}
-                      placeholder="Unlimited"
+                      step="0.0001"
+                      min="0"
+                      value={form.feePerPayment}
+                      onChange={(e) => setForm((f) => ({ ...f, feePerPayment: e.target.value }))}
                       className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">Max meters</label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={form.maxCustomers}
-                      onChange={(e) => setForm((f) => ({ ...f, maxCustomers: e.target.value }))}
-                      placeholder="Unlimited"
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">Max transactions</label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={form.maxTransactions}
-                      onChange={(e) => setForm((f) => ({ ...f, maxTransactions: e.target.value }))}
-                      placeholder="Unlimited"
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    />
+                    <p className="mt-1 text-xs text-slate-500">Platform fee charged per tenant payment event</p>
                   </div>
                 </div>
                 <Button type="submit" disabled={saving} variant="platform">
-                  {saving ? "Saving…" : "Save subscription"}
+                  {saving ? "Saving…" : "Save"}
                 </Button>
               </form>
             </CardContent>

@@ -18,7 +18,7 @@ export default function PlatformTenantsPage() {
       name: string;
       slug: string;
       status: string;
-      subscriptionPlan: string;
+      feePerPayment: string | number;
       _count: { users: number; meters: number; payments: number };
     }>;
     total: number;
@@ -34,6 +34,7 @@ export default function PlatformTenantsPage() {
     adminEmail: "",
     adminPassword: "",
     adminFullName: "",
+    feePerPayment: "0.2",
   });
 
   function getToken() {
@@ -74,14 +75,17 @@ export default function PlatformTenantsPage() {
       const res = await fetch("/api/platform/tenants", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
-        body: JSON.stringify({ ...createForm, subscriptionPlan: "BASIC" }),
+        body: JSON.stringify({
+          ...createForm,
+          feePerPayment: createForm.feePerPayment ? parseFloat(createForm.feePerPayment) : 0.2,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Failed to create tenant");
         return;
       }
-      setCreateForm({ name: "", slug: "", adminEmail: "", adminPassword: "", adminFullName: "" });
+      setCreateForm({ name: "", slug: "", adminEmail: "", adminPassword: "", adminFullName: "", feePerPayment: "0.2" });
       setCreateOpen(false);
       load();
     } catch {
@@ -223,6 +227,18 @@ export default function PlatformTenantsPage() {
                     required
                   />
                 </div>
+                <div>
+                  <Label className="mb-1.5 block">Fee per payment (USD)</Label>
+                  <Input
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    placeholder="0.2"
+                    value={createForm.feePerPayment}
+                    onChange={(e) => setCreateForm((f) => ({ ...f, feePerPayment: e.target.value }))}
+                  />
+                  <p className="mt-1 text-xs text-slate-500">Platform fee charged per tenant payment (default 0.2)</p>
+                </div>
               </div>
               <Button type="submit" variant="platform" disabled={creating}>
                 {creating ? "Creating…" : "Create tenant"}
@@ -239,7 +255,7 @@ export default function PlatformTenantsPage() {
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Name</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Slug</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Plan</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Fee/payment</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Status</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Users</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Meters</th>
@@ -256,7 +272,7 @@ export default function PlatformTenantsPage() {
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-600 font-mono">{t.slug}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{t.subscriptionPlan}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600">${Number(t.feePerPayment ?? 0.2).toFixed(4)}</td>
                   <td className="px-4 py-3">
                     <Badge variant={t.status === "ACTIVE" ? "success" : "warning"}>{t.status}</Badge>
                   </td>

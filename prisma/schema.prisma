@@ -115,6 +115,8 @@ model Tenant {
   // Settings
   billingCycle      String?          // e.g., "monthly", "quarterly"
   currency          String           @default("USD")
+  // Platform fee per payment (USD), e.g. 0.2 per payment
+  feePerPayment     Decimal          @db.Decimal(5, 4) @default(0.2)
   // Plan limits (null = unlimited)
   maxStaff          Int?
   maxCustomers      Int?

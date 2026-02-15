@@ -27,24 +27,15 @@ export async function PATCH(
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
-  const { status, subscriptionPlan, maxStaff, maxCustomers, maxTransactions, name, billingCycle } =
-    body as {
-      status?: string;
-      subscriptionPlan?: string;
-      maxStaff?: number;
-      maxCustomers?: number;
-      maxTransactions?: number;
-      name?: string;
-      billingCycle?: string;
-    };
+  const { status, name, feePerPayment } = body as {
+    status?: string;
+    name?: string;
+    feePerPayment?: number;
+  };
   const data: Record<string, unknown> = {};
   if (status === 'ACTIVE' || status === 'SUSPENDED' || status === 'PENDING') data.status = status;
-  if (subscriptionPlan) data.subscriptionPlan = subscriptionPlan;
-  if (maxStaff !== undefined) data.maxStaff = maxStaff;
-  if (maxCustomers !== undefined) data.maxCustomers = maxCustomers;
-  if (maxTransactions !== undefined) data.maxTransactions = maxTransactions;
   if (name !== undefined) data.name = name;
-  if (billingCycle !== undefined) data.billingCycle = billingCycle;
+  if (feePerPayment !== undefined && !Number.isNaN(Number(feePerPayment))) data.feePerPayment = Number(feePerPayment);
   const tenant = await prisma.tenant.update({
     where: { id },
     data,

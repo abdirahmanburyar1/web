@@ -8,7 +8,7 @@ type TenantRow = {
   name: string;
   slug: string;
   status: string;
-  subscriptionPlan: string;
+  feePerPayment: string | number;
   _count: { users: number; meters: number; payments: number };
 };
 
@@ -67,7 +67,7 @@ export default function PlatformReportsPage() {
     );
   }
 
-  const revenuePerTxn = 0.1;
+  const revenueFor = (t: TenantRow) => t._count.payments * Number(t.feePerPayment ?? 0.2);
   return (
     <div>
       <h1 className="text-2xl font-bold text-slate-900">Reports</h1>
@@ -90,7 +90,7 @@ export default function PlatformReportsPage() {
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Tenant</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Slug</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Plan</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Fee/payment (USD)</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500">Status</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-slate-500">Users</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-slate-500">Meters</th>
@@ -103,7 +103,7 @@ export default function PlatformReportsPage() {
                 <tr key={t.id}>
                   <td className="px-4 py-3 text-sm font-medium text-slate-900">{t.name}</td>
                   <td className="px-4 py-3 text-sm text-slate-600">{t.slug}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{t.subscriptionPlan}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600">${Number(t.feePerPayment ?? 0.2).toFixed(4)}</td>
                   <td className="px-4 py-3">
                     <span
                       className={
@@ -119,7 +119,7 @@ export default function PlatformReportsPage() {
                   <td className="px-4 py-3 text-sm text-slate-600 text-right">{t._count.meters}</td>
                   <td className="px-4 py-3 text-sm text-slate-600 text-right">{t._count.payments}</td>
                   <td className="px-4 py-3 text-sm text-emerald-600 text-right">
-                    ${(t._count.payments * revenuePerTxn).toFixed(2)}
+                    ${revenueFor(t).toFixed(2)}
                   </td>
                 </tr>
               ))}

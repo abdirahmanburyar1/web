@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { getPlatformAdminOrNull } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
-const REVENUE_PER_TRANSACTION = 0.1;
-
 export async function GET(req: Request) {
   const admin = await getPlatformAdminOrNull(req);
   if (!admin) {
@@ -19,19 +17,21 @@ export async function GET(req: Request) {
     },
   });
 
+  const fee = (t: { feePerPayment: unknown; _count: { payments: number } }) =>
+    Number(t.feePerPayment ?? 0.2);
   const rows = tenants.map((t) => ({
     name: t.name,
     slug: t.slug,
     status: t.status,
-    plan: t.subscriptionPlan,
+    feePerPayment: Number(t.feePerPayment ?? 0.2).toFixed(4),
     users: t._count.users,
     meters: t._count.meters,
     transactions: t._count.payments,
-    revenue: (t._count.payments * REVENUE_PER_TRANSACTION).toFixed(2),
+    revenue: (t._count.payments * fee(t)).toFixed(2),
   }));
 
   if (format === "csv") {
-    const headers = ["name", "slug", "status", "plan", "users", "meters", "transactions", "revenue"];
+    const headers = ["name", "slug", "status", "feePerPayment", "users", "meters", "transactions", "revenue"];
     const csv = [headers.join(","), ...rows.map((r) => headers.map((h) => JSON.stringify((r as Record<string, unknown>)[h])).join(","))].join("\n");
     return new NextResponse(csv, {
       headers: {

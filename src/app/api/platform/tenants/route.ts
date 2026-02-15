@@ -8,22 +8,28 @@ export async function GET(req: Request) {
   if (!admin) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-  const { searchParams } = new URL(req.url);
-  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
-  const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10)));
-  const skip = (page - 1) * limit;
-  const [tenants, total] = await Promise.all([
-    prisma.tenant.findMany({
-      skip,
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        _count: { select: { users: true, meters: true, payments: true } },
-      },
-    }),
-    prisma.tenant.count(),
-  ]);
-  return NextResponse.json({ tenants, total, page, limit });
+  try {
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
+    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10)));
+    const skip = (page - 1) * limit;
+    const [tenants, total] = await Promise.all([
+      prisma.tenant.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          _count: { select: { users: true, meters: true, payments: true } },
+        },
+      }),
+      prisma.tenant.count(),
+    ]);
+    return NextResponse.json({ tenants, total, page, limit });
+  } catch (e) {
+    console.error('List tenants error', e);
+    const message = e instanceof Error ? e.message : 'Failed to load tenants';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {

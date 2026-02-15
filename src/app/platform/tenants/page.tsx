@@ -45,9 +45,14 @@ export default function PlatformTenantsPage() {
   function load() {
     const t = getToken();
     if (!t) return;
+    setError("");
     fetch("/api/platform/tenants?limit=50", { headers: { Authorization: `Bearer ${t}` } })
-      .then((r) => r.json())
-      .then((data) => {
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          setError(typeof data?.error === "string" ? data.error : "Failed to load tenants");
+          return;
+        }
         if (data.error) setError(data.error);
         else setTenants(data);
       })

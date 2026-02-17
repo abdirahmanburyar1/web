@@ -3,8 +3,23 @@ import { prisma } from '@/lib/db';
 import { verifyPassword, createToken } from '@/lib/auth';
 
 export async function POST(req: Request) {
+  let body: unknown;
   try {
-    const body = await req.json();
+    body = await req.json();
+  } catch (e) {
+    console.error('Login: invalid request body', e);
+    return NextResponse.json(
+      { error: 'Invalid request body. Send JSON with username (or email) and password.' },
+      { status: 400 }
+    );
+  }
+  if (body == null || typeof body !== 'object') {
+    return NextResponse.json(
+      { error: 'Request body must be a JSON object.' },
+      { status: 400 }
+    );
+  }
+  try {
     const { email, username: usernameInput, password, tenantSlug } = body as {
       email?: string;
       username?: string;
@@ -96,6 +111,9 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     console.error('Login error', e);
-    return NextResponse.json({ error: 'Login failed' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Login failed. Please try again.' },
+      { status: 500 }
+    );
   }
 }

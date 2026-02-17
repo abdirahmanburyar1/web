@@ -19,6 +19,7 @@ export default function PlatformTenantsPage() {
       name: string;
       slug: string;
       status: string;
+      subscriptionPlan?: string;
       feePerPayment: string | number;
       _count: { users: number; meters: number; payments: number };
     }>;
@@ -27,6 +28,8 @@ export default function PlatformTenantsPage() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [creating, setCreating] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState({
@@ -47,7 +50,10 @@ export default function PlatformTenantsPage() {
     const t = getToken();
     if (!t) return;
     setError("");
-    fetch("/api/platform/tenants?limit=50", { headers: { Authorization: `Bearer ${t}` } })
+    const params = new URLSearchParams({ limit: "50" });
+    if (search) params.set("search", search);
+    if (statusFilter) params.set("status", statusFilter);
+    fetch(`/api/platform/tenants?${params}`, { headers: { Authorization: `Bearer ${t}` } })
       .then(async (r) => {
         const data = await r.json().catch(() => ({}));
         if (!r.ok) {
@@ -69,7 +75,7 @@ export default function PlatformTenantsPage() {
     }
     load();
     setLoading(false);
-  }, []);
+  }, [search, statusFilter]);
 
   async function handleCreateTenant(e: React.FormEvent) {
     e.preventDefault();
@@ -163,7 +169,7 @@ export default function PlatformTenantsPage() {
     return (
       <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
         <p className="text-red-700">{error}</p>
-        <Link href="/login" className="mt-4 inline-block">
+        <Link href="/platform/login" className="mt-4 inline-block">
           <Button variant="secondary">Go to login</Button>
         </Link>
       </div>
@@ -174,13 +180,33 @@ export default function PlatformTenantsPage() {
     <div>
       <PageHeader
         title="Tenants"
-        description="Create and manage tenants. Suspended tenants cannot access portal or app."
+        description="Create and manage tenants. Full control over status, plans, and limits. Tenants manage users, roles, permissions, and prices in their portal."
       />
       {error && (
         <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           {error}
         </div>
       )}
+
+      <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm">
+        <input
+          type="search"
+          placeholder="Search by name or slug…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="min-w-[200px] rounded-lg border border-slate-300 px-3 py-2 text-sm"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+        >
+          <option value="">All statuses</option>
+          <option value="ACTIVE">ACTIVE</option>
+          <option value="SUSPENDED">SUSPENDED</option>
+          <option value="PENDING">PENDING</option>
+        </select>
+      </div>
 
       <Card className="mb-6">
         <CardHeader
@@ -243,16 +269,16 @@ export default function PlatformTenantsPage() {
                   />
                 </div>
                 <div>
-                  <Label className="mb-1.5 block">Fee per payment (USD)</Label>
+                  <Label className="mb-1.5 block">Per-transaction fee (USD)</Label>
                   <Input
                     type="number"
-                    step="0.0001"
+                    step="0.01"
                     min="0"
-                    placeholder="0.2"
+                    placeholder="0.02"
                     value={createForm.feePerPayment}
                     onChange={(e) => setCreateForm((f) => ({ ...f, feePerPayment: e.target.value }))}
                   />
-                  <p className="mt-1 text-xs text-slate-500">Platform fee charged per tenant payment (default 0.2)</p>
+                  <p className="mt-1 text-xs text-slate-500">Fixed amount per payment (e.g. 0.02), not %. Tenant keeps (customer amount − fee). Use 0 for fixed-price subscription.</p>
                 </div>
               </div>
               <Button type="submit" variant="platform" disabled={creating}>
@@ -270,6 +296,7 @@ export default function PlatformTenantsPage() {
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Name</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Slug</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Plan</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Fee/payment</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Status</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Users</th>
@@ -282,11 +309,14 @@ export default function PlatformTenantsPage() {
               {tenants.tenants.map((t) => (
                 <tr key={t.id} className="hover:bg-slate-50/50">
                   <td className="px-4 py-3">
-                    <Link href={`/tenants/${t.id}`} className="font-medium text-cyan-600 hover:text-cyan-700 hover:underline">
+                    <Link href={`/platform/tenants/${t.id}`} className="font-medium text-cyan-600 hover:text-cyan-700 hover:underline">
                       {t.name}
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-600 font-mono">{t.slug}</td>
+                  <td className="px-4 py-3">
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">{t.subscriptionPlan ?? "BASIC"}</span>
+                  </td>
                   <td className="px-4 py-3 text-sm text-slate-600">${Number(t.feePerPayment ?? 0.2).toFixed(4)}</td>
                   <td className="px-4 py-3">
                     <Badge variant={t.status === "ACTIVE" ? "success" : "warning"}>{t.status}</Badge>
@@ -296,7 +326,7 @@ export default function PlatformTenantsPage() {
                   <td className="px-4 py-3 text-sm text-slate-600">{t._count.payments}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
-                      <Link href={`/tenants/${t.id}`} className="text-sm font-medium text-cyan-600 hover:underline">
+                      <Link href={`/platform/tenants/${t.id}`} className="text-sm font-medium text-cyan-600 hover:underline">
                         Edit
                       </Link>
                       <button

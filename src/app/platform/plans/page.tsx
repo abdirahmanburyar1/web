@@ -98,7 +98,7 @@ export default function PlatformPlansPage() {
     return (
       <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
         <p className="text-red-700">{error}</p>
-        <Link href="/login" className="mt-4 inline-block">
+        <Link href="/platform/login" className="mt-4 inline-block">
           <Button variant="secondary">Go to login</Button>
         </Link>
       </div>
@@ -184,7 +184,7 @@ export default function PlatformPlansPage() {
         })}
       </div>
       <p className="mt-6 text-sm text-slate-500">
-        <Link href="/tenants" className="text-cyan-600 hover:underline">
+        <Link href="/platform/tenants" className="text-cyan-600 hover:underline">
           Manage tenants and assign plans →
         </Link>
       </p>

@@ -10,24 +10,47 @@ export async function GET(req: Request) {
   if (!userHasPermission(user, PERMISSIONS.PAYMENTS_VIEW)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+  const tenantId = user.tenantId!;
   const { searchParams } = new URL(req.url);
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
-  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10)));
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '25', 10)));
   const skip = (page - 1) * limit;
+  const from = searchParams.get('from')?.trim();
+  const to = searchParams.get('to')?.trim();
+  const meterId = searchParams.get('meterId')?.trim();
+  const collectorId = searchParams.get('collectorId')?.trim();
+  const method = searchParams.get('method')?.trim();
+
+  const where: Record<string, unknown> = { tenantId };
+  if (from || to) {
+    where.recordedAt = {};
+    if (from) (where.recordedAt as { gte?: Date }).gte = new Date(from);
+    if (to) {
+      const toDate = new Date(to);
+      toDate.setHours(23, 59, 59, 999);
+      (where.recordedAt as { lte?: Date }).lte = toDate;
+    }
+  }
+  if (meterId) where.meterId = meterId;
+  if (collectorId) where.collectorId = collectorId;
+  if (method && ['CASH', 'MOBILE_MONEY', 'BANK_TRANSFER', 'OTHER'].includes(method)) {
+    where.method = method;
+  }
+
   const [payments, total] = await Promise.all([
     prisma.payment.findMany({
-      where: { tenantId: user.tenantId! },
+      where,
       skip,
       take: limit,
       orderBy: { recordedAt: 'desc' },
       include: {
         meter: { select: { id: true, meterNumber: true, customerName: true } },
         collector: { select: { id: true, fullName: true } },
-        invoice: { select: { id: true } },
+        invoice: { select: { id: true, amount: true, balance: true, status: true } },
         _count: { select: { receipts: true } },
       },
     }),
-    prisma.payment.count({ where: { tenantId: user.tenantId! } }),
+    prisma.payment.count({ where }),
   ]);
   return NextResponse.json({ payments, total, page, limit });
 }

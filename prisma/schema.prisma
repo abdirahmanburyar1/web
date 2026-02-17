@@ -134,8 +134,25 @@ model Tenant {
   payments          Payment[]
   platformPayments  PlatformPayment[]
   auditLogs         AuditLog[]
+  moneyAccounts    TenantMoneyAccount[]
 
   @@map("tenants")
+}
+
+// Tenant-configured payment accounts (bank, mobile money) shown on receipts
+model TenantMoneyAccount {
+  id             String   @id @default(uuid())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name           String   // e.g. "Evoco", "Hormuud", "Main bank"
+  type           String   // BANK, MOBILE_MONEY, CASH, OTHER
+  accountNumber  String?  // phone number, account number, or details
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("tenant_money_accounts")
+  @@index([tenantId])
 }
 
 model Price {

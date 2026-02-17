@@ -9,6 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TableWrapper } from "@/components/ui/table-responsive";
 
+type TenantRow = {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  subscriptionPlan?: string;
+  _count: { users: number; meters: number; payments: number };
+};
+
 export default function PlatformDashboardPage() {
   const [metrics, setMetrics] = useState<{
     tenants: { total: number; active: number };
@@ -16,16 +25,7 @@ export default function PlatformDashboardPage() {
     revenue: number;
     totalPaymentsVolume: number;
   } | null>(null);
-  const [tenants, setTenants] = useState<{
-    tenants: Array<{
-      id: string;
-      name: string;
-      slug: string;
-      status: string;
-      _count: { users: number; meters: number; payments: number };
-    }>;
-    total: number;
-  } | null>(null);
+  const [tenants, setTenants] = useState<{ tenants: TenantRow[]; total: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -61,43 +61,63 @@ export default function PlatformDashboardPage() {
     return (
       <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
         <p className="text-red-700">{error || "Unauthorized"}</p>
-        <Link href="/login" className="mt-4 inline-block">
+        <Link href="/platform/login" className="mt-4 inline-block">
           <Button variant="secondary">Go to login</Button>
         </Link>
       </div>
     );
   }
 
-  const statCards = [
-    { label: "Active tenants", value: metrics!.tenants.active, sub: `of ${metrics!.tenants.total} total` },
-    { label: "Transactions", value: metrics!.transactions.toLocaleString() },
-    { label: "Revenue ($0.1/txn)", value: `$${metrics!.revenue.toFixed(2)}`, color: "text-emerald-600" },
-    { label: "Payments volume", value: `$${Number(metrics!.totalPaymentsVolume).toFixed(2)}` },
-  ];
-
   return (
     <div>
       <PageHeader
         title="Dashboard"
-        description="Platform metrics and recent tenants."
+        description="Platform overview: tenants, revenue, and transaction volume."
+        action={
+          <Link href="/platform/tenants">
+            <Button variant="platform">Manage tenants</Button>
+          </Link>
+        }
       />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((s) => (
-          <Card key={s.label} className="transition-shadow hover:shadow-md">
-            <CardContent className="p-5 sm:p-6">
-              <p className="text-sm font-medium text-slate-500">{s.label}</p>
-              <p className={`mt-2 text-2xl font-bold tracking-tight sm:text-3xl ${s.color ?? "text-slate-900"}`}>
-                {s.value}
-              </p>
-              {s.sub && <p className="mt-1 text-xs text-slate-400">{s.sub}</p>}
+
+      <section className="mb-8">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-500">Key metrics</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="border-slate-200/80 bg-white shadow-sm transition-shadow hover:shadow-md">
+            <CardContent className="p-6">
+              <p className="text-sm font-medium text-slate-500">Active tenants</p>
+              <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{metrics!.tenants.active}</p>
+              <p className="mt-1 text-xs text-slate-400">of {metrics!.tenants.total} total</p>
             </CardContent>
           </Card>
-        ))}
-      </div>
-      <div className="mt-8">
+          <Card className="border-slate-200/80 bg-white shadow-sm transition-shadow hover:shadow-md">
+            <CardContent className="p-6">
+              <p className="text-sm font-medium text-slate-500">Transactions (all time)</p>
+              <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{metrics!.transactions.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-slate-400">Tenant payment events</p>
+            </CardContent>
+          </Card>
+          <Card className="border-slate-200/80 bg-white shadow-sm transition-shadow hover:shadow-md">
+            <CardContent className="p-6">
+              <p className="text-sm font-medium text-slate-500">Platform revenue</p>
+              <p className="mt-2 text-3xl font-bold tracking-tight text-emerald-600">${metrics!.revenue.toFixed(2)}</p>
+              <p className="mt-1 text-xs text-slate-400">From per-payment fees</p>
+            </CardContent>
+          </Card>
+          <Card className="border-slate-200/80 bg-white shadow-sm transition-shadow hover:shadow-md">
+            <CardContent className="p-6">
+              <p className="text-sm font-medium text-slate-500">Tenant payment volume</p>
+              <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">${Number(metrics!.totalPaymentsVolume).toFixed(2)}</p>
+              <p className="mt-1 text-xs text-slate-400">Collected by tenants</p>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      <section>
         <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-semibold text-slate-900">Recent tenants</h2>
-          <Link href="/tenants" className="text-sm font-medium text-cyan-600 hover:text-cyan-700 hover:underline">
+          <Link href="/platform/tenants" className="text-sm font-medium text-cyan-600 hover:text-cyan-700 hover:underline">
             View all →
           </Link>
         </div>
@@ -108,10 +128,11 @@ export default function PlatformDashboardPage() {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Name</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Slug</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Plan</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Users</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Meters</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Payments</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Users</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Meters</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Payments</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 bg-white">
@@ -122,26 +143,31 @@ export default function PlatformDashboardPage() {
                         {t.name}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 font-mono">{t.slug}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-slate-600">{t.slug}</td>
+                    <td className="px-4 py-3">
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                        {t.subscriptionPlan ?? "BASIC"}
+                      </span>
+                    </td>
                     <td className="px-4 py-3">
                       <Badge variant={t.status === "ACTIVE" ? "success" : "warning"}>{t.status}</Badge>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{t._count.users}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{t._count.meters}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{t._count.payments}</td>
+                    <td className="px-4 py-3 text-right text-sm text-slate-600">{t._count.users}</td>
+                    <td className="px-4 py-3 text-right text-sm text-slate-600">{t._count.meters}</td>
+                    <td className="px-4 py-3 text-right text-sm text-slate-600">{t._count.payments}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </TableWrapper>
         ) : (
-          <Card>
+          <Card className="border-slate-200/80">
             <CardContent className="py-12 text-center text-slate-500">
-              No tenants yet. Create one from <Link href="/tenants" className="text-cyan-600 hover:underline">Tenants</Link>.
+              No tenants yet. <Link href="/platform/tenants" className="text-cyan-600 hover:underline">Create one</Link> from Tenants.
             </CardContent>
           </Card>
         )}
-      </div>
+      </section>
     </div>
   );
 }

@@ -27,15 +27,39 @@ export async function PATCH(
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
-  const { status, name, feePerPayment } = body as {
+  const {
+    status,
+    name,
+    feePerPayment,
+    subscriptionPlan,
+    billingCycle,
+    currency,
+    maxStaff,
+    maxCustomers,
+    maxTransactions,
+  } = body as {
     status?: string;
     name?: string;
     feePerPayment?: number;
+    subscriptionPlan?: string;
+    billingCycle?: string | null;
+    currency?: string;
+    maxStaff?: number | null;
+    maxCustomers?: number | null;
+    maxTransactions?: number | null;
   };
   const data: Record<string, unknown> = {};
   if (status === 'ACTIVE' || status === 'SUSPENDED' || status === 'PENDING') data.status = status;
   if (name !== undefined) data.name = name;
   if (feePerPayment !== undefined && !Number.isNaN(Number(feePerPayment))) data.feePerPayment = Number(feePerPayment);
+  if (subscriptionPlan === 'BASIC' || subscriptionPlan === 'STANDARD' || subscriptionPlan === 'PREMIUM' || subscriptionPlan === 'ENTERPRISE') {
+    data.subscriptionPlan = subscriptionPlan;
+  }
+  if (billingCycle !== undefined) data.billingCycle = billingCycle || null;
+  if (currency !== undefined) data.currency = currency || 'USD';
+  if (maxStaff !== undefined) data.maxStaff = maxStaff == null || maxStaff === '' ? null : Number(maxStaff);
+  if (maxCustomers !== undefined) data.maxCustomers = maxCustomers == null || maxCustomers === '' ? null : Number(maxCustomers);
+  if (maxTransactions !== undefined) data.maxTransactions = maxTransactions == null || maxTransactions === '' ? null : Number(maxTransactions);
   const tenant = await prisma.tenant.update({
     where: { id },
     data,

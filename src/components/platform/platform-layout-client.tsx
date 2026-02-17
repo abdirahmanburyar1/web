@@ -16,14 +16,14 @@ export function PlatformLayoutClient({ children }: { children: React.ReactNode }
   const [mounted, setMounted] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const isLogin = pathname === "/login";
+  const isLogin = pathname === "/platform/login";
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (!mounted || isLogin) return;
     const token = getToken();
     if (!token) {
-      router.replace("/login");
+      router.replace("/platform/login");
       return;
     }
     fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } })
@@ -77,7 +77,7 @@ export function PlatformLayoutClient({ children }: { children: React.ReactNode }
           </button>
           <span className="text-sm font-medium text-slate-500 lg:ml-0">Platform Admin</span>
           <Link
-            href="/login"
+            href="/platform/login"
             onClick={() => {
               localStorage.removeItem("token");
               localStorage.removeItem("portal");

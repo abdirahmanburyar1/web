@@ -11,10 +11,23 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
-    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10)));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10)));
     const skip = (page - 1) * limit;
+    const search = searchParams.get('search')?.trim();
+    const status = searchParams.get('status')?.trim();
+    const where: Record<string, unknown> = {};
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { slug: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    if (status === 'ACTIVE' || status === 'SUSPENDED' || status === 'PENDING') {
+      where.status = status;
+    }
     const [tenants, total] = await Promise.all([
       prisma.tenant.findMany({
+        where,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
@@ -22,7 +35,7 @@ export async function GET(req: Request) {
           _count: { select: { users: true, meters: true, payments: true } },
         },
       }),
-      prisma.tenant.count(),
+      prisma.tenant.count({ where }),
     ]);
     return NextResponse.json({ tenants, total, page, limit });
   } catch (e) {

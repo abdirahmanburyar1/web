@@ -4,11 +4,13 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+const BASE = "/platform";
 const nav = [
-  { href: "/dashboard", label: "Dashboard", icon: "📊" },
-  { href: "/tenants", label: "Tenants", icon: "🏢" },
-  { href: "/plans", label: "Subscription plans", icon: "📋" },
-  { href: "/reports", label: "Reports", icon: "📈" },
+  { href: `${BASE}/dashboard`, label: "Dashboard", icon: "📊", section: "Overview" },
+  { href: `${BASE}/tenants`, label: "Tenants", icon: "🏢", section: "Tenants" },
+  { href: `${BASE}/plans`, label: "Plans & limits", icon: "📋", section: "Tenants" },
+  { href: `${BASE}/reports`, label: "Reports & revenue", icon: "📈", section: "Reports" },
+  { href: `${BASE}/settings`, label: "Platform settings", icon: "⚙️", section: "Settings" },
 ];
 
 export function PlatformSidebar({
@@ -59,32 +61,36 @@ export function PlatformSidebar({
             A
           </div>
           <div>
-            <Link href="/dashboard" className="font-semibold text-slate-800 hover:text-cyan-700 transition-colors" onClick={onClose}>
+            <Link href={`${BASE}/dashboard`} className="font-semibold text-slate-800 hover:text-cyan-700 transition-colors" onClick={onClose}>
               AquaTrack
             </Link>
             <span className="ml-2 hidden text-[10px] font-medium uppercase tracking-wider text-slate-400 sm:inline">Platform</span>
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-4">
-          <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Admin</p>
-          <ul className="space-y-1">
-            {nav.map((item) => {
-              const active = pathname === item.href || (item.href !== "/tenants" && pathname.startsWith(item.href + "/"));
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={onClose}
-                    className={linkClass(active)}
-                  >
-                    <span className="text-lg opacity-90" aria-hidden>{item.icon}</span>
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+        <nav className="flex-1 overflow-y-auto p-4 space-y-6">
+          {["Overview", "Tenants", "Reports", "Settings"].map((section) => {
+            const items = nav.filter((n) => (n as { section?: string }).section === section);
+            if (items.length === 0) return null;
+            return (
+              <div key={section}>
+                <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{section}</p>
+                <ul className="space-y-1">
+                  {items.map((item) => {
+                    const active = pathname === item.href || (item.href === `${BASE}/tenants` && pathname.startsWith(`${BASE}/tenants/`));
+                    return (
+                      <li key={item.href}>
+                        <Link href={item.href} onClick={onClose} className={linkClass(active)}>
+                          <span className="text-lg opacity-90" aria-hidden>{item.icon}</span>
+                          {item.label}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
         </nav>
 
         <div className="border-t border-slate-200/80 p-4 bg-white/30 space-y-1">
@@ -96,7 +102,7 @@ export function PlatformSidebar({
             ← Home
           </Link>
           <Link
-            href="/login"
+            href={`${BASE}/login`}
             onClick={() => {
               localStorage.removeItem("token");
               localStorage.removeItem("portal");

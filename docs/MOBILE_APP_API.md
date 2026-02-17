@@ -11,7 +11,7 @@ The collector app talks to the **tenant portal** base URL (e.g. `https://water.a
 **Headers:**
 - `Content-Type: application/json`
 - `Accept: application/json`
-- `User-Agent: AquaTrackCollector/1.0` (optional but recommended)
+- `User-Agent: AquaTrack/1.0` (optional but recommended)
 
 **Body (JSON):**
 - `username` (string) – collector username, or

@@ -26,6 +26,13 @@ enum PaymentMethod {
   OTHER
 }
 
+enum PaymentStatus {
+  PENDING
+  PAID
+  PARTIAL
+  TRANSFERRED  // unpaid balance moved to next period
+}
+
 enum TenantStatus {
   ACTIVE
   SUSPENDED
@@ -383,6 +390,7 @@ model Payment {
   collector      User?            @relation("CollectorPayments", fields: [collectorId], references: [id])
   amount         Decimal          @db.Decimal(10, 2)
   method         PaymentMethod    @default(CASH)
+  status         PaymentStatus    @default(PENDING)  // PENDING | PAID | PARTIAL | TRANSFERRED
   reference      String?
   recordedAt     DateTime         @default(now())
 

@@ -86,7 +86,21 @@ export async function POST(req: Request) {
     },
     select: { id: true },
   });
-  if (existingThisMonth) {
+
+  // Unpaid balance from last month: last payment amount minus what was paid (receipts)
+  const previousPayment = await prisma.payment.findFirst({
+    where: { meterId },
+    orderBy: { recordedAt: 'desc' },
+    select: { id: true, amount: true, receipts: { select: { amountReceived: true } } },
+  });
+  let previousBalance = 0;
+  if (previousPayment) {
+    const paid = previousPayment.receipts.reduce((sum, r) => sum + Number(r.amountReceived ?? 0), 0);
+    previousBalance = Math.max(0, Math.round((Number(previousPayment.amount) - paid) * 100) / 100);
+  }
+  const isTransferFlow = !!existingThisMonth && previousBalance > 0;
+
+  if (existingThisMonth && !isTransferFlow) {
     return NextResponse.json(
       { error: 'This meter has already been read this month. Please move on to the next meter.' },
       { status: 400 }
@@ -120,26 +134,17 @@ export async function POST(req: Request) {
   }
 
   const valueNum = Number(value);
+  // When transferring: use last reading before this month so current-month usage = new value - end of last month
   const previousReading = await prisma.meterReading.findFirst({
-    where: { meterId },
+    where: isTransferFlow
+      ? { meterId, recordedAt: { lt: startOfMonth } }
+      : { meterId },
     orderBy: { recordedAt: 'desc' },
     select: { value: true },
   });
   const previousValue = previousReading ? Number(previousReading.value) : 0;
   const usageThisPeriod = Math.max(0, valueNum - previousValue);
   const currentPeriodAmount = Math.round(usageThisPeriod * pricePerCubic * 100) / 100;
-
-  // Unpaid balance from last month carries forward: last payment amount minus what was paid (receipts)
-  const previousPayment = await prisma.payment.findFirst({
-    where: { meterId },
-    orderBy: { recordedAt: 'desc' },
-    select: { amount: true, receipts: { select: { amountReceived: true } } },
-  });
-  let previousBalance = 0;
-  if (previousPayment) {
-    const paid = previousPayment.receipts.reduce((sum, r) => sum + Number(r.amountReceived ?? 0), 0);
-    previousBalance = Math.max(0, Math.round((Number(previousPayment.amount) - paid) * 100) / 100);
-  }
   const amountDue = Math.round((previousBalance + currentPeriodAmount) * 100) / 100;
 
   const existingPayments = await prisma.payment.findMany({
@@ -182,6 +187,13 @@ export async function POST(req: Request) {
     },
   });
 
+  if (isTransferFlow && previousPayment) {
+    await prisma.payment.update({
+      where: { id: previousPayment.id },
+      data: { status: 'TRANSFERRED' },
+    });
+  }
+
   return NextResponse.json({
     reading,
     usageThisPeriod,
@@ -191,6 +203,8 @@ export async function POST(req: Request) {
     amountDue,
     oldBalance: previousValue,
     currentBalance: valueNum,
+    transferred: isTransferFlow ? true : undefined,
+    transferredPaymentId: isTransferFlow && previousPayment ? previousPayment.id : undefined,
     payment: {
       id: payment.id,
       paymentNumber: payment.paymentNumber,

@@ -33,20 +33,10 @@ type Meter = {
   price?: { id: string; name: string; pricePerCubic: number | string } | null;
 };
 
-type Reading = {
-  id: string;
-  value: number;
-  unit?: string | null;
-  recordedAt: string;
-  recordedBy?: { fullName: string } | null;
-};
-
 export default function MeterDetailPage() {
   const params = useParams();
   const id = params.id as string;
   const [meter, setMeter] = useState<Meter | null>(null);
-  const [readings, setReadings] = useState<Reading[]>([]);
-  const [readingsTotal, setReadingsTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(false);
@@ -97,18 +87,14 @@ export default function MeterDetailPage() {
       return;
     }
     loadOptions();
-    Promise.all([
-      fetch(`/api/tenant/meters/${id}`, { headers: { Authorization: `Bearer ${t}` } }).then((r) => r.json()),
-      fetch(`/api/tenant/meter-readings?meterId=${id}&limit=500`, { headers: { Authorization: `Bearer ${t}` } }).then((r) => r.json()),
-    ])
-      .then(([meterData, readingsData]) => {
+    fetch(`/api/tenant/meters/${id}`, { headers: { Authorization: `Bearer ${t}` } })
+      .then((r) => r.json())
+      .then((meterData) => {
         if (meterData.error || !meterData.id) {
           setError(meterData.error || "Meter not found");
           return;
         }
         setMeter(meterData);
-        setReadings(readingsData.readings ?? []);
-        setReadingsTotal(readingsData.total ?? 0);
       })
       .catch(() => setError("Failed to load"))
       .finally(() => setLoading(false));
@@ -207,7 +193,7 @@ export default function MeterDetailPage() {
       {error && <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{error}</div>}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader className="font-semibold text-slate-900">
             {editing ? "Edit meter details" : "Meter details"}
           </CardHeader>
@@ -363,43 +349,6 @@ export default function MeterDetailPage() {
                   <dd className="mt-0.5 text-sm text-slate-600">{meter.price ? `${meter.price.name} (${Number(meter.price.pricePerCubic).toFixed(4)}/m³)` : "—"}</dd>
                 </div>
               </dl>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between font-semibold text-slate-900">
-            <span>Readings history</span>
-            <Link href={`/meter-readings?meterId=${meter.id}`} className="text-sm font-normal text-teal-600 hover:text-teal-700 hover:underline">
-              View all readings →
-            </Link>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-sm text-slate-500">Recent readings for this meter. Use the Readings page for full history and filters.</p>
-            {readings.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 py-8 text-center text-sm text-slate-500">No readings yet</p>
-            ) : (
-              <div className="overflow-hidden rounded-xl border border-slate-200">
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                  <thead className="bg-slate-50">
-                    <tr>
-                      <th className="px-4 py-2 text-left font-medium text-slate-500">Value</th>
-                      <th className="px-4 py-2 text-left font-medium text-slate-500">Date</th>
-                      <th className="px-4 py-2 text-left font-medium text-slate-500">Recorded by</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white">
-                    {readings.map((r) => (
-                      <tr key={r.id}>
-                        <td className="px-4 py-3 font-medium text-slate-900">{Number(r.value)} {r.unit ?? "m³"}</td>
-                        <td className="px-4 py-3 text-slate-600">{new Date(r.recordedAt).toLocaleString()}</td>
-                        <td className="px-4 py-3 text-slate-600">{r.recordedBy?.fullName ?? "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-2 text-xs text-slate-500">Total: {readingsTotal} readings</div>
-              </div>
             )}
           </CardContent>
         </Card>

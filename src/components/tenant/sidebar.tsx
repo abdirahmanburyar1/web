@@ -8,7 +8,6 @@ const mainNav = [
   { href: "/dashboard", label: "Dashboard", icon: "📊" },
   { href: "/setup", label: "Setup", icon: "🗺️" },
   { href: "/meters", label: "Meters", icon: "🔢" },
-  { href: "/meter-readings", label: "Readings", icon: "📋" },
   { href: "/payments", label: "Payments", icon: "💰" },
   { href: "/reports", label: "Reports", icon: "📈" },
 ];
@@ -38,8 +37,7 @@ export function TenantSidebar({
 
   const isActive = (href: string) =>
     pathname === href ||
-    (href !== "/meters" && href !== "/meter-readings" && pathname.startsWith(href + "/") && href !== "/") ||
-    (href === "/meter-readings" && pathname.startsWith("/meter-readings"));
+    (href !== "/meters" && pathname.startsWith(href + "/") && href !== "/");
 
   const linkClass = (active: boolean) =>
     `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${

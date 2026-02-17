@@ -126,16 +126,11 @@ export default function TenantMetersPage() {
     <div>
       <PageHeader
         title="Meters"
-        description="Meter machines and account info. View readings in bulk on the Readings page."
+        description="Meter machines and account info."
         action={
-          <div className="flex flex-wrap items-center gap-3">
-            <Link href="/meter-readings">
-              <Button variant="secondary">View all readings</Button>
-            </Link>
-            <Link href="/meters/new">
-              <Button>+ Add meter</Button>
-            </Link>
-          </div>
+          <Link href="/meters/new">
+            <Button>+ Add meter</Button>
+          </Link>
         }
       />
       {error && <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{error}</div>}

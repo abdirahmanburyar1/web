@@ -44,9 +44,9 @@ export async function PATCH(
     subscriptionPlan?: string;
     billingCycle?: string | null;
     currency?: string;
-    maxStaff?: number | null;
-    maxCustomers?: number | null;
-    maxTransactions?: number | null;
+    maxStaff?: number | string | null;
+    maxCustomers?: number | string | null;
+    maxTransactions?: number | string | null;
   };
   const data: Record<string, unknown> = {};
   if (status === 'ACTIVE' || status === 'SUSPENDED' || status === 'PENDING') data.status = status;

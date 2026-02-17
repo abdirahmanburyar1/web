@@ -345,7 +345,7 @@ export default function PaymentsPage() {
             <Button variant="secondary" size="sm" onClick={() => setRecordModalOpen(true)}>
               Record payment
             </Button>
-            <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting || !data}>
+            <Button variant="ghost" size="sm" onClick={handleExport} disabled={exporting || !data}>
               {exporting ? "Exporting…" : "Export CSV"}
             </Button>
           </div>

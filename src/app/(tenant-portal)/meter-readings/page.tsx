@@ -27,15 +27,12 @@ export default function MeterReadingsPage() {
   const [data, setData] = useState<{ readings: Reading[]; total: number; page: number; limit: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [search, setSearch] = useState("");
-  const [searchDebounced, setSearchDebounced] = useState("");
   const [meterId, setMeterId] = useState("");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [from, setFrom] = useState(""); // YYYY-MM for month input
+  const [to, setTo] = useState("");     // YYYY-MM for month input
   const [recordedById, setRecordedById] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
-  const [meters, setMeters] = useState<Array<{ id: string; meterNumber: string; customerName: string }>>([]);
   const [recordedByUsers, setRecordedByUsers] = useState<Array<{ id: string; fullName: string }>>([]);
   const hasInitializedFromUrl = useRef(false);
 
@@ -44,10 +41,15 @@ export default function MeterReadingsPage() {
     return localStorage.getItem("token");
   }
 
-  useEffect(() => {
-    const t = setTimeout(() => setSearchDebounced(search), 300);
-    return () => clearTimeout(t);
-  }, [search]);
+  // Convert YYYY-MM to API date range (first day of month, last day of month)
+  const fromApi = from ? `${from}-01` : "";
+  const toApi = to
+    ? (() => {
+        const [y, m] = to.split("-").map(Number);
+        const lastDay = new Date(y, m, 0).getDate();
+        return `${to}-${String(lastDay).padStart(2, "0")}`;
+      })()
+    : "";
 
   const load = useCallback(() => {
     const t = getToken();
@@ -55,10 +57,9 @@ export default function MeterReadingsPage() {
     const params = new URLSearchParams();
     params.set("page", String(page));
     params.set("limit", String(limit));
-    if (searchDebounced) params.set("search", searchDebounced);
     if (meterId) params.set("meterId", meterId);
-    if (from) params.set("from", from);
-    if (to) params.set("to", to);
+    if (fromApi) params.set("from", fromApi);
+    if (toApi) params.set("to", toApi);
     if (recordedById) params.set("recordedById", recordedById);
     setLoading(true);
     fetch(`/api/tenant/meter-readings?${params}`, { headers: { Authorization: `Bearer ${t}` } })
@@ -74,7 +75,7 @@ export default function MeterReadingsPage() {
       })
       .catch(() => setError("Failed to load"))
       .finally(() => setLoading(false));
-  }, [page, limit, searchDebounced, meterId, from, to, recordedById]);
+  }, [page, limit, meterId, fromApi, toApi, recordedById]);
 
   useEffect(() => {
     if (!getToken()) {
@@ -88,10 +89,6 @@ export default function MeterReadingsPage() {
   useEffect(() => {
     const t = getToken();
     if (!t) return;
-    fetch("/api/tenant/meters?limit=500", { headers: { Authorization: `Bearer ${t}` } })
-      .then((r) => r.json())
-      .then((d) => setMeters(d?.meters ?? []))
-      .catch(() => {});
     fetch("/api/tenant/users", { headers: { Authorization: `Bearer ${t}` } })
       .then((r) => r.json())
       .then((d) => setRecordedByUsers(d?.users ?? []))
@@ -127,7 +124,8 @@ export default function MeterReadingsPage() {
     <div>
       <PageHeader
         title="Meter readings"
-        description="All recorded readings across meters. Filter by meter, date range, or who recorded."
+        description={meterId ? "Readings for the selected meter. Filter by month range or who recorded." : "Select a meter from the Meters page to view its readings, or use the link from a meter detail."
+        }
         action={
           <Link href="/meters">
             <Button variant="secondary">Meters</Button>
@@ -139,41 +137,19 @@ export default function MeterReadingsPage() {
       )}
 
       <div className="mb-6 flex flex-wrap items-end gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm">
-        <div className="min-w-[200px]">
-          <label className="mb-1 block text-xs font-medium text-slate-500">Meter / customer</label>
-          <Input
-            type="search"
-            placeholder="Meter # or customer name…"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          />
-        </div>
-        <div className="min-w-[180px]">
-          <label className="mb-1 block text-xs font-medium text-slate-500">Specific meter</label>
-          <select
-            value={meterId}
-            onChange={(e) => { setMeterId(e.target.value); setPage(1); }}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          >
-            <option value="">All meters</option>
-            {meters.map((m) => (
-              <option key={m.id} value={m.id}>{m.meterNumber} — {m.customerName}</option>
-            ))}
-          </select>
-        </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-500">From date</label>
+          <label className="mb-1 block text-xs font-medium text-slate-500">From month</label>
           <Input
-            type="date"
+            type="month"
             value={from}
             onChange={(e) => { setFrom(e.target.value); setPage(1); }}
             className="min-w-[140px]"
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-500">To date</label>
+          <label className="mb-1 block text-xs font-medium text-slate-500">To month</label>
           <Input
-            type="date"
+            type="month"
             value={to}
             onChange={(e) => { setTo(e.target.value); setPage(1); }}
             className="min-w-[140px]"
@@ -192,7 +168,10 @@ export default function MeterReadingsPage() {
             ))}
           </select>
         </div>
-        <div>
+        <Button variant="secondary" size="sm" onClick={() => { setFrom(""); setTo(""); setRecordedById(""); setPage(1); }}>
+          Clear filters
+        </Button>
+        <div className="ml-auto">
           <label className="mb-1 block text-xs font-medium text-slate-500">Per page</label>
           <select
             value={limit}
@@ -204,9 +183,6 @@ export default function MeterReadingsPage() {
             ))}
           </select>
         </div>
-        <Button variant="secondary" size="sm" onClick={() => { setSearch(""); setMeterId(""); setFrom(""); setTo(""); setRecordedById(""); setPage(1); }}>
-          Clear filters
-        </Button>
       </div>
 
       {loading && !data ? (

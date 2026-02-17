@@ -101,7 +101,11 @@ export async function PATCH(
   if (updated.count === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   const meter = await prisma.meter.findFirst({
     where: { id, tenantId: user.tenantId! },
-    include: { zone: true, collector: { select: { id: true, fullName: true } } },
+    include: {
+      zone: true,
+      price: { select: { id: true, name: true, pricePerCubic: true } },
+      collector: { select: { id: true, fullName: true } },
+    },
   });
   return NextResponse.json(meter);
 }

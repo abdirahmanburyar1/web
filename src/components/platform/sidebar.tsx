@@ -8,7 +8,6 @@ const BASE = "/platform";
 const nav = [
   { href: `${BASE}/dashboard`, label: "Dashboard", icon: "📊", section: "Overview" },
   { href: `${BASE}/tenants`, label: "Tenants", icon: "🏢", section: "Tenants" },
-  { href: `${BASE}/plans`, label: "Plans & limits", icon: "📋", section: "Tenants" },
   { href: `${BASE}/reports`, label: "Reports & revenue", icon: "📈", section: "Reports" },
   { href: `${BASE}/settings`, label: "Platform settings", icon: "⚙️", section: "Settings" },
 ];

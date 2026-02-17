@@ -14,7 +14,6 @@ type TenantRow = {
   name: string;
   slug: string;
   status: string;
-  subscriptionPlan?: string;
   _count: { users: number; meters: number; payments: number };
 };
 
@@ -128,7 +127,6 @@ export default function PlatformDashboardPage() {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Name</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Slug</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Plan</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Status</th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Users</th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Meters</th>
@@ -139,16 +137,11 @@ export default function PlatformDashboardPage() {
                 {tenants.tenants.map((t) => (
                   <tr key={t.id} className="hover:bg-slate-50/50">
                     <td className="px-4 py-3">
-                      <Link href={`/tenants/${t.id}`} className="font-medium text-cyan-600 hover:text-cyan-700 hover:underline">
+                      <Link href={`/platform/tenants/${t.id}`} className="font-medium text-cyan-600 hover:text-cyan-700 hover:underline">
                         {t.name}
                       </Link>
                     </td>
                     <td className="px-4 py-3 font-mono text-sm text-slate-600">{t.slug}</td>
-                    <td className="px-4 py-3">
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                        {t.subscriptionPlan ?? "BASIC"}
-                      </span>
-                    </td>
                     <td className="px-4 py-3">
                       <Badge variant={t.status === "ACTIVE" ? "success" : "warning"}>{t.status}</Badge>
                     </td>

@@ -22,7 +22,6 @@ export async function GET(req: Request) {
   const rows = tenants.map((t) => ({
     name: t.name,
     slug: t.slug,
-    plan: t.subscriptionPlan ?? "BASIC",
     status: t.status,
     feePerPayment: Number(t.feePerPayment ?? 0.2).toFixed(4),
     users: t._count.users,
@@ -32,7 +31,7 @@ export async function GET(req: Request) {
   }));
 
   if (format === "csv") {
-    const headers = ["name", "slug", "plan", "status", "feePerPayment", "users", "meters", "transactions", "revenue"];
+    const headers = ["name", "slug", "status", "feePerPayment", "users", "meters", "transactions", "revenue"];
     const csv = [headers.join(","), ...rows.map((r) => headers.map((h) => JSON.stringify((r as Record<string, unknown>)[h])).join(","))].join("\n");
     return new NextResponse(csv, {
       headers: {

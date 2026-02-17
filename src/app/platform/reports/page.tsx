@@ -14,7 +14,6 @@ type TenantRow = {
   name: string;
   slug: string;
   status: string;
-  subscriptionPlan?: string;
   feePerPayment: string | number;
   _count: { users: number; meters: number; payments: number };
 };
@@ -129,7 +128,6 @@ export default function PlatformReportsPage() {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Tenant</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Slug</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Plan</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Fee/payment</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Status</th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Users</th>
@@ -147,9 +145,6 @@ export default function PlatformReportsPage() {
                       </Link>
                     </td>
                     <td className="px-4 py-3 font-mono text-sm text-slate-600">{t.slug}</td>
-                    <td className="px-4 py-3">
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">{t.subscriptionPlan ?? "BASIC"}</span>
-                    </td>
                     <td className="px-4 py-3 text-sm text-slate-600">${Number(t.feePerPayment ?? 0.2).toFixed(4)}</td>
                     <td className="px-4 py-3">
                       <Badge variant={t.status === "ACTIVE" ? "success" : "warning"}>{t.status}</Badge>

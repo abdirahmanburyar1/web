@@ -24,6 +24,7 @@ type PaymentDetail = {
     amountReceived: number | null;
     paymentMethod: string | null;
     account: string | null;
+    receivedBy: string | null;
     issuedAt: string;
     createdAt?: string;
   }>;
@@ -235,9 +236,11 @@ export default function PaymentDetailPage() {
               <Button variant="platform" size="sm" onClick={printA4}>
                 Print payment (A4)
               </Button>
-              <Button variant="secondary" size="sm" onClick={openAddReceiptModal}>
-                Add receipt
-              </Button>
+              {balance > 0 && (
+                <Button variant="secondary" size="sm" onClick={openAddReceiptModal}>
+                  Add receipt
+                </Button>
+              )}
             </div>
           }
         />
@@ -309,6 +312,7 @@ export default function PaymentDetailPage() {
                     <th className="px-4 py-2.5 text-left font-medium text-slate-600">Receipt #</th>
                     <th className="px-4 py-2.5 text-left font-medium text-slate-600">Amount</th>
                     <th className="px-4 py-2.5 text-left font-medium text-slate-600">Account</th>
+                    <th className="px-4 py-2.5 text-left font-medium text-slate-600">Received by</th>
                     <th className="px-4 py-2.5 text-left font-medium text-slate-600">Issued at</th>
                     <th className="px-4 py-2.5 text-right font-medium text-slate-600 no-print">Print (mini)</th>
                   </tr>
@@ -322,6 +326,7 @@ export default function PaymentDetailPage() {
                         <td className="px-4 py-3 font-mono text-slate-900">{r.receiptNumber || "—"}</td>
                         <td className="px-4 py-3 text-slate-700">${Number(amt).toFixed(2)}</td>
                         <td className="px-4 py-3 text-slate-600">{r.account ?? (r.paymentMethod ? (r.paymentMethod as string).replace(/_/g, " ") : "—")}</td>
+                        <td className="px-4 py-3 text-slate-600">{r.receivedBy ?? "—"}</td>
                         <td className="px-4 py-3 text-slate-600">{new Date(r.issuedAt).toLocaleString()}</td>
                         <td className="px-4 py-3 text-right no-print">
                           <Button type="button" size="sm" variant="secondary" onClick={() => printMiniReceipt(r, isPartial)}>

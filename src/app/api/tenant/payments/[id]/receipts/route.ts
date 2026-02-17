@@ -16,7 +16,7 @@ export async function GET(
   const { id: paymentId } = await params;
   const payment = await prisma.payment.findFirst({
     where: { id: paymentId, tenantId: user.tenantId! },
-    include: { receipts: true },
+    include: { receipts: { include: { receivedBy: { select: { fullName: true } } } } },
   });
   if (!payment) return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
   const receipts = payment.receipts.map((r) => ({
@@ -25,6 +25,7 @@ export async function GET(
     amountReceived: r.amountReceived != null ? Number(r.amountReceived) : null,
     paymentMethod: r.paymentMethod,
     account: r.account ?? null,
+    receivedBy: r.receivedBy?.fullName ?? null,
     issuedAt: r.issuedAt,
     createdAt: r.createdAt,
   }));
@@ -81,6 +82,7 @@ export async function POST(
       amountReceived: amount,
       paymentMethod: method,
       account: accountStr,
+      receivedById: user.id,
     },
   });
   return NextResponse.json({
@@ -88,5 +90,6 @@ export async function POST(
     amountReceived: receipt.amountReceived != null ? Number(receipt.amountReceived) : null,
     paymentMethod: receipt.paymentMethod,
     account: receipt.account ?? null,
+    receivedBy: user.fullName,
   });
 }

@@ -187,6 +187,7 @@ model User {
   directPermissions UserPermission[]
   auditLogs         AuditLog[]
   meterReadings     MeterReading[]
+  receivedReceipts  PaymentReceipt[]
 
   @@map("users")
   @@index([tenantId])
@@ -403,11 +404,14 @@ model PaymentReceipt {
   paymentMethod   PaymentMethod? // how this receipt was paid; when null, use payment.method
   account         String?       // money account where amount was received (e.g. account name)
   url             String?       // e.g. link to scanned receipt
+  receivedById    String?       // user who recorded this receipt
+  receivedBy      User?         @relation(fields: [receivedById], references: [id])
   issuedAt        DateTime     @default(now())
   createdAt       DateTime     @default(now())
 
   @@map("payment_receipts")
   @@index([paymentId])
+  @@index([receivedById])
 }
 
 model AuditLog {

@@ -19,7 +19,7 @@ export async function GET(
       meter: { select: { id: true, meterNumber: true, customerName: true } },
       collector: { select: { id: true, fullName: true } },
       invoice: { select: { id: true, amount: true, balance: true, status: true } },
-      receipts: { orderBy: { issuedAt: 'asc' } },
+      receipts: { orderBy: { issuedAt: 'asc' }, include: { receivedBy: { select: { fullName: true } } } },
     },
   });
   if (!payment) return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
@@ -28,6 +28,8 @@ export async function GET(
     receiptNumber: r.receiptNumber,
     amountReceived: r.amountReceived != null ? Number(r.amountReceived) : null,
     paymentMethod: r.paymentMethod,
+    account: r.account ?? null,
+    receivedBy: r.receivedBy?.fullName ?? null,
     issuedAt: r.issuedAt,
     createdAt: r.createdAt,
   }));

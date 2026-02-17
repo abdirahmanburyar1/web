@@ -30,6 +30,7 @@ type Receipt = {
   amountReceived: number | null;
   paymentMethod: string | null;
   account: string | null;
+  receivedBy: string | null;
   issuedAt: string;
   createdAt?: string;
 };
@@ -532,11 +533,17 @@ export default function PaymentsPage() {
               </p>
             </div>
             <div className="max-h-[60vh] overflow-y-auto p-4">
-              <div className="mb-4">
-                <Button type="button" size="sm" onClick={openAddReceiptModal}>
-                  Add receipt
-                </Button>
-              </div>
+              {(() => {
+                const paid = receipts.reduce((sum, r) => sum + Number(r.amountReceived ?? 0), 0);
+                const remainingBalance = Math.round((receiptsModal.paymentAmount - paid) * 100) / 100;
+                return remainingBalance > 0 ? (
+                  <div className="mb-4">
+                    <Button type="button" size="sm" onClick={openAddReceiptModal}>
+                      Add receipt
+                    </Button>
+                  </div>
+                ) : null;
+              })()}
               {loadingReceipts ? (
                 <p className="text-slate-500">Loading receipts…</p>
               ) : receipts.length === 0 ? (
@@ -549,6 +556,7 @@ export default function PaymentsPage() {
                         <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Receipt #</th>
                         <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Amount</th>
                         <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Account</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Received by</th>
                         <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Date</th>
                         <th className="px-3 py-2 text-right text-xs font-medium text-slate-500">Print</th>
                       </tr>
@@ -562,6 +570,7 @@ export default function PaymentsPage() {
                             <td className="px-3 py-2 font-mono text-slate-900">{r.receiptNumber || "—"}</td>
                             <td className="px-3 py-2 text-slate-700">${Number(amt).toFixed(2)}</td>
                             <td className="px-3 py-2 text-slate-600">{r.account ?? (r.paymentMethod ? (r.paymentMethod as string).replace(/_/g, " ") : "—")}</td>
+                            <td className="px-3 py-2 text-slate-600">{r.receivedBy ?? "—"}</td>
                             <td className="px-3 py-2 text-slate-600">{new Date(r.issuedAt).toLocaleString()}</td>
                             <td className="px-3 py-2 text-right">
                               <Button type="button" size="sm" variant="secondary" onClick={() => printReceipt(r, isPartial)}>

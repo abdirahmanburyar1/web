@@ -17,9 +17,6 @@ export async function GET(
       zone: true,
       price: { select: { id: true, name: true, pricePerCubic: true } },
       collector: { select: { id: true, fullName: true, email: true } },
-      invoices: { orderBy: { issuedDate: 'desc' }, take: 10 },
-      payments: { orderBy: { recordedAt: 'desc' }, take: 10 },
-      meterReadings: { orderBy: { recordedAt: 'desc' }, take: 10 },
     },
   });
   if (!meter) return NextResponse.json({ error: 'Not found' }, { status: 404 });

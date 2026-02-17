@@ -274,7 +274,16 @@ export default function MeterDetailPage() {
       <PageHeader
         title={`Meter ${meter.meterNumber}`}
         description={meter.customerName}
-        action={!editing ? <Button variant="secondary" onClick={startEditing}>Edit meter</Button> : null}
+        action={
+          !editing ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Link href={`/meters/${id}/readings`}>
+                <Button variant="secondary" size="sm">Meter readings</Button>
+              </Link>
+              <Button variant="secondary" onClick={startEditing}>Edit meter</Button>
+            </div>
+          ) : null
+        }
       />
       {error && <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{error}</div>}
 

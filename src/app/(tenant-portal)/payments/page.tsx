@@ -462,7 +462,11 @@ export default function PaymentsPage() {
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
                       {new Date(p.recordedAt).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })}
                     </td>
-                    <td className="px-4 py-3 font-mono text-sm text-slate-900">{p.paymentNumber ?? "—"}</td>
+                    <td className="px-4 py-3 font-mono text-sm">
+                      <Link href={`/payments/${p.id}`} className="text-teal-600 hover:text-teal-700 hover:underline">
+                        {p.paymentNumber ?? "—"}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3 font-mono text-sm text-slate-700">{p.meter?.meterNumber ?? "—"}</td>
                     <td className="px-4 py-3 text-sm text-slate-900">{p.meter?.customerName ?? "—"}</td>
                     <td className="px-4 py-3 text-right font-medium text-slate-900">${Number(p.amount).toFixed(2)}</td>
@@ -479,6 +483,9 @@ export default function PaymentsPage() {
                     </td>
                     <td className="px-4 py-3 text-center text-sm text-slate-600">{p._count?.receipts ?? 0}</td>
                     <td className="px-4 py-3 text-right">
+                      <Link href={`/payments/${p.id}`} className="mr-2 text-sm font-medium text-teal-600 hover:text-teal-700 hover:underline">
+                        View
+                      </Link>
                       <button
                         type="button"
                         onClick={() => openReceipts(
@@ -489,7 +496,7 @@ export default function PaymentsPage() {
                           p.method,
                           p.recordedAt
                         )}
-                        className="text-sm font-medium text-teal-600 hover:text-teal-700 hover:underline"
+                        className="text-sm font-medium text-slate-600 hover:text-slate-700 hover:underline"
                       >
                         Receipts
                       </button>

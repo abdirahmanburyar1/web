@@ -618,7 +618,7 @@ export default function PaymentsPage() {
                 >
                   <option value="">— Select account —</option>
                   {moneyAccounts.map((a) => (
-                    <option key={a.id} value={a.name}>{a.name}{a.accountNumber ? ` (${a.accountNumber})` : ""}</option>
+                    <option key={a.id} value={a.accountNumber ? `${a.name} (${a.accountNumber})` : a.name}>{a.name}{a.accountNumber ? ` (${a.accountNumber})` : ""}</option>
                   ))}
                 </select>
               </div>

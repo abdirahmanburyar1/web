@@ -5,6 +5,15 @@ import { PERMISSIONS, userHasPermission } from '@/lib/permissions';
 
 const ACCOUNT_TYPES = ['BANK', 'MOBILE_MONEY', 'CASH', 'OTHER'] as const;
 
+function canAccessMoneyAccounts(user: { roleType?: string; role?: { permissions: { permission: { code: string } }[] } | null; directPermissions?: Array<{ permission: { code: string } }> }) {
+  return (
+    userHasPermission(user, PERMISSIONS.PAYMENTS_VIEW) ||
+    userHasPermission(user, PERMISSIONS.METERS_VIEW) ||
+    userHasPermission(user, PERMISSIONS.SETTINGS_VIEW) ||
+    userHasPermission(user, PERMISSIONS.SETTINGS_MANAGE)
+  );
+}
+
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -25,7 +34,7 @@ export async function PATCH(
 ) {
   const user = await getTenantUserOrNull(req);
   if (!user) return NextResponse.json({ error: 'Unauthorized or tenant suspended' }, { status: 401 });
-  if (!userHasPermission(user, PERMISSIONS.PAYMENTS_VIEW) && !userHasPermission(user, PERMISSIONS.METERS_VIEW)) {
+  if (!canAccessMoneyAccounts(user)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const tenantId = user.tenantId!;
@@ -59,6 +68,9 @@ export async function DELETE(
 ) {
   const user = await getTenantUserOrNull(req);
   if (!user) return NextResponse.json({ error: 'Unauthorized or tenant suspended' }, { status: 401 });
+  if (!canAccessMoneyAccounts(user)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   const tenantId = user.tenantId!;
   const { id } = await params;
   const existing = await prisma.tenantMoneyAccount.findFirst({

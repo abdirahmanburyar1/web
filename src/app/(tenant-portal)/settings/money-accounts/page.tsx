@@ -42,11 +42,24 @@ export default function MoneyAccountsPage() {
   function load() {
     const t = getToken();
     if (!t) return;
+    setLoading(true);
+    setError("");
     fetch("/api/tenant/money-accounts", { headers: { Authorization: `Bearer ${t}` } })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data?.error) setError(data.error);
-        else setAccounts(Array.isArray(data) ? data : []);
+      .then(async (r) => {
+        let data: unknown;
+        try {
+          data = await r.json();
+        } catch {
+          setError(r.ok ? "Invalid response" : "Failed to load");
+          return;
+        }
+        if (!r.ok) {
+          setError(typeof data === "object" && data !== null && "error" in data && typeof (data as { error: unknown }).error === "string"
+            ? (data as { error: string }).error
+            : "Failed to load");
+          return;
+        }
+        setAccounts(Array.isArray(data) ? data : []);
       })
       .catch(() => setError("Failed to load"))
       .finally(() => setLoading(false));

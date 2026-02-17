@@ -37,7 +37,7 @@ export async function GET(req: Request) {
     where.method = method;
   }
 
-  const [payments, total, sumResult] = await Promise.all([
+  const [paymentsRaw, total, sumResult] = await Promise.all([
     prisma.payment.findMany({
       where,
       skip,
@@ -48,12 +48,24 @@ export async function GET(req: Request) {
         collector: { select: { id: true, fullName: true } },
         invoice: { select: { id: true, amount: true, balance: true, status: true } },
         _count: { select: { receipts: true } },
+        receipts: { select: { amountReceived: true } },
       },
     }),
     prisma.payment.count({ where }),
     prisma.payment.aggregate({ where, _sum: { amount: true } }),
   ]);
   const totalAmount = sumResult._sum.amount ?? 0;
+  const payments = paymentsRaw.map((p) => {
+    const paidAmount = p.receipts.reduce((sum, r) => sum + Number(r.amountReceived ?? 0), 0);
+    const amount = Number(p.amount);
+    return {
+      ...p,
+      amount,
+      paidAmount,
+      balance: Math.round((amount - paidAmount) * 100) / 100,
+      receipts: undefined,
+    };
+  });
   return NextResponse.json({ payments, total, page, limit, totalAmount });
 }
 

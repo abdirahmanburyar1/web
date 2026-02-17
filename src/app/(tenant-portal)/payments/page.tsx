@@ -16,6 +16,8 @@ type Payment = {
   method: string;
   reference: string | null;
   recordedAt: string;
+  paidAmount?: number;
+  balance?: number;
   meter?: { id: string; meterNumber: string; customerName: string } | null;
   collector?: { id: string; fullName: string } | null;
   invoice?: { id: string; amount: number | string; balance: number | string; status: string } | null;
@@ -48,7 +50,6 @@ export default function PaymentsPage() {
   const [to, setTo] = useState("");
   const [meterId, setMeterId] = useState("");
   const [collectorId, setCollectorId] = useState("");
-  const [method, setMethod] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [meters, setMeters] = useState<Array<{ id: string; meterNumber: string; customerName: string }>>([]);
@@ -79,6 +80,7 @@ export default function PaymentsPage() {
   const [addAmountReceived, setAddAmountReceived] = useState("");
   const [addPaymentMethod, setAddPaymentMethod] = useState<string>("CASH");
   const [addingReceipt, setAddingReceipt] = useState(false);
+  const [addReceiptModalOpen, setAddReceiptModalOpen] = useState(false);
 
   function getToken() {
     if (typeof window === "undefined") return null;
@@ -93,7 +95,6 @@ export default function PaymentsPage() {
     if (to) params.set("to", to);
     if (meterId) params.set("meterId", meterId);
     if (collectorId) params.set("collectorId", collectorId);
-    if (method) params.set("method", method);
     setLoading(true);
     fetch(`/api/tenant/payments?${params}`, { headers: { Authorization: `Bearer ${t}` } })
       .then((r) => r.json())
@@ -103,7 +104,7 @@ export default function PaymentsPage() {
       })
       .catch(() => setError("Failed to load"))
       .finally(() => setLoading(false));
-  }, [page, limit, from, to, meterId, collectorId, method]);
+  }, [page, limit, from, to, meterId, collectorId]);
 
   useEffect(() => {
     if (!getToken()) {
@@ -180,20 +181,20 @@ export default function PaymentsPage() {
     if (to) params.set("to", to);
     if (meterId) params.set("meterId", meterId);
     if (collectorId) params.set("collectorId", collectorId);
-    if (method) params.set("method", method);
     fetch(`/api/tenant/payments?${params}`, { headers: { Authorization: `Bearer ${t}` } })
       .then((r) => r.json())
       .then((d) => {
         if (d.error) return;
         const list = (d.payments ?? []) as Payment[];
-        const headers = ["Date", "Payment #", "Meter", "Customer", "Amount", "Method", "Collector", "Reference", "Type"];
+        const headers = ["Date", "Payment #", "Meter", "Customer", "Amount", "Paid", "Balance", "Collector", "Reference", "Type"];
         const rows = list.map((p) => [
           new Date(p.recordedAt).toLocaleString(),
           p.paymentNumber ?? "",
           p.meter?.meterNumber ?? "",
           p.meter?.customerName ?? "",
           Number(p.amount).toFixed(2),
-          (p.method ?? "").replace(/_/g, " "),
+          Number(p.paidAmount ?? 0).toFixed(2),
+          Number(p.balance ?? p.amount).toFixed(2),
           p.collector?.fullName ?? "",
           p.reference ?? "",
           paymentType(p),
@@ -233,6 +234,7 @@ export default function PaymentsPage() {
     setReceipts([]);
     setAddAmountReceived(String(paymentAmount));
     setAddPaymentMethod(paymentMethod || "CASH");
+    setAddReceiptModalOpen(false);
     const t = getToken();
     if (!t) return;
     setLoadingReceipts(true);
@@ -259,9 +261,16 @@ export default function PaymentsPage() {
         if (receipt.id) setReceipts((prev) => [{ ...receipt, issuedAt: receipt.issuedAt ?? new Date().toISOString() }, ...prev]);
         setAddAmountReceived(String(receiptsModal.paymentAmount));
         setAddPaymentMethod(receiptsModal.paymentMethod || "CASH");
+        setAddReceiptModalOpen(false);
         loadPayments();
       })
       .finally(() => setAddingReceipt(false));
+  }
+
+  function openAddReceiptModal() {
+    setAddAmountReceived(String(receiptsModal?.paymentAmount ?? ""));
+    setAddPaymentMethod(receiptsModal?.paymentMethod ?? "CASH");
+    setAddReceiptModalOpen(true);
   }
 
   function printReceipt(receipt: Receipt, isPartial: boolean) {
@@ -405,19 +414,6 @@ export default function PaymentsPage() {
             ))}
           </select>
         </div>
-        <div className="min-w-[140px]">
-          <label className="mb-1 block text-xs font-medium text-slate-500">Method</label>
-          <select
-            value={method}
-            onChange={(e) => { setMethod(e.target.value); setPage(1); }}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          >
-            <option value="">All</option>
-            {PAYMENT_METHODS.map((m) => (
-              <option key={m} value={m}>{m.replace(/_/g, " ")}</option>
-            ))}
-          </select>
-        </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-500">Per page</label>
           <select
@@ -430,7 +426,7 @@ export default function PaymentsPage() {
             ))}
           </select>
         </div>
-        <Button variant="secondary" size="sm" onClick={() => { setFrom(""); setTo(""); setMeterId(""); setCollectorId(""); setMethod(""); setPage(1); }}>
+        <Button variant="secondary" size="sm" onClick={() => { setFrom(""); setTo(""); setMeterId(""); setCollectorId(""); setPage(1); }}>
           Clear filters
         </Button>
       </div>
@@ -448,7 +444,8 @@ export default function PaymentsPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Meter</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Customer</th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Amount</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Method</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Paid</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Balance</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Collector</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Reference</th>
                   <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-slate-500">Type</th>
@@ -470,7 +467,8 @@ export default function PaymentsPage() {
                     <td className="px-4 py-3 font-mono text-sm text-slate-700">{p.meter?.meterNumber ?? "—"}</td>
                     <td className="px-4 py-3 text-sm text-slate-900">{p.meter?.customerName ?? "—"}</td>
                     <td className="px-4 py-3 text-right font-medium text-slate-900">${Number(p.amount).toFixed(2)}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{(p.method ?? "").replace(/_/g, " ")}</td>
+                    <td className="px-4 py-3 text-right text-sm text-slate-700">${Number(p.paidAmount ?? 0).toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right text-sm font-medium text-slate-800">${Number(p.balance ?? p.amount).toFixed(2)}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{p.collector?.fullName ?? "—"}</td>
                     <td className="px-4 py-3 text-sm text-slate-500 max-w-[120px] truncate" title={p.reference ?? ""}>{p.reference ?? "—"}</td>
                     <td className="px-4 py-3 text-center">
@@ -533,37 +531,11 @@ export default function PaymentsPage() {
               </p>
             </div>
             <div className="max-h-[60vh] overflow-y-auto p-4">
-              <form onSubmit={handleAddReceipt} className="mb-4 rounded-lg border border-slate-200 bg-slate-50/50 p-4">
-                <p className="mb-3 text-xs font-medium text-slate-600">Add receipt (for printing)</p>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500">Amount received</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={addAmountReceived}
-                      onChange={(e) => setAddAmountReceived(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500">Payment method</label>
-                    <select
-                      value={addPaymentMethod}
-                      onChange={(e) => setAddPaymentMethod(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    >
-                      {PAYMENT_METHODS.map((m) => (
-                        <option key={m} value={m}>{m.replace(/_/g, " ")}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <Button type="submit" size="sm" disabled={addingReceipt} className="mt-3">
-                  {addingReceipt ? "Adding…" : "Add receipt"}
+              <div className="mb-4">
+                <Button type="button" size="sm" onClick={openAddReceiptModal}>
+                  Add receipt
                 </Button>
-              </form>
+              </div>
               {loadingReceipts ? (
                 <p className="text-slate-500">Loading receipts…</p>
               ) : receipts.length === 0 ? (
@@ -606,6 +578,44 @@ export default function PaymentsPage() {
             <div className="border-t border-slate-200 px-4 py-3">
               <Button type="button" variant="secondary" onClick={() => setReceiptsModal(null)}>Close</Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {receiptsModal && addReceiptModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 p-4" onClick={() => !addingReceipt && setAddReceiptModalOpen(false)}>
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-slate-900">Receipt received amount</h3>
+            <p className="mt-1 text-sm text-slate-500">Payment: ${receiptsModal.paymentAmount.toFixed(2)}. Enter amount received for this receipt (full or partial).</p>
+            <form onSubmit={handleAddReceipt} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-500">Amount received</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={addAmountReceived}
+                  onChange={(e) => setAddAmountReceived(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500">Payment method</label>
+                <select
+                  value={addPaymentMethod}
+                  onChange={(e) => setAddPaymentMethod(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                >
+                  {PAYMENT_METHODS.map((m) => (
+                    <option key={m} value={m}>{m.replace(/_/g, " ")}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="secondary" onClick={() => setAddReceiptModalOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={addingReceipt}>{addingReceipt ? "Adding…" : "Add receipt"}</Button>
+              </div>
+            </form>
           </div>
         </div>
       )}

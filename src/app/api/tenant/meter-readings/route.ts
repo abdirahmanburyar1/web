@@ -160,6 +160,8 @@ export async function POST(req: Request) {
     },
   });
 
+  const readingDateTime = new Date(reading.recordedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+  const reference = `${readingDateTime} | $${Number(pricePerCubic).toFixed(4)}/m³ | ${usageThisPeriod} m³`;
   const payment = await prisma.payment.create({
     data: {
       tenantId,
@@ -168,7 +170,7 @@ export async function POST(req: Request) {
       amount: amountDue,
       method: 'CASH',
       collectorId: user.id,
-      reference: `Reading ${reading.id}`,
+      reference,
     },
     include: {
       meter: { select: { id: true, meterNumber: true, customerName: true, plateNumber: true, address: true } },

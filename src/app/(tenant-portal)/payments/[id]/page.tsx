@@ -204,6 +204,8 @@ export default function PaymentDetailPage() {
 
   const typeLabel = paymentType(payment);
   const meterLabel = payment.meter ? `${payment.meter.meterNumber} — ${payment.meter.customerName}` : "—";
+  const paidAmount = payment.receipts.reduce((sum, r) => sum + Number(r.amountReceived ?? 0), 0);
+  const balance = Math.round((Number(payment.amount) - paidAmount) * 100) / 100;
 
   return (
     <div>
@@ -245,6 +247,14 @@ export default function PaymentDetailPage() {
             <div>
               <dt className="text-xs font-medium uppercase text-slate-400">Amount</dt>
               <dd className="text-lg font-semibold text-slate-900">${Number(payment.amount).toFixed(2)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium uppercase text-slate-400">Paid (from receipts)</dt>
+              <dd className="text-slate-700">${paidAmount.toFixed(2)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium uppercase text-slate-400">Balance</dt>
+              <dd className="font-medium text-slate-900">${balance.toFixed(2)}</dd>
             </div>
             <div>
               <dt className="text-xs font-medium uppercase text-slate-400">Method</dt>

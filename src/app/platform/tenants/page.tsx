@@ -19,7 +19,6 @@ export default function PlatformTenantsPage() {
       name: string;
       slug: string;
       status: string;
-      subscriptionPlan?: string;
       feePerPayment: string | number;
       _count: { users: number; meters: number; payments: number };
     }>;
@@ -180,7 +179,7 @@ export default function PlatformTenantsPage() {
     <div>
       <PageHeader
         title="Tenants"
-        description="Create and manage tenants. Full control over status, plans, and limits. Tenants manage users, roles, permissions, and prices in their portal."
+        description="Create and manage tenants. Set status and per-transaction fee. Tenants manage users, roles, permissions, and prices in their portal."
       />
       {error && (
         <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -278,7 +277,7 @@ export default function PlatformTenantsPage() {
                     value={createForm.feePerPayment}
                     onChange={(e) => setCreateForm((f) => ({ ...f, feePerPayment: e.target.value }))}
                   />
-                  <p className="mt-1 text-xs text-slate-500">Fixed amount per payment (e.g. 0.02), not %. Tenant keeps (customer amount − fee). Use 0 for fixed-price subscription.</p>
+                  <p className="mt-1 text-xs text-slate-500">Fixed amount per payment (e.g. 0.02), not %. Tenant keeps (customer amount − fee). Use 0 for no fee.</p>
                 </div>
               </div>
               <Button type="submit" variant="platform" disabled={creating}>
@@ -296,7 +295,6 @@ export default function PlatformTenantsPage() {
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Name</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Slug</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Plan</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Fee/payment</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Status</th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Users</th>
@@ -314,9 +312,6 @@ export default function PlatformTenantsPage() {
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-600 font-mono">{t.slug}</td>
-                  <td className="px-4 py-3">
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">{t.subscriptionPlan ?? "BASIC"}</span>
-                  </td>
                   <td className="px-4 py-3 text-sm text-slate-600">${Number(t.feePerPayment ?? 0.2).toFixed(4)}</td>
                   <td className="px-4 py-3">
                     <Badge variant={t.status === "ACTIVE" ? "success" : "warning"}>{t.status}</Badge>

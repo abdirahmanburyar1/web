@@ -13,12 +13,6 @@ type Tenant = {
   slug: string;
   status: string;
   feePerPayment: string | number;
-  subscriptionPlan?: string;
-  billingCycle?: string | null;
-  currency?: string;
-  maxStaff?: number | null;
-  maxCustomers?: number | null;
-  maxTransactions?: number | null;
   _count?: { users: number; meters: number; invoices: number; payments: number };
 };
 
@@ -45,12 +39,6 @@ export default function PlatformTenantDetailPage() {
     name: "",
     status: "ACTIVE",
     feePerPayment: "0.2",
-    subscriptionPlan: "BASIC",
-    billingCycle: "",
-    currency: "USD",
-    maxStaff: "" as string | number,
-    maxCustomers: "" as string | number,
-    maxTransactions: "" as string | number,
   });
   const [userForm, setUserForm] = useState({ email: "", fullName: "", password: "" });
   const [addingUser, setAddingUser] = useState(false);
@@ -94,12 +82,6 @@ export default function PlatformTenantDetailPage() {
           name: t.name,
           status: t.status,
           feePerPayment: t.feePerPayment != null ? String(t.feePerPayment) : "0.2",
-          subscriptionPlan: t.subscriptionPlan ?? "BASIC",
-          billingCycle: t.billingCycle ?? "",
-          currency: t.currency ?? "USD",
-          maxStaff: t.maxStaff != null ? String(t.maxStaff) : "",
-          maxCustomers: t.maxCustomers != null ? String(t.maxCustomers) : "",
-          maxTransactions: t.maxTransactions != null ? String(t.maxTransactions) : "",
         });
         setUsers(Array.isArray(usersData) ? usersData : []);
       })
@@ -130,12 +112,6 @@ export default function PlatformTenantDetailPage() {
           name: form.name,
           status: form.status,
           feePerPayment: form.feePerPayment ? parseFloat(form.feePerPayment) : 0.2,
-          subscriptionPlan: form.subscriptionPlan,
-          billingCycle: form.billingCycle || null,
-          currency: form.currency,
-          maxStaff: form.maxStaff === "" ? null : Number(form.maxStaff),
-          maxCustomers: form.maxCustomers === "" ? null : Number(form.maxCustomers),
-          maxTransactions: form.maxTransactions === "" ? null : Number(form.maxTransactions),
         }),
       });
       const data = (await parseJson(res)) as Tenant & { error?: string };
@@ -254,7 +230,7 @@ export default function PlatformTenantDetailPage() {
             <CardHeader className="font-semibold text-slate-900">Tenant settings (platform control)</CardHeader>
             <CardContent className="pt-4">
               <p className="mb-4 text-sm text-slate-500">
-                Subscription can be <strong>fixed price</strong> (per-transaction fee = 0) or <strong>per-transaction</strong> (e.g. $0.02 per payment). The fee is a fixed amount deducted from each payment; the tenant receives (customer amount − fee). Tenants manage users, roles, permissions, and water prices in their portal.
+                Set the <strong>per-transaction fee</strong> (fixed amount in USD deducted from each payment; tenant receives customer amount − fee). Use 0 for no fee. Tenants manage users, roles, permissions, and water prices in their portal.
               </p>
               <form onSubmit={handleSave} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -280,19 +256,6 @@ export default function PlatformTenantDetailPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">Subscription plan</label>
-                    <select
-                      value={form.subscriptionPlan}
-                      onChange={(e) => setForm((f) => ({ ...f, subscriptionPlan: e.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    >
-                      <option value="BASIC">BASIC</option>
-                      <option value="STANDARD">STANDARD</option>
-                      <option value="PREMIUM">PREMIUM</option>
-                      <option value="ENTERPRISE">ENTERPRISE</option>
-                    </select>
-                  </div>
-                  <div>
                     <label className="block text-sm font-medium text-slate-700">Per-transaction fee (USD)</label>
                     <input
                       type="number"
@@ -302,58 +265,7 @@ export default function PlatformTenantDetailPage() {
                       onChange={(e) => setForm((f) => ({ ...f, feePerPayment: e.target.value }))}
                       className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                     />
-                    <p className="mt-1 text-xs text-slate-500">Fixed amount per payment (e.g. 0.02), not a percentage. Tenant receives (customer amount − this fee). Use 0 for fixed-price subscription.</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">Billing cycle</label>
-                    <input
-                      value={form.billingCycle}
-                      onChange={(e) => setForm((f) => ({ ...f, billingCycle: e.target.value }))}
-                      placeholder="e.g. monthly"
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">Currency</label>
-                    <input
-                      value={form.currency}
-                      onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}
-                      placeholder="USD"
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">Max staff</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={form.maxStaff}
-                      onChange={(e) => setForm((f) => ({ ...f, maxStaff: e.target.value }))}
-                      placeholder="Unlimited"
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">Max meters</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={form.maxCustomers}
-                      onChange={(e) => setForm((f) => ({ ...f, maxCustomers: e.target.value }))}
-                      placeholder="Unlimited"
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">Max transactions/period</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={form.maxTransactions}
-                      onChange={(e) => setForm((f) => ({ ...f, maxTransactions: e.target.value }))}
-                      placeholder="Unlimited"
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    />
+                    <p className="mt-1 text-xs text-slate-500">Fixed amount per payment (e.g. 0.02). Tenant receives (customer amount − fee). Use 0 for no fee.</p>
                   </div>
                 </div>
                 <Button type="submit" disabled={saving} variant="platform">

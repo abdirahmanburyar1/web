@@ -12,21 +12,26 @@ import Link from "next/link";
 type Zone = { id: string; name: string; description?: string | null; subSectionId?: string | null; _count?: { meters: number }; subSection?: { id: string; name: string } | null };
 type Section = { id: string; name: string; description?: string | null; _count?: { subSections: number } };
 type SubSection = { id: string; name: string; description?: string | null; sectionId?: string | null; section?: { id: string; name: string } | null; _count?: { zones: number } };
+type Price = { id: string; name: string; pricePerCubic: number | string; isDefault: boolean; _count?: { meters: number } };
 
 export default function SetupPage() {
   const [zones, setZones] = useState<Zone[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [subSections, setSubSections] = useState<SubSection[]>([]);
+  const [prices, setPrices] = useState<Price[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const [zoneForm, setZoneForm] = useState({ name: "", description: "", subSectionId: "" });
   const [sectionForm, setSectionForm] = useState({ name: "", description: "" });
   const [subSectionForm, setSubSectionForm] = useState({ name: "", description: "", sectionId: "" });
+  const [priceForm, setPriceForm] = useState({ name: "", pricePerCubic: "", isDefault: false });
 
   const [zoneSubmitting, setZoneSubmitting] = useState(false);
   const [sectionSubmitting, setSectionSubmitting] = useState(false);
   const [subSectionSubmitting, setSubSectionSubmitting] = useState(false);
+  const [priceSubmitting, setPriceSubmitting] = useState(false);
+  const [priceSettingDefault, setPriceSettingDefault] = useState<string | null>(null);
 
   function getToken() {
     if (typeof window === "undefined") return null;
@@ -41,14 +46,17 @@ export default function SetupPage() {
       fetch("/api/tenant/zones", { headers }).then((r) => r.json()),
       fetch("/api/tenant/sections", { headers }).then((r) => r.json()),
       fetch("/api/tenant/sub-sections", { headers }).then((r) => r.json()),
+      fetch("/api/tenant/prices", { headers }).then((r) => r.json()),
     ])
-      .then(([z, s, ss]) => {
+      .then(([z, s, ss, p]) => {
         if (z?.error) setError(z.error);
         else setZones(Array.isArray(z) ? z : []);
         if (s?.error) setError(s.error);
         else setSections(Array.isArray(s) ? s : []);
         if (ss?.error) setError(ss.error);
         else setSubSections(Array.isArray(ss) ? ss : []);
+        if (p?.error) setError(p.error);
+        else setPrices(Array.isArray(p) ? p : []);
       })
       .catch(() => setError("Failed to load"))
       .finally(() => setLoading(false));
@@ -140,6 +148,79 @@ export default function SetupPage() {
     }
   }
 
+  async function createPrice(e: React.FormEvent) {
+    e.preventDefault();
+    const t = getToken();
+    if (!t) return;
+    const priceVal = parseFloat(priceForm.pricePerCubic);
+    if (Number.isNaN(priceVal) || priceVal < 0) {
+      setError("Price per m³ must be a non-negative number");
+      return;
+    }
+    setPriceSubmitting(true);
+    setError("");
+    try {
+      const res = await fetch("/api/tenant/prices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+        body: JSON.stringify({
+          name: priceForm.name.trim(),
+          pricePerCubic: priceVal,
+          isDefault: priceForm.isDefault,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to create price");
+        return;
+      }
+      setPrices((prev) => [...prev, { ...data, _count: { meters: 0 } }]);
+      setPriceForm({ name: "", pricePerCubic: "", isDefault: false });
+    } finally {
+      setPriceSubmitting(false);
+    }
+  }
+
+  async function setPriceAsDefault(priceId: string) {
+    const t = getToken();
+    if (!t) return;
+    setPriceSettingDefault(priceId);
+    try {
+      const res = await fetch(`/api/tenant/prices/${priceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+        body: JSON.stringify({ isDefault: true }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data?.error || "Failed to set default");
+        return;
+      }
+      setPrices((prev) =>
+        prev.map((p) => ({ ...p, isDefault: p.id === priceId }))
+      );
+    } finally {
+      setPriceSettingDefault(null);
+    }
+  }
+
+  async function deletePrice(priceId: string) {
+    const t = getToken();
+    if (!t) return;
+    if (!confirm("Remove this price? Meters using it will need another price assigned.")) return;
+    try {
+      const res = await fetch(`/api/tenant/prices/${priceId}`, { method: "DELETE", headers: { Authorization: `Bearer ${t}` } });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data?.error || "Failed to delete");
+        return;
+      }
+      setPrices((prev) => prev.filter((p) => p.id !== priceId));
+    } catch {
+      setError("Failed to delete");
+    }
+  }
+
   if (loading) return <PageLoading />;
   if (error && zones.length === 0 && sections.length === 0 && subSections.length === 0) {
     return (
@@ -156,13 +237,13 @@ export default function SetupPage() {
     <div>
       <PageHeader
         title="Setup"
-        description="Create zones, sections, and sub-sections. Use them when adding meters."
+        description="Manage structure (sections, sub-sections, zones) and tariff prices for meters."
       />
       {error && (
         <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{error}</div>
       )}
 
-      <p className="mb-4 text-sm text-slate-500">Order: Section → Sub-section → Zone. Create sections first, then sub-sections under a section, then zones under a sub-section.</p>
+      <p className="mb-6 text-sm text-slate-500">Order: Section → Sub-section → Zone. Create sections first, then sub-sections, then zones. Define prices so new meters can be assigned a tariff.</p>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card>
@@ -307,6 +388,103 @@ export default function SetupPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Prices — tariff rates per m³ */}
+      <Card className="mt-8">
+        <CardHeader className="font-medium text-slate-900">Prices (tariff rates)</CardHeader>
+        <CardContent className="space-y-6">
+          <p className="text-sm text-slate-500">Define price tiers (e.g. Residential, Commercial). Assign a price to each meter; one price can be set as default for new meters.</p>
+          <form onSubmit={createPrice} className="flex flex-wrap items-end gap-4 rounded-xl border border-slate-100 bg-slate-50/50 p-4">
+            <div className="min-w-[160px]">
+              <Label>Name</Label>
+              <Input
+                value={priceForm.name}
+                onChange={(e) => setPriceForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="e.g. Residential"
+                required
+              />
+            </div>
+            <div className="min-w-[120px]">
+              <Label>Price per m³</Label>
+              <Input
+                type="number"
+                step="0.0001"
+                min="0"
+                value={priceForm.pricePerCubic}
+                onChange={(e) => setPriceForm((f) => ({ ...f, pricePerCubic: e.target.value }))}
+                placeholder="0.00"
+                required
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={priceForm.isDefault}
+                onChange={(e) => setPriceForm((f) => ({ ...f, isDefault: e.target.checked }))}
+                className="rounded border-slate-300"
+              />
+              Set as default
+            </label>
+            <Button type="submit" disabled={priceSubmitting}>
+              {priceSubmitting ? "Adding…" : "Add price"}
+            </Button>
+          </form>
+          <div className="overflow-hidden rounded-xl border border-slate-200">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-4 py-2.5 text-left font-medium text-slate-600">Name</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-slate-600">Price per m³</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-slate-600">Default</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-slate-600">Meters</th>
+                  <th className="px-4 py-2.5 text-right font-medium text-slate-600">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {prices.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-6 text-center text-slate-500">No prices yet. Add one above.</td>
+                  </tr>
+                ) : (
+                  prices.map((p) => (
+                    <tr key={p.id} className="hover:bg-slate-50/50">
+                      <td className="px-4 py-3 font-medium text-slate-900">{p.name}</td>
+                      <td className="px-4 py-3 text-slate-700">{Number(p.pricePerCubic).toFixed(4)}</td>
+                      <td className="px-4 py-3">
+                        {p.isDefault ? (
+                          <span className="rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-800">Default</span>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            disabled={priceSettingDefault === p.id}
+                            onClick={() => setPriceAsDefault(p.id)}
+                          >
+                            {priceSettingDefault === p.id ? "Setting…" : "Set default"}
+                          </Button>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">{p._count?.meters ?? 0}</td>
+                      <td className="px-4 py-3 text-right">
+                        {(p._count?.meters ?? 0) === 0 && (
+                          <button
+                            type="button"
+                            onClick={() => deletePrice(p.id)}
+                            className="text-red-600 hover:text-red-800 text-sm font-medium"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

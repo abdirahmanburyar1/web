@@ -162,9 +162,14 @@ export default function MeterDetailPage() {
         </Card>
 
         <Card className="lg:col-span-1">
-          <CardHeader className="font-semibold text-slate-900">Readings history</CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between font-semibold text-slate-900">
+            <span>Readings history</span>
+            <Link href={`/meter-readings?meterId=${meter.id}`} className="text-sm font-normal text-teal-600 hover:text-teal-700 hover:underline">
+              View all readings →
+            </Link>
+          </CardHeader>
           <CardContent>
-            <p className="mb-4 text-sm text-slate-500">All recorded readings for this meter.</p>
+            <p className="mb-4 text-sm text-slate-500">Recent readings for this meter. Use the Readings page for full history and filters.</p>
             {readings.length === 0 ? (
               <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 py-8 text-center text-sm text-slate-500">No readings yet</p>
             ) : (

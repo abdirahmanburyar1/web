@@ -60,9 +60,6 @@ export default function PlatformLoginPage() {
             <p className="mt-1 text-xs text-slate-500">Platform Admin</p>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Platform Admin Portal</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Sign in with your platform admin account. Company users should use their subdomain (e.g. acme.aquatrack.so).
-          </p>
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             {error && (
               <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

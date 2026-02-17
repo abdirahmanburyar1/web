@@ -10,12 +10,38 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { searchParams } = new URL(req.url);
-  const meterId = searchParams.get('meterId');
+  const meterId = searchParams.get('meterId')?.trim();
+  const searchMeter = searchParams.get('search')?.trim(); // meter number or customer name
+  const recordedById = searchParams.get('recordedById')?.trim();
+  const from = searchParams.get('from')?.trim();
+  const to = searchParams.get('to')?.trim();
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
-  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10)));
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '25', 10)));
   const skip = (page - 1) * limit;
-  const where: { meter: { tenantId: string }; meterId?: string } = { meter: { tenantId: user.tenantId! } };
-  if (meterId) where.meterId = meterId;
+  const tenantId = user.tenantId!;
+  const meterWhere: { tenantId: string; id?: string; OR?: Array<{ meterNumber?: { contains: string; mode: 'insensitive' }; customerName?: { contains: string; mode: 'insensitive' } }> } = { tenantId };
+  if (meterId) meterWhere.id = meterId;
+  else if (searchMeter) {
+    meterWhere.OR = [
+      { meterNumber: { contains: searchMeter, mode: 'insensitive' } },
+      { customerName: { contains: searchMeter, mode: 'insensitive' } },
+    ];
+  }
+  const where: {
+    meter: typeof meterWhere;
+    recordedById?: string;
+    recordedAt?: { gte?: Date; lte?: Date };
+  } = { meter: meterWhere };
+  if (recordedById) where.recordedById = recordedById;
+  if (from || to) {
+    where.recordedAt = {};
+    if (from) where.recordedAt.gte = new Date(from);
+    if (to) {
+      const toDate = new Date(to);
+      toDate.setHours(23, 59, 59, 999);
+      where.recordedAt.lte = toDate;
+    }
+  }
   const [readings, total] = await Promise.all([
     prisma.meterReading.findMany({
       where,

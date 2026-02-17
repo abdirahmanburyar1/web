@@ -401,6 +401,7 @@ model PaymentReceipt {
   receiptNumber   String?       // official receipt number (e.g. from receipt book)
   amountReceived  Decimal?      @db.Decimal(10, 2) // amount on this receipt; when null, use payment.amount
   paymentMethod   PaymentMethod? // how this receipt was paid; when null, use payment.method
+  account         String?       // money account where amount was received (e.g. account name)
   url             String?       // e.g. link to scanned receipt
   issuedAt        DateTime     @default(now())
   createdAt       DateTime     @default(now())

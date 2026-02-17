@@ -24,6 +24,7 @@ export async function GET(
     receiptNumber: r.receiptNumber,
     amountReceived: r.amountReceived != null ? Number(r.amountReceived) : null,
     paymentMethod: r.paymentMethod,
+    account: r.account ?? null,
     issuedAt: r.issuedAt,
     createdAt: r.createdAt,
   }));
@@ -45,9 +46,10 @@ export async function POST(
   });
   if (!payment) return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
   const body = await req.json().catch(() => ({}));
-  const { amountReceived, paymentMethod } = body as {
+  const { amountReceived, paymentMethod, account } = body as {
     amountReceived?: number;
     paymentMethod?: string;
+    account?: string | null;
   };
   const amount =
     amountReceived != null && Number.isFinite(amountReceived)
@@ -57,6 +59,7 @@ export async function POST(
     paymentMethod && ['CASH', 'MOBILE_MONEY', 'BANK_TRANSFER', 'OTHER'].includes(paymentMethod)
       ? (paymentMethod as PaymentMethod)
       : payment.method;
+  const accountStr = typeof account === 'string' ? account.trim() || null : null;
 
   const tenantId = payment.tenantId;
   const existing = await prisma.paymentReceipt.findMany({
@@ -77,11 +80,13 @@ export async function POST(
       receiptNumber,
       amountReceived: amount,
       paymentMethod: method,
+      account: accountStr,
     },
   });
   return NextResponse.json({
     ...receipt,
     amountReceived: receipt.amountReceived != null ? Number(receipt.amountReceived) : null,
     paymentMethod: receipt.paymentMethod,
+    account: receipt.account ?? null,
   });
 }

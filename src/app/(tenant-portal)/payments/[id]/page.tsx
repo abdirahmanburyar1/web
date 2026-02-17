@@ -23,12 +23,11 @@ type PaymentDetail = {
     receiptNumber: string | null;
     amountReceived: number | null;
     paymentMethod: string | null;
+    account: string | null;
     issuedAt: string;
     createdAt?: string;
   }>;
 };
-
-const PAYMENT_METHODS = ["CASH", "MOBILE_MONEY", "BANK_TRANSFER", "OTHER"] as const;
 const METHOD_SOMALI: Record<string, string> = {
   CASH: "Lacag cad",
   MOBILE_MONEY: "Lacag mobil",
@@ -59,11 +58,11 @@ export default function PaymentDetailPage() {
   const id = params.id as string;
   const [payment, setPayment] = useState<PaymentDetail | null>(null);
   const [tenantName, setTenantName] = useState("");
-  const [moneyAccounts, setMoneyAccounts] = useState<Array<{ name: string; accountNumber: string | null }>>([]);
+  const [moneyAccounts, setMoneyAccounts] = useState<Array<{ id: string; name: string; accountNumber: string | null }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [addAmount, setAddAmount] = useState("");
-  const [addMethod, setAddMethod] = useState("CASH");
+  const [addAccount, setAddAccount] = useState("");
   const [addingReceipt, setAddingReceipt] = useState(false);
   const [addReceiptModalOpen, setAddReceiptModalOpen] = useState(false);
 
@@ -91,7 +90,7 @@ export default function PaymentDetailPage() {
         setAddAmount(String(payData.amount ?? ""));
         if (meData?.tenant?.name) setTenantName(meData.tenant.name);
         const list = Array.isArray(accData) ? accData : [];
-        setMoneyAccounts(list.map((a: { name: string; accountNumber: string | null }) => ({ name: a.name, accountNumber: a.accountNumber ?? null })));
+        setMoneyAccounts(list.map((a: { id: string; name: string; accountNumber?: string | null }) => ({ id: a.id, name: a.name, accountNumber: a.accountNumber ?? null })));
       })
       .catch(() => setError("Failed to load"))
       .finally(() => setLoading(false));
@@ -115,7 +114,7 @@ export default function PaymentDetailPage() {
     fetch(`/api/tenant/payments/${id}/receipts`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-      body: JSON.stringify({ amountReceived: amount, paymentMethod: addMethod }),
+      body: JSON.stringify({ amountReceived: amount, account: addAccount || undefined }),
     })
       .then((r) => r.json())
       .then((receipt) => {
@@ -130,7 +129,8 @@ export default function PaymentDetailPage() {
                       id: receipt.id,
                       receiptNumber: receipt.receiptNumber,
                       amountReceived: receipt.amountReceived ?? amount,
-                      paymentMethod: receipt.paymentMethod ?? addMethod,
+                      paymentMethod: receipt.paymentMethod ?? null,
+                      account: receipt.account ?? addAccount || null,
                       issuedAt: receipt.issuedAt ?? new Date().toISOString(),
                       createdAt: receipt.createdAt,
                     },
@@ -146,18 +146,17 @@ export default function PaymentDetailPage() {
 
   function openAddReceiptModal() {
     setAddAmount(String(payment?.amount ?? ""));
-    setAddMethod("CASH");
+    setAddAccount(moneyAccounts[0]?.name ?? "");
     setAddReceiptModalOpen(true);
   }
 
   function printMiniReceipt(
-    receipt: { receiptNumber: string | null; amountReceived: number | null; paymentMethod: string | null; issuedAt: string },
+    receipt: { receiptNumber: string | null; amountReceived: number | null; paymentMethod: string | null; account: string | null; issuedAt: string },
     isPartial: boolean
   ) {
     if (!payment) return;
     const amount = receipt.amountReceived ?? payment.amount;
-    const methodKey = (receipt.paymentMethod ?? payment.method) as string;
-    const method = METHOD_SOMALI[methodKey] || methodKey.replace(/_/g, " ");
+    const method = receipt.account ?? (METHOD_SOMALI[(receipt.paymentMethod ?? payment.method) as string] ?? (receipt.paymentMethod ?? payment.method)?.toString().replace(/_/g, " ") ?? "—");
     const paymentTypeLabel = isPartial ? RECEIPT_LABELS.partial : RECEIPT_LABELS.full;
     const meterLabel = payment.meter ? `${payment.meter.meterNumber} — ${payment.meter.customerName}` : "—";
     const accountLines = moneyAccounts.map((a) => [a.name, a.accountNumber].filter(Boolean).join(" ").trim());
@@ -309,7 +308,7 @@ export default function PaymentDetailPage() {
                   <tr>
                     <th className="px-4 py-2.5 text-left font-medium text-slate-600">Receipt #</th>
                     <th className="px-4 py-2.5 text-left font-medium text-slate-600">Amount</th>
-                    <th className="px-4 py-2.5 text-left font-medium text-slate-600">Method</th>
+                    <th className="px-4 py-2.5 text-left font-medium text-slate-600">Account</th>
                     <th className="px-4 py-2.5 text-left font-medium text-slate-600">Issued at</th>
                     <th className="px-4 py-2.5 text-right font-medium text-slate-600 no-print">Print (mini)</th>
                   </tr>
@@ -322,7 +321,7 @@ export default function PaymentDetailPage() {
                       <tr key={r.id}>
                         <td className="px-4 py-3 font-mono text-slate-900">{r.receiptNumber || "—"}</td>
                         <td className="px-4 py-3 text-slate-700">${Number(amt).toFixed(2)}</td>
-                        <td className="px-4 py-3 text-slate-600">{(r.paymentMethod ?? "").replace(/_/g, " ")}</td>
+                        <td className="px-4 py-3 text-slate-600">{r.account ?? (r.paymentMethod ? (r.paymentMethod as string).replace(/_/g, " ") : "—")}</td>
                         <td className="px-4 py-3 text-slate-600">{new Date(r.issuedAt).toLocaleString()}</td>
                         <td className="px-4 py-3 text-right no-print">
                           <Button type="button" size="sm" variant="secondary" onClick={() => printMiniReceipt(r, isPartial)}>
@@ -357,14 +356,15 @@ export default function PaymentDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500">Accounts</label>
+                <label className="block text-xs font-medium text-slate-500">Account</label>
                 <select
-                  value={addMethod}
-                  onChange={(e) => setAddMethod(e.target.value)}
+                  value={addAccount}
+                  onChange={(e) => setAddAccount(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 >
-                  {PAYMENT_METHODS.map((m) => (
-                    <option key={m} value={m}>{m.replace(/_/g, " ")}</option>
+                  <option value="">— Select account —</option>
+                  {moneyAccounts.map((a) => (
+                    <option key={a.id} value={a.name}>{a.name}{a.accountNumber ? ` (${a.accountNumber})` : ""}</option>
                   ))}
                 </select>
               </div>

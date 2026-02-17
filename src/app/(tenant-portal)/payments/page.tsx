@@ -29,6 +29,7 @@ type Receipt = {
   receiptNumber: string | null;
   amountReceived: number | null;
   paymentMethod: string | null;
+  account: string | null;
   issuedAt: string;
   createdAt?: string;
 };
@@ -56,7 +57,7 @@ export default function PaymentsPage() {
   const [collectors, setCollectors] = useState<Array<{ id: string; fullName: string }>>([]);
   const [tenantName, setTenantName] = useState("");
   // Snapshot of account name + number only (no id); used as plain text on receipt so it stays correct if accounts are changed later
-  const [moneyAccounts, setMoneyAccounts] = useState<Array<{ name: string; accountNumber: string | null }>>([]);
+  const [moneyAccounts, setMoneyAccounts] = useState<Array<{ id: string; name: string; accountNumber: string | null }>>([]);
 
   const [recordModalOpen, setRecordModalOpen] = useState(false);
   const [recordMeterId, setRecordMeterId] = useState("");
@@ -78,7 +79,7 @@ export default function PaymentsPage() {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loadingReceipts, setLoadingReceipts] = useState(false);
   const [addAmountReceived, setAddAmountReceived] = useState("");
-  const [addPaymentMethod, setAddPaymentMethod] = useState<string>("CASH");
+  const [addAccount, setAddAccount] = useState("");
   const [addingReceipt, setAddingReceipt] = useState(false);
   const [addReceiptModalOpen, setAddReceiptModalOpen] = useState(false);
 
@@ -136,7 +137,7 @@ export default function PaymentsPage() {
       .then((r) => r.json())
       .then((d) => {
         const list = Array.isArray(d) ? d : [];
-        setMoneyAccounts(list.map((a: { name: string; accountNumber: string | null }) => ({ name: a.name, accountNumber: a.accountNumber ?? null })));
+        setMoneyAccounts(list.map((a: { id: string; name: string; accountNumber?: string | null }) => ({ id: a.id, name: a.name, accountNumber: a.accountNumber ?? null })));
       })
       .catch(() => {});
   }, []);
@@ -233,7 +234,7 @@ export default function PaymentsPage() {
     });
     setReceipts([]);
     setAddAmountReceived(String(paymentAmount));
-    setAddPaymentMethod(paymentMethod || "CASH");
+    setAddAccount(moneyAccounts[0]?.name ?? "");
     setAddReceiptModalOpen(false);
     const t = getToken();
     if (!t) return;
@@ -254,13 +255,13 @@ export default function PaymentsPage() {
     fetch(`/api/tenant/payments/${receiptsModal.paymentId}/receipts`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-      body: JSON.stringify({ amountReceived: amount, paymentMethod: addPaymentMethod }),
+      body: JSON.stringify({ amountReceived: amount, account: addAccount || undefined }),
     })
       .then((r) => r.json())
       .then((receipt) => {
-        if (receipt.id) setReceipts((prev) => [{ ...receipt, issuedAt: receipt.issuedAt ?? new Date().toISOString() }, ...prev]);
+        if (receipt.id) setReceipts((prev) => [{ ...receipt, account: receipt.account ?? null, issuedAt: receipt.issuedAt ?? new Date().toISOString() }, ...prev]);
         setAddAmountReceived(String(receiptsModal.paymentAmount));
-        setAddPaymentMethod(receiptsModal.paymentMethod || "CASH");
+        setAddAccount(moneyAccounts[0]?.name ?? "");
         setAddReceiptModalOpen(false);
         loadPayments();
       })
@@ -269,7 +270,7 @@ export default function PaymentsPage() {
 
   function openAddReceiptModal() {
     setAddAmountReceived(String(receiptsModal?.paymentAmount ?? ""));
-    setAddPaymentMethod(receiptsModal?.paymentMethod ?? "CASH");
+    setAddAccount(moneyAccounts[0]?.name ?? "");
     setAddReceiptModalOpen(true);
   }
 
@@ -283,7 +284,7 @@ export default function PaymentsPage() {
       BANK_TRANSFER: "Wareejinta bangiga",
       OTHER: "Kale",
     };
-    const method = methodSomali[methodKey] || methodKey.replace(/_/g, " ");
+    const method = receipt.account ?? methodSomali[methodKey] ?? methodKey.replace(/_/g, " ");
     // Somali labels for paper receipt (warqad lacag)
     const labels = {
       company: tenantName || "Warqad Lacag",
@@ -527,7 +528,7 @@ export default function PaymentsPage() {
             <div className="border-b border-slate-200 px-4 py-3">
               <h2 className="text-lg font-semibold text-slate-900">Receipts — {receiptsModal.meterLabel}</h2>
               <p className="text-sm text-slate-500">
-                Payment: <strong>${receiptsModal.paymentAmount.toFixed(2)}</strong> · {receiptsModal.paymentMethod.replace(/_/g, " ")}. Add a receipt to print for the customer (full or partial).
+                Payment: <strong>${receiptsModal.paymentAmount.toFixed(2)}</strong>. Add a receipt (amount and account) to print for the customer (full or partial).
               </p>
             </div>
             <div className="max-h-[60vh] overflow-y-auto p-4">
@@ -547,7 +548,7 @@ export default function PaymentsPage() {
                       <tr>
                         <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Receipt #</th>
                         <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Amount</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Method</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Account</th>
                         <th className="px-3 py-2 text-left text-xs font-medium text-slate-500">Date</th>
                         <th className="px-3 py-2 text-right text-xs font-medium text-slate-500">Print</th>
                       </tr>
@@ -560,7 +561,7 @@ export default function PaymentsPage() {
                           <tr key={r.id}>
                             <td className="px-3 py-2 font-mono text-slate-900">{r.receiptNumber || "—"}</td>
                             <td className="px-3 py-2 text-slate-700">${Number(amt).toFixed(2)}</td>
-                            <td className="px-3 py-2 text-slate-600">{(r.paymentMethod ?? "").replace(/_/g, " ")}</td>
+                            <td className="px-3 py-2 text-slate-600">{r.account ?? (r.paymentMethod ? (r.paymentMethod as string).replace(/_/g, " ") : "—")}</td>
                             <td className="px-3 py-2 text-slate-600">{new Date(r.issuedAt).toLocaleString()}</td>
                             <td className="px-3 py-2 text-right">
                               <Button type="button" size="sm" variant="secondary" onClick={() => printReceipt(r, isPartial)}>
@@ -600,14 +601,15 @@ export default function PaymentsPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500">Accounts</label>
+                <label className="block text-xs font-medium text-slate-500">Account</label>
                 <select
-                  value={addPaymentMethod}
-                  onChange={(e) => setAddPaymentMethod(e.target.value)}
+                  value={addAccount}
+                  onChange={(e) => setAddAccount(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 >
-                  {PAYMENT_METHODS.map((m) => (
-                    <option key={m} value={m}>{m.replace(/_/g, " ")}</option>
+                  <option value="">— Select account —</option>
+                  {moneyAccounts.map((a) => (
+                    <option key={a.id} value={a.name}>{a.name}{a.accountNumber ? ` (${a.accountNumber})` : ""}</option>
                   ))}
                 </select>
               </div>

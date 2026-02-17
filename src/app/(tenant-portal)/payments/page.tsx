@@ -40,7 +40,7 @@ function paymentType(p: Payment): "Full" | "Partial" | "—" {
 }
 
 export default function PaymentsPage() {
-  const [data, setData] = useState<{ payments: Payment[]; total: number; page: number; limit: number } | null>(null);
+  const [data, setData] = useState<{ payments: Payment[]; total: number; page: number; limit: number; totalAmount?: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [from, setFrom] = useState("");
@@ -55,6 +55,15 @@ export default function PaymentsPage() {
   const [tenantName, setTenantName] = useState("");
   // Snapshot of account name + number only (no id); used as plain text on receipt so it stays correct if accounts are changed later
   const [moneyAccounts, setMoneyAccounts] = useState<Array<{ name: string; accountNumber: string | null }>>([]);
+
+  const [recordModalOpen, setRecordModalOpen] = useState(false);
+  const [recordMeterId, setRecordMeterId] = useState("");
+  const [recordAmount, setRecordAmount] = useState("");
+  const [recordMethod, setRecordMethod] = useState("CASH");
+  const [recordReference, setRecordReference] = useState("");
+  const [recordSubmitting, setRecordSubmitting] = useState(false);
+  const [recordError, setRecordError] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   const [receiptsModal, setReceiptsModal] = useState<{
     paymentId: string;
@@ -89,7 +98,7 @@ export default function PaymentsPage() {
       .then((r) => r.json())
       .then((d) => {
         if (d.error) setError(d.error);
-        else setData({ payments: d.payments ?? [], total: d.total ?? 0, page: d.page ?? page, limit: d.limit ?? limit });
+        else setData({ payments: d.payments ?? [], total: d.total ?? 0, page: d.page ?? page, limit: d.limit ?? limit, totalAmount: d.totalAmount ?? 0 });
       })
       .catch(() => setError("Failed to load"))
       .finally(() => setLoading(false));
@@ -129,6 +138,76 @@ export default function PaymentsPage() {
       })
       .catch(() => {});
   }, []);
+
+  function handleRecordPayment(e: React.FormEvent) {
+    e.preventDefault();
+    const t = getToken();
+    if (!t || !recordMeterId || !recordAmount || Number(recordAmount) <= 0) return;
+    setRecordSubmitting(true);
+    setRecordError("");
+    fetch("/api/tenant/payments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+      body: JSON.stringify({
+        meterId: recordMeterId,
+        amount: Number(recordAmount),
+        method: recordMethod,
+        reference: recordReference.trim() || undefined,
+      }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.error) {
+          setRecordError(d.error);
+          return;
+        }
+        setRecordModalOpen(false);
+        setRecordMeterId("");
+        setRecordAmount("");
+        setRecordReference("");
+        loadPayments();
+      })
+      .finally(() => setRecordSubmitting(false));
+  }
+
+  function handleExport() {
+    const t = getToken();
+    if (!t) return;
+    setExporting(true);
+    const params = new URLSearchParams({ page: "1", limit: "5000" });
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    if (meterId) params.set("meterId", meterId);
+    if (collectorId) params.set("collectorId", collectorId);
+    if (method) params.set("method", method);
+    fetch(`/api/tenant/payments?${params}`, { headers: { Authorization: `Bearer ${t}` } })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.error) return;
+        const list = (d.payments ?? []) as Payment[];
+        const headers = ["Date", "Payment #", "Meter", "Customer", "Amount", "Method", "Collector", "Reference", "Type"];
+        const rows = list.map((p) => [
+          new Date(p.recordedAt).toLocaleString(),
+          p.paymentNumber ?? "",
+          p.meter?.meterNumber ?? "",
+          p.meter?.customerName ?? "",
+          Number(p.amount).toFixed(2),
+          (p.method ?? "").replace(/_/g, " "),
+          p.collector?.fullName ?? "",
+          p.reference ?? "",
+          paymentType(p),
+        ]);
+        const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
+        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `payments-${from || "all"}-${to || "all"}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      })
+      .finally(() => setExporting(false));
+  }
 
   function openReceipts(
     paymentId: string,
@@ -260,8 +339,31 @@ export default function PaymentsPage() {
     <div>
       <PageHeader
         title="Payments"
-        description="Payment history. Customers can pay in full or partially. Print paper receipts for each receipt."
+        description="View and record payments, print receipts, and export data. Summary reflects current filters."
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setRecordModalOpen(true)}>
+              Record payment
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting || !data}>
+              {exporting ? "Exporting…" : "Export CSV"}
+            </Button>
+          </div>
+        }
       />
+
+      {data && (
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Total collected (filtered)</p>
+            <p className="mt-1 text-2xl font-semibold text-slate-900">${Number(data.totalAmount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Payments (filtered)</p>
+            <p className="mt-1 text-2xl font-semibold text-slate-900">{data.total.toLocaleString()}</p>
+          </div>
+        </div>
+      )}
 
       <div className="mb-6 flex flex-wrap items-end gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm">
         <div>
@@ -492,6 +594,56 @@ export default function PaymentsPage() {
             <div className="border-t border-slate-200 px-4 py-3">
               <Button type="button" variant="secondary" onClick={() => setReceiptsModal(null)}>Close</Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {recordModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={() => !recordSubmitting && setRecordModalOpen(false)}>
+          <div className="w-full max-w-md rounded-xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="border-b border-slate-200 px-4 py-3">
+              <h2 className="text-lg font-semibold text-slate-900">Record payment</h2>
+              <p className="text-sm text-slate-500">Record a customer payment against a meter. Invoice (if any) will be updated.</p>
+            </div>
+            <form onSubmit={handleRecordPayment} className="p-4 space-y-4">
+              {recordError && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{recordError}</p>}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Meter</label>
+                <select
+                  value={recordMeterId}
+                  onChange={(e) => setRecordMeterId(e.target.value)}
+                  required
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                >
+                  <option value="">Select meter</option>
+                  {meters.map((m) => (
+                    <option key={m.id} value={m.id}>{m.meterNumber} — {m.customerName}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Amount ($)</label>
+                <Input type="number" step="0.01" min="0.01" value={recordAmount} onChange={(e) => setRecordAmount(e.target.value)} placeholder="0.00" required />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Method</label>
+                <select value={recordMethod} onChange={(e) => setRecordMethod(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                  {PAYMENT_METHODS.map((m) => (
+                    <option key={m} value={m}>{m.replace(/_/g, " ")}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Reference (optional)</label>
+                <Input value={recordReference} onChange={(e) => setRecordReference(e.target.value)} placeholder="Transaction ID, note…" />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="secondary" onClick={() => !recordSubmitting && setRecordModalOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={recordSubmitting || !recordMeterId || !recordAmount || Number(recordAmount) <= 0}>
+                  {recordSubmitting ? "Recording…" : "Record payment"}
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}

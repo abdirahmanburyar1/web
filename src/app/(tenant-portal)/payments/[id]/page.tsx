@@ -65,6 +65,7 @@ export default function PaymentDetailPage() {
   const [addAmount, setAddAmount] = useState("");
   const [addMethod, setAddMethod] = useState("CASH");
   const [addingReceipt, setAddingReceipt] = useState(false);
+  const [addReceiptModalOpen, setAddReceiptModalOpen] = useState(false);
 
   function getToken() {
     if (typeof window === "undefined") return null;
@@ -138,8 +139,15 @@ export default function PaymentDetailPage() {
               : null
           );
         setAddAmount(String(payment.amount));
+        setAddReceiptModalOpen(false);
       })
       .finally(() => setAddingReceipt(false));
+  }
+
+  function openAddReceiptModal() {
+    setAddAmount(String(payment?.amount ?? ""));
+    setAddMethod("CASH");
+    setAddReceiptModalOpen(true);
   }
 
   function printMiniReceipt(
@@ -224,9 +232,14 @@ export default function PaymentDetailPage() {
           description={meterLabel}
           backLink={{ href: "/payments", label: "Payments" }}
           action={
-            <Button variant="platform" size="sm" onClick={printA4}>
-              Print payment (A4)
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="platform" size="sm" onClick={printA4}>
+                Print payment (A4)
+              </Button>
+              <Button variant="secondary" size="sm" onClick={openAddReceiptModal}>
+                Add receipt
+              </Button>
+            </div>
           }
         />
       </div>
@@ -255,10 +268,6 @@ export default function PaymentDetailPage() {
             <div>
               <dt className="text-xs font-medium uppercase text-slate-400">Balance</dt>
               <dd className="font-medium text-slate-900">${balance.toFixed(2)}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase text-slate-400">Method</dt>
-              <dd className="text-slate-700">{(payment.method ?? "").replace(/_/g, " ")}</dd>
             </div>
             <div>
               <dt className="text-xs font-medium uppercase text-slate-400">Type</dt>
@@ -327,40 +336,46 @@ export default function PaymentDetailPage() {
               </table>
             </div>
           )}
+        </div>
+      </div>
 
-          <form onSubmit={handleAddReceipt} className="no-print mt-4 rounded-lg border border-slate-200 bg-slate-50/50 p-4">
-            <p className="mb-3 text-xs font-medium text-slate-600">Add receipt</p>
-            <div className="flex flex-wrap items-end gap-3">
+      {addReceiptModalOpen && payment && (
+        <div className="no-print fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 p-4" onClick={() => !addingReceipt && setAddReceiptModalOpen(false)}>
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-slate-900">Receipt payment receive</h3>
+            <p className="mt-1 text-sm text-slate-500">Enter amount and method received for this receipt (full or partial).</p>
+            <form onSubmit={handleAddReceipt} className="mt-4 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-500">Amount</label>
+                <label className="block text-xs font-medium text-slate-500">Amount received</label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
                   value={addAmount}
                   onChange={(e) => setAddAmount(e.target.value)}
-                  className="mt-1 w-32"
+                  className="mt-1 w-full"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500">Method</label>
+                <label className="block text-xs font-medium text-slate-500">Payment method</label>
                 <select
                   value={addMethod}
                   onChange={(e) => setAddMethod(e.target.value)}
-                  className="mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 >
                   {PAYMENT_METHODS.map((m) => (
                     <option key={m} value={m}>{m.replace(/_/g, " ")}</option>
                   ))}
                 </select>
               </div>
-              <Button type="submit" size="sm" disabled={addingReceipt}>
-                {addingReceipt ? "Adding…" : "Add receipt"}
-              </Button>
-            </div>
-          </form>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="secondary" onClick={() => setAddReceiptModalOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={addingReceipt}>{addingReceipt ? "Adding…" : "Add receipt"}</Button>
+              </div>
+            </form>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -34,6 +34,7 @@ export async function GET(req: Request) {
     take: limit,
     include: {
       zone: { select: { id: true, name: true } },
+      price: { select: { id: true, name: true, pricePerCubic: true } },
     },
   });
   const total = await prisma.meter.count({ where });

@@ -1,22 +1,13 @@
 "use client";
 
-import { PageHeader } from "@/components/ui/page-header";
-import { Card, CardContent } from "@/components/ui/card";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
+/** Settings are for tenants only; platform admin has no settings. Redirect to dashboard. */
 export default function PlatformSettingsPage() {
-  return (
-    <div>
-      <PageHeader
-        title="Platform settings"
-        description="Global platform configuration and preferences."
-      />
-      <Card>
-        <CardContent className="pt-6">
-          <p className="text-slate-600">
-            Platform-wide settings (e.g. defaults, branding, notifications) can be managed here.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/platform/dashboard");
+  }, [router]);
+  return null;
 }

@@ -9,7 +9,6 @@ const nav = [
   { href: `${BASE}/dashboard`, label: "Dashboard", icon: "📊", section: "Overview" },
   { href: `${BASE}/tenants`, label: "Tenants", icon: "🏢", section: "Tenants" },
   { href: `${BASE}/reports`, label: "Reports & revenue", icon: "📈", section: "Reports" },
-  { href: `${BASE}/settings`, label: "Platform settings", icon: "⚙️", section: "Settings" },
 ];
 
 export function PlatformSidebar({
@@ -68,7 +67,7 @@ export function PlatformSidebar({
         </div>
 
         <nav className="flex-1 overflow-y-auto p-4 space-y-6">
-          {["Overview", "Tenants", "Reports", "Settings"].map((section) => {
+          {["Overview", "Tenants", "Reports"].map((section) => {
             const items = nav.filter((n) => (n as { section?: string }).section === section);
             if (items.length === 0) return null;
             return (

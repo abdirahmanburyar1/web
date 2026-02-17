@@ -129,12 +129,17 @@ export async function POST(req: Request) {
   const usageThisPeriod = Math.max(0, valueNum - previousValue);
   const currentPeriodAmount = Math.round(usageThisPeriod * pricePerCubic * 100) / 100;
 
+  // Unpaid balance from last month carries forward: last payment amount minus what was paid (receipts)
   const previousPayment = await prisma.payment.findFirst({
     where: { meterId },
     orderBy: { recordedAt: 'desc' },
-    select: { amount: true },
+    select: { amount: true, receipts: { select: { amountReceived: true } } },
   });
-  const previousBalance = previousPayment ? Number(previousPayment.amount) : 0;
+  let previousBalance = 0;
+  if (previousPayment) {
+    const paid = previousPayment.receipts.reduce((sum, r) => sum + Number(r.amountReceived ?? 0), 0);
+    previousBalance = Math.max(0, Math.round((Number(previousPayment.amount) - paid) * 100) / 100);
+  }
   const amountDue = Math.round((previousBalance + currentPeriodAmount) * 100) / 100;
 
   const existingPayments = await prisma.payment.findMany({
@@ -191,6 +196,7 @@ export async function POST(req: Request) {
       paymentNumber: payment.paymentNumber,
       amount: Number(payment.amount),
       recordedAt: payment.recordedAt,
+      reference: payment.reference,
       meter: payment.meter,
     },
     meter: reading.meter,

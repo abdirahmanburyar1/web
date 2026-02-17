@@ -600,7 +600,7 @@ export default function PaymentsPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500">Payment method</label>
+                <label className="block text-xs font-medium text-slate-500">Accounts</label>
                 <select
                   value={addPaymentMethod}
                   onChange={(e) => setAddPaymentMethod(e.target.value)}

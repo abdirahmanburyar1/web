@@ -343,7 +343,7 @@ export default function PaymentDetailPage() {
         <div className="no-print fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 p-4" onClick={() => !addingReceipt && setAddReceiptModalOpen(false)}>
           <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-slate-900">Receipt payment receive</h3>
-            <p className="mt-1 text-sm text-slate-500">Enter amount and method received for this receipt (full or partial).</p>
+            <p className="mt-1 text-sm text-slate-500">Enter amount and account received for this receipt (full or partial).</p>
             <form onSubmit={handleAddReceipt} className="mt-4 space-y-4">
               <div>
                 <label className="block text-xs font-medium text-slate-500">Amount received</label>
@@ -357,7 +357,7 @@ export default function PaymentDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500">Payment method</label>
+                <label className="block text-xs font-medium text-slate-500">Accounts</label>
                 <select
                   value={addMethod}
                   onChange={(e) => setAddMethod(e.target.value)}

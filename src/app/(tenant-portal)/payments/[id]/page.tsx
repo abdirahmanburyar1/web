@@ -132,6 +132,7 @@ export default function PaymentDetailPage() {
                       amountReceived: receipt.amountReceived ?? amount,
                       paymentMethod: receipt.paymentMethod ?? null,
                       account: receipt.account ?? (addAccount || null),
+                      receivedBy: receipt.receivedBy ?? null,
                       issuedAt: receipt.issuedAt ?? new Date().toISOString(),
                       createdAt: receipt.createdAt,
                     },

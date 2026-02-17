@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import * as XLSX from 'xlsx';
 import { getTenantUserOrNull } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { PERMISSIONS, userHasPermission } from '@/lib/permissions';
@@ -42,12 +43,16 @@ export async function GET(req: Request) {
     p.method ?? '',
     p.collector?.fullName ?? '',
   ]);
-  const csv = [headers.join(','), ...rows.map((r) => r.map((c) => JSON.stringify(c)).join(','))].join('\n');
-
-  return new NextResponse(csv, {
+  const data = [headers, ...rows];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  XLSX.utils.book_append_sheet(wb, ws, 'Payments');
+  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  const filename = `payments-report-${new Date().toISOString().slice(0, 10)}.xlsx`;
+  return new NextResponse(buf, {
     headers: {
-      'Content-Type': 'text/csv',
-      'Content-Disposition': `attachment; filename="payments-report-${new Date().toISOString().slice(0, 10)}.csv"`,
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${filename}"`,
     },
   });
 }

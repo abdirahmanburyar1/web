@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import * as XLSX from "xlsx";
 import { PageHeader } from "@/components/ui/page-header";
 import { PageLoading } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
@@ -197,12 +198,16 @@ export default function PaymentsPage() {
           p.reference ?? "",
           paymentType(p),
         ]);
-        const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
-        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+        const data = [headers, ...rows];
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, "Payments");
+        const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+        const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `payments-${from || "all"}-${to || "all"}.csv`;
+        a.download = `payments-${from || "all"}-${to || "all"}.xlsx`;
         a.click();
         URL.revokeObjectURL(url);
       })
@@ -346,7 +351,7 @@ export default function PaymentsPage() {
               Record payment
             </Button>
             <Button variant="ghost" size="sm" onClick={handleExport} disabled={exporting || !data}>
-              {exporting ? "Exporting…" : "Export CSV"}
+              {exporting ? "Exporting…" : "Export XLSX"}
             </Button>
           </div>
         }

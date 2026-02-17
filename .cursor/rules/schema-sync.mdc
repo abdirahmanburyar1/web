@@ -1,0 +1,20 @@
+---
+description: Keep Prisma schema in sync when backend or data model changes
+globs: prisma/schema.prisma,**/api/**/*.ts,**/route.ts
+alwaysApply: false
+---
+
+# Database schema sync
+
+When you change the backend in ways that affect stored data:
+
+1. **Update the Prisma schema** (`prisma/schema.prisma`):
+   - Add, remove, or rename models and fields to match the new behavior.
+   - Keep enums and relations consistent with the API and UI.
+
+2. **Apply changes to the database**:
+   - For local/dev: run `npx prisma migrate dev --name <short_description>` to create and apply a migration.
+   - For quick prototyping: run `npx prisma db push` (no migration history).
+   - After schema changes, Prisma Client is regenerated automatically by `migrate dev` or `db push`; otherwise run `npx prisma generate`.
+
+3. **Do not** leave the schema out of sync: if you add or remove API fields, indexes, or tables, update the schema in the same change set.

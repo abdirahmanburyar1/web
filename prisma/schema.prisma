@@ -55,15 +55,6 @@ enum MeterStatus {
 
 // Platform Models
 
-model PlanLimit {
-  plan             SubscriptionPlan @id
-  maxStaff         Int?
-  maxCustomers     Int?
-  maxTransactions  Int?
-
-  @@map("plan_limits")
-}
-
 model PlatformSetting {
   id    String @id @default(uuid())
   key   String @unique

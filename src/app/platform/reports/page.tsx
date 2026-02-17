@@ -51,16 +51,16 @@ export default function PlatformReportsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function exportCsv() {
+  async function exportXlsx() {
     const t = getToken();
     if (!t) return;
-    const res = await fetch("/api/platform/reports/export?format=csv", { headers: { Authorization: `Bearer ${t}` } });
+    const res = await fetch("/api/platform/reports/export?format=xlsx", { headers: { Authorization: `Bearer ${t}` } });
     if (!res.ok) return;
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `platform-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `platform-report-${new Date().toISOString().slice(0, 10)}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -86,8 +86,8 @@ export default function PlatformReportsPage() {
         title="Reports & revenue"
         description="Platform revenue, tenant usage, and export for billing or reporting."
         action={
-          <Button variant="platform" onClick={exportCsv}>
-            Export CSV
+          <Button variant="platform" onClick={exportXlsx}>
+            Export XLSX
           </Button>
         }
       />

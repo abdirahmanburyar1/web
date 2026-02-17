@@ -69,7 +69,7 @@ export default function TenantReportsPage() {
     load();
   }, [load]);
 
-  async function exportCsv() {
+  async function exportXlsx() {
     const t = getToken();
     if (!t) return;
     const params = new URLSearchParams();
@@ -81,7 +81,7 @@ export default function TenantReportsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `payments-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `payments-report-${new Date().toISOString().slice(0, 10)}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -101,10 +101,10 @@ export default function TenantReportsPage() {
     <div>
       <PageHeader
         title="Reports"
-        description="Revenue, collections, and readings. Filter by date range and export to CSV."
+        description="Revenue, collections, and readings. Filter by date range and export to Excel."
         action={
-          <Button variant="secondary" onClick={exportCsv}>
-            Export payments CSV
+          <Button variant="secondary" onClick={exportXlsx}>
+            Export payments XLSX
           </Button>
         }
       />

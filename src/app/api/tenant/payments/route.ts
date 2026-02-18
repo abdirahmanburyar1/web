@@ -18,6 +18,7 @@ export async function GET(req: Request) {
   const from = searchParams.get('from')?.trim();
   const to = searchParams.get('to')?.trim();
   const meterId = searchParams.get('meterId')?.trim();
+  const meterSearch = searchParams.get('meterSearch')?.trim();
   const collectorId = searchParams.get('collectorId')?.trim();
   const method = searchParams.get('method')?.trim();
   const status = searchParams.get('status')?.trim();
@@ -32,7 +33,16 @@ export async function GET(req: Request) {
       (where.recordedAt as { lte?: Date }).lte = toDate;
     }
   }
-  if (meterId) where.meterId = meterId;
+  if (meterSearch) {
+    where.meter = {
+      OR: [
+        { meterNumber: { contains: meterSearch, mode: 'insensitive' } },
+        { customerName: { contains: meterSearch, mode: 'insensitive' } },
+      ],
+    };
+  } else if (meterId) {
+    where.meterId = meterId;
+  }
   if (collectorId) where.collectorId = collectorId;
   if (method && ['CASH', 'MOBILE_MONEY', 'BANK_TRANSFER', 'OTHER'].includes(method)) {
     where.method = method;
@@ -52,7 +62,16 @@ export async function GET(req: Request) {
       (baseWhereNoStatus.recordedAt as { lte?: Date }).lte = toEnd;
     }
   }
-  if (meterId) baseWhereNoStatus.meterId = meterId;
+  if (meterSearch) {
+    baseWhereNoStatus.meter = {
+      OR: [
+        { meterNumber: { contains: meterSearch, mode: 'insensitive' } },
+        { customerName: { contains: meterSearch, mode: 'insensitive' } },
+      ],
+    };
+  } else if (meterId) {
+    baseWhereNoStatus.meterId = meterId;
+  }
   if (collectorId) baseWhereNoStatus.collectorId = collectorId;
   if (method && ['CASH', 'MOBILE_MONEY', 'BANK_TRANSFER', 'OTHER'].includes(method)) {
     baseWhereNoStatus.method = method;

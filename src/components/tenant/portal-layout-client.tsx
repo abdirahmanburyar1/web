@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ThemeProvider } from "@/lib/theme";
 import { TenantSidebar } from "./sidebar";
-import { AppNavbar, NavbarSignOut } from "@/components/ui/app-navbar";
+import { AppNavbar } from "@/components/ui/app-navbar";
 import { getTenantNavTitle } from "@/lib/nav-titles";
 
 function getToken() {
@@ -82,16 +82,11 @@ export function TenantPortalLayoutClient({ children }: { children: React.ReactNo
             subtitle={navTitle.subtitle}
             onMenuClick={() => setSidebarOpen(true)}
             showMenuButton={true}
-            right={
-              <NavbarSignOut
-                href="/login"
-                accent="teal"
-                onClick={() => {
-                  localStorage.removeItem("token");
-                  localStorage.removeItem("portal");
-                }}
-              />
-            }
+            user={me}
+            onSignOut={() => {
+              localStorage.removeItem("token");
+              localStorage.removeItem("portal");
+            }}
           />
           <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
         </div>

@@ -108,9 +108,8 @@ export async function POST(req: Request) {
     const paid = previousPayment.receipts.reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
     previousBalance = Math.max(0, Math.round((Number(previousPayment.amount) - paid) * 100) / 100);
   }
-  const isTransferFlow = !!existingThisMonth && previousBalance > 0;
-
-  if (existingThisMonth && !isTransferFlow) {
+  // Block duplicate: one reading per meter per month. No second reading in the same month (no transfer-flow exception).
+  if (existingThisMonth) {
     return NextResponse.json(
       {
         error: 'This meter has already been read this month. Please move on to the next meter.',
@@ -125,6 +124,8 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
+
+  const isTransferFlow = false; // No longer allow second reading in same month for "transfer"
 
   let pricePerCubic: number;
   if (meter.price) {
@@ -176,18 +177,60 @@ export async function POST(req: Request) {
   const nextNum = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
   const paymentNumber = String(nextNum).padStart(6, '0');
 
-  const reading = await prisma.meterReading.create({
-    data: {
-      meterId,
-      value,
-      unit: unit ?? 'm³',
-      pricePerCubic,
-      recordedById: user.id,
-    },
-    include: {
-      meter: { select: { id: true, meterNumber: true, customerName: true, plateNumber: true, address: true } },
-    },
-  });
+  // Re-check inside transaction to prevent race: two requests submitting at once can't both create.
+  let reading: Awaited<ReturnType<typeof prisma.meterReading.create>>;
+  try {
+    reading = await prisma.$transaction(async (tx) => {
+      const again = await tx.meterReading.findFirst({
+        where: {
+          meterId,
+          recordedAt: { gte: startOfMonthUTC, lt: startOfNextMonthUTC },
+        },
+        select: { id: true },
+      });
+      if (again) {
+        throw new Error('DUPLICATE_READING_THIS_MONTH');
+      }
+      return tx.meterReading.create({
+        data: {
+          meterId,
+          value,
+          unit: unit ?? 'm³',
+          pricePerCubic,
+          recordedById: user.id,
+        },
+        include: {
+          meter: { select: { id: true, meterNumber: true, customerName: true, plateNumber: true, address: true } },
+        },
+      });
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message === 'DUPLICATE_READING_THIS_MONTH') {
+      const existingAgain = await prisma.meterReading.findFirst({
+        where: {
+          meterId,
+          recordedAt: { gte: startOfMonthUTC, lt: startOfNextMonthUTC },
+        },
+        select: { id: true, value: true, unit: true, recordedAt: true },
+      });
+      return NextResponse.json(
+        {
+          error: 'This meter has already been read this month. Please move on to the next meter.',
+          alreadyGeneratedCurrentMonth: true,
+          existingReading: existingAgain
+            ? {
+                id: existingAgain.id,
+                value: Number(existingAgain.value),
+                unit: existingAgain.unit ?? 'm³',
+                recordedAt: existingAgain.recordedAt,
+              }
+            : undefined,
+        },
+        { status: 400 }
+      );
+    }
+    throw err;
+  }
 
   const readingDateTime = new Date(reading.recordedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
   const reference = `${readingDateTime} | $${Number(pricePerCubic).toFixed(4)}/m³ | ${usageThisPeriod} m³`;

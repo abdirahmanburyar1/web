@@ -178,7 +178,7 @@ export async function POST(req: Request) {
   const paymentNumber = String(nextNum).padStart(6, '0');
 
   // Re-check inside transaction to prevent race: two requests submitting at once can't both create.
-  let reading: Awaited<ReturnType<typeof prisma.meterReading.create>>;
+  let reading;
   try {
     reading = await prisma.$transaction(async (tx) => {
       const again = await tx.meterReading.findFirst({

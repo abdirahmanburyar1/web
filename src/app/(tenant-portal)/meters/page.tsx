@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { TableWrapper } from "@/components/ui/table-responsive";
 import { EmptyState } from "@/components/ui/empty";
+import { MeterCardsSkeleton, MetersListSkeleton } from "@/components/ui/skeleton";
 
 type Meter = {
   id: string;
@@ -35,13 +36,13 @@ const PAGE_SIZES = [10, 20, 50, 100] as const;
 
 type Summary = Record<string, number>;
 
-const METER_FILTERS: { key: "" | (typeof STATUSES)[number]; label: string; bg: string }[] = [
-  { key: "", label: "All meters", bg: "bg-violet-50 dark:bg-violet-900/20" },
-  { key: "ACTIVE", label: "Active", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
-  { key: "PENDING", label: "Pending", bg: "bg-amber-50 dark:bg-amber-900/20" },
-  { key: "SUSPENDED", label: "Suspended", bg: "bg-amber-50 dark:bg-amber-900/20" },
-  { key: "OVERDUE", label: "Overdue", bg: "bg-rose-50 dark:bg-rose-900/20" },
-  { key: "INACTIVE", label: "Inactive", bg: "bg-slate-100 dark:bg-slate-800/50" },
+const METER_FILTERS: { key: "" | (typeof STATUSES)[number]; label: string; bg: string; icon: string }[] = [
+  { key: "", label: "All meters", bg: "bg-violet-50 dark:bg-violet-900/20", icon: "◇" },
+  { key: "ACTIVE", label: "Active", bg: "bg-emerald-50 dark:bg-emerald-900/20", icon: "✓" },
+  { key: "PENDING", label: "Pending", bg: "bg-amber-50 dark:bg-amber-900/20", icon: "○" },
+  { key: "SUSPENDED", label: "Suspended", bg: "bg-amber-50 dark:bg-amber-900/20", icon: "◐" },
+  { key: "OVERDUE", label: "Overdue", bg: "bg-rose-50 dark:bg-rose-900/20", icon: "!" },
+  { key: "INACTIVE", label: "Inactive", bg: "bg-slate-100 dark:bg-slate-800/50", icon: "—" },
 ];
 
 export default function TenantMetersPage() {
@@ -126,8 +127,7 @@ export default function TenantMetersPage() {
       .catch(() => {});
   }, []);
 
-  if (loading && !data) return <PageLoading />;
-  if (error && !data) {
+  if (error && !data && !loading) {
     return (
       <div className="rounded-2xl border border-red-200 bg-red-50 p-6 dark:border-red-800 dark:bg-red-900/20">
         <p className="text-red-700 dark:text-red-300">{error}</p>
@@ -161,42 +161,50 @@ export default function TenantMetersPage() {
         </div>
       )}
 
-      {/* Filter cards */}
-      <div className="mb-4 flex flex-wrap gap-2">
-        {METER_FILTERS.map((f) => {
-          const count = f.key === "" ? summary.all : summary[f.key];
-          const active = statusFilter === f.key;
-          return (
-            <button
-              key={f.key || "all"}
-              type="button"
-              onClick={() => {
-                setStatusFilter(f.key);
-                setPage(1);
-              }}
-              className={`rounded-xl border px-4 py-2.5 text-left text-sm font-medium transition ${
-                active
-                  ? "border-teal-500 bg-teal-50 text-teal-800 dark:border-teal-400 dark:bg-teal-900/30 dark:text-teal-200"
-                  : `border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-slate-600 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-500 ${f.bg}`
-              }`}
-            >
-              <span className="block">{f.label}</span>
-              <span className={active ? "text-teal-600 dark:text-teal-300" : "text-slate-500 dark:text-slate-400"}>
-                {count != null ? count : "—"}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      {/* Filter cards — modern grid like payments */}
+      {loading && !data ? (
+        <MeterCardsSkeleton />
+      ) : data?.summary ? (
+        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {METER_FILTERS.map((f) => {
+            const count = f.key === "" ? summary.all : summary[f.key];
+            const active = statusFilter === f.key;
+            return (
+              <button
+                key={f.key || "all"}
+                type="button"
+                onClick={() => {
+                  setStatusFilter(f.key);
+                  setPage(1);
+                }}
+                className={`rounded-xl border p-4 text-left shadow-sm transition hover:opacity-90 ${f.bg} ${
+                  active ? "ring-2 ring-teal-400 border-teal-200 dark:ring-teal-500 dark:border-teal-700" : "border-slate-200/80 dark:border-slate-600"
+                }`}
+              >
+                <span className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <span aria-hidden className={active ? "text-teal-600 dark:text-teal-400" : "text-slate-500 dark:text-slate-400"}>
+                    {f.icon}
+                  </span>
+                  {f.label}
+                </span>
+                <p className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  {count != null ? count : "—"}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">meters</p>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
       {/* Single filter row */}
-      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/30">
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-slate-200/80 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900/30">
         <Input
           type="search"
           placeholder="Search meter #, customer, phone…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="min-w-[180px] max-w-[240px]"
+          className="min-w-0 flex-1 basis-52 sm:min-w-[200px] sm:max-w-[280px]"
         />
         <select
           value={zoneId}
@@ -204,7 +212,7 @@ export default function TenantMetersPage() {
             setZoneId(e.target.value);
             setPage(1);
           }}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+          className="min-w-0 flex-1 basis-36 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 sm:max-w-[160px]"
         >
           <option value="">All zones</option>
           {zones.map((z) => (
@@ -219,7 +227,7 @@ export default function TenantMetersPage() {
             setCollectorId(e.target.value);
             setPage(1);
           }}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+          className="min-w-0 flex-1 basis-36 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 sm:max-w-[160px]"
         >
           <option value="">All collectors</option>
           {collectors.map((c) => (
@@ -228,36 +236,40 @@ export default function TenantMetersPage() {
             </option>
           ))}
         </select>
-        <button
-          type="button"
-          onClick={() => {
-            setSearch("");
-            setZoneId("");
-            setCollectorId("");
-            setStatusFilter("");
-            setPage(1);
-          }}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
-        >
-          Clear
-        </button>
-        <select
-          value={limit}
-          onChange={(e) => {
-            setLimit(Number(e.target.value));
-            setPage(1);
-          }}
-          className="ml-auto rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
-        >
-          {PAGE_SIZES.map((n) => (
-            <option key={n} value={n}>
-              {n} per page
-            </option>
-          ))}
-        </select>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setSearch("");
+              setZoneId("");
+              setCollectorId("");
+              setStatusFilter("");
+              setPage(1);
+            }}
+          >
+            Clear
+          </Button>
+          <select
+            value={limit}
+            onChange={(e) => {
+              setLimit(Number(e.target.value));
+              setPage(1);
+            }}
+            className="w-[100px] shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+          >
+            {PAGE_SIZES.map((n) => (
+              <option key={n} value={n}>
+                {n} per page
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {data?.meters.length === 0 ? (
+      {loading && !data ? (
+        <MetersListSkeleton />
+      ) : data?.meters.length === 0 ? (
         <EmptyState
           title="No meters found"
           description="Add your first meter or adjust filters."
@@ -273,28 +285,28 @@ export default function TenantMetersPage() {
             <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
               <thead className="bg-slate-50 dark:bg-slate-800/50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Meter #
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Customer
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Phones
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Section
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Zone
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Price
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Status
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Collector
                   </th>
                 </tr>

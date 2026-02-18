@@ -178,7 +178,6 @@ export async function POST(req: Request) {
       meterId,
       paymentNumber,
       amount: amountDue,
-      method: 'CASH',
       collectorId: user.id,
       reference,
     },

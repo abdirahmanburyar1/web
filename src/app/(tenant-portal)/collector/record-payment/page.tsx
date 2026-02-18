@@ -18,7 +18,6 @@ export default function CollectorRecordPaymentPage() {
   const [meters, setMeters] = useState<Meter[]>([]);
   const [meterId, setMeterId] = useState(preselectedMeterId);
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState("CASH");
   const [reference, setReference] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -61,7 +60,6 @@ export default function CollectorRecordPaymentPage() {
         body: JSON.stringify({
           meterId,
           amount: Number(amount),
-          method,
           reference: reference.trim() || undefined,
         }),
       });
@@ -123,19 +121,6 @@ export default function CollectorRecordPaymentPage() {
                 placeholder="0.00"
                 required
               />
-            </div>
-            <div>
-              <Label>Method</Label>
-              <select
-                value={method}
-                onChange={(e) => setMethod(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
-              >
-                <option value="CASH">Cash</option>
-                <option value="MOBILE_MONEY">Mobile money</option>
-                <option value="BANK_TRANSFER">Bank transfer</option>
-                <option value="OTHER">Other</option>
-              </select>
             </div>
             <div>
               <Label>Reference (optional)</Label>

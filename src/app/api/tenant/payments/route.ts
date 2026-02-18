@@ -189,14 +189,14 @@ export async function POST(req: Request) {
     .filter((n) => n > 0);
   const nextNum = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
   const paymentNumber = String(nextNum).padStart(6, '0');
-  const paymentMethod = (method ?? 'CASH') as PaymentMethod;
+  const validMethod = method && ['CASH', 'MOBILE_MONEY', 'BANK_TRANSFER', 'OTHER'].includes(method) ? (method as PaymentMethod) : null;
   const payment = await prisma.payment.create({
     data: {
       tenantId,
       meterId,
       paymentNumber,
       amount,
-      method: paymentMethod,
+      ...(validMethod && { method: validMethod }),
       invoiceId: invoiceId || null,
       reference: reference?.trim() || null,
       collectorId: user.roleType === 'COLLECTOR' ? user.id : null,

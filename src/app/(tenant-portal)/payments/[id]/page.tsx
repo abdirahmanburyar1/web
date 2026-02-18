@@ -334,6 +334,7 @@ export default function PaymentDetailPage() {
                     <th className="px-4 py-2.5 text-left font-semibold text-slate-600 dark:text-slate-400">Description</th>
                     <th className="px-4 py-2.5 text-right font-semibold text-slate-600 dark:text-slate-400">Unit price</th>
                     <th className="px-4 py-2.5 text-right font-semibold text-slate-600 dark:text-slate-400">Total</th>
+                    <th className="px-4 py-2.5 text-left font-semibold text-slate-600 dark:text-slate-400">Received by</th>
                     <th className="px-4 py-2.5 text-right font-semibold text-slate-600 dark:text-slate-400 no-print">Print</th>
                   </tr>
                 </thead>
@@ -349,6 +350,7 @@ export default function PaymentDetailPage() {
                         </td>
                         <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-300">${Number(amt).toFixed(2)}</td>
                         <td className="px-4 py-3 text-right font-medium text-slate-900 dark:text-slate-100">${Number(amt).toFixed(2)}</td>
+                        <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{r.receivedBy ?? "—"}</td>
                         <td className="px-4 py-3 text-right no-print">
                           <Button type="button" size="sm" variant="secondary" onClick={() => printMiniReceipt(r, isPartial)}>
                             Print

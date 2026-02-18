@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import * as XLSX from "xlsx";
 import { PageHeader } from "@/components/ui/page-header";
-import { PageLoading } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
+import { PaymentsListSkeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { TableWrapper } from "@/components/ui/table-responsive";
 
@@ -441,7 +441,7 @@ export default function PaymentsPage() {
       </div>
 
       {loading && !data ? (
-        <PageLoading />
+        <PaymentsListSkeleton />
       ) : (
         <>
           <TableWrapper>

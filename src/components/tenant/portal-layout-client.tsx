@@ -67,33 +67,7 @@ export function TenantPortalLayoutClient({ children }: { children: React.ReactNo
 
   const navTitle = getTenantNavTitle(pathname);
 
-  // Collector: no sidebar, static navbar + gate content only
-  if (isCollector) {
-    return (
-      <ThemeProvider>
-        <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-900">
-          <AppNavbar
-            title={navTitle.title}
-            subtitle={navTitle.subtitle}
-            showMenuButton={false}
-            right={
-              <NavbarSignOut
-                href="/login"
-                accent="teal"
-                onClick={() => {
-                  localStorage.removeItem("token");
-                  localStorage.removeItem("portal");
-                }}
-              />
-            }
-          />
-          <main className="flex-1 overflow-auto">{children}</main>
-        </div>
-      </ThemeProvider>
-    );
-  }
-
-  // Tenant staff: sidebar + static navbar + main
+  // All tenant users (including collectors) see sidebar + navbar + main
   return (
     <ThemeProvider>
       <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">

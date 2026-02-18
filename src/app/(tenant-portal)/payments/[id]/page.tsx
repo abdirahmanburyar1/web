@@ -3,10 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { PageLoading } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PaymentDetailSkeleton } from "@/components/ui/skeleton";
 
 type PaymentDetail = {
   id: string;
@@ -206,7 +205,7 @@ export default function PaymentDetailPage() {
     window.print();
   }
 
-  if (loading) return <PageLoading />;
+  if (loading) return <PaymentDetailSkeleton />;
   if (error || !payment) {
     return (
       <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
@@ -234,65 +233,75 @@ export default function PaymentDetailPage() {
           th.no-print, td.no-print { display: none !important; }
         }
       `}</style>
-      <div className="no-print mb-6">
-        <PageHeader
-          title={`Payment #${payment.paymentNumber ?? payment.id.slice(0, 8)}`}
-          description={meterLabel}
-          backLink={{ href: "/payments", label: "Payments" }}
-          action={
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="platform" size="sm" onClick={printA4}>
-                Print payment (A4)
-              </Button>
-              {balance > 0 && (
-                <Button variant="secondary" size="sm" onClick={openAddReceiptModal}>
-                  Add receipt
-                </Button>
-              )}
-            </div>
-          }
-        />
+
+      {/* Page header: back link, title, actions */}
+      <div className="no-print mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <Link
+            href="/payments"
+            className="mb-2 inline-flex items-center text-sm font-medium text-slate-500 hover:text-teal-600 dark:hover:text-teal-400"
+          >
+            ← Payments
+          </Link>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">
+            Payment #{payment.paymentNumber ?? payment.id.slice(0, 8)}
+          </h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{meterLabel}</p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Button variant="primary" size="sm" onClick={printA4} className="bg-blue-600 hover:bg-blue-700 focus:ring-blue-500">
+            Print payment (A4)
+          </Button>
+          {balance > 0 && (
+            <Button variant="secondary" size="sm" onClick={openAddReceiptModal} className="border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-900/20">
+              Add receipt
+            </Button>
+          )}
+        </div>
       </div>
 
-      <div className="payment-detail-print rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-6 py-4">
-          <h1 className="text-xl font-bold text-slate-900">
+      {/* Payment details card */}
+      <div className="payment-detail-print rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/30">
+        <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-700">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
             {tenantName || "Payment"} — Payment #{payment.paymentNumber ?? "—"}
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">Recorded {new Date(payment.recordedAt).toLocaleString()}</p>
+          </h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Recorded {new Date(payment.recordedAt).toLocaleString()}
+          </p>
         </div>
         <div className="grid gap-6 p-6 sm:grid-cols-2">
-          <dl className="space-y-2">
+          <dl className="space-y-4">
             <div>
-              <dt className="text-xs font-medium uppercase text-slate-400">Meter / Customer</dt>
-              <dd className="font-medium text-slate-900">{meterLabel}</dd>
+              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Meter / Customer</dt>
+              <dd className="mt-1 font-medium text-slate-900 dark:text-slate-100">{meterLabel}</dd>
             </div>
             <div>
-              <dt className="text-xs font-medium uppercase text-slate-400">Amount</dt>
-              <dd className="text-lg font-semibold text-slate-900">${Number(payment.amount).toFixed(2)}</dd>
+              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Amount</dt>
+              <dd className="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100">${Number(payment.amount).toFixed(2)}</dd>
             </div>
             <div>
-              <dt className="text-xs font-medium uppercase text-slate-400">Paid (from receipts)</dt>
-              <dd className="text-slate-700">${paidAmount.toFixed(2)}</dd>
+              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Paid (from receipts)</dt>
+              <dd className="mt-1 text-slate-700 dark:text-slate-300">${paidAmount.toFixed(2)}</dd>
             </div>
             <div>
-              <dt className="text-xs font-medium uppercase text-slate-400">Balance</dt>
-              <dd className="font-medium text-slate-900">${balance.toFixed(2)}</dd>
+              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Balance</dt>
+              <dd className="mt-1 font-semibold text-slate-900 dark:text-slate-100">${balance.toFixed(2)}</dd>
             </div>
             <div>
-              <dt className="text-xs font-medium uppercase text-slate-400">Status</dt>
-              <dd>
+              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Status</dt>
+              <dd className="mt-1">
                 <span
                   className={
                     typeLabel === "Full"
-                      ? "rounded bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-800"
+                      ? "inline-flex rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-medium text-teal-800 dark:bg-teal-900/40 dark:text-teal-300"
                       : typeLabel === "Partial"
-                        ? "rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
+                        ? "inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
                         : typeLabel === "Transferred"
-                          ? "rounded bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800"
+                          ? "inline-flex rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-medium text-sky-800 dark:bg-sky-900/40 dark:text-sky-300"
                           : typeLabel === "Refunded"
-                            ? "rounded bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800"
-                            : "rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
+                            ? "inline-flex rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-800 dark:bg-rose-900/40 dark:text-rose-300"
+                            : "inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300"
                   }
                 >
                   {typeLabel}
@@ -300,22 +309,24 @@ export default function PaymentDetailPage() {
               </dd>
             </div>
           </dl>
-          <dl className="space-y-2">
+          <dl className="space-y-4">
             <div>
-              <dt className="text-xs font-medium uppercase text-slate-400">Collector</dt>
-              <dd className="text-slate-700">{payment.collector?.fullName ?? "—"}</dd>
+              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Collector</dt>
+              <dd className="mt-1 text-slate-700 dark:text-slate-300">{payment.collector?.fullName ?? "—"}</dd>
             </div>
             <div>
-              <dt className="text-xs font-medium uppercase text-slate-400">Reference</dt>
-              <dd className="text-slate-700">{payment.reference || "—"}</dd>
+              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Reference</dt>
+              <dd className="mt-1 text-slate-700 dark:text-slate-300">{payment.reference || "—"}</dd>
             </div>
           </dl>
         </div>
 
-        <div className="border-t border-slate-200 px-6 py-4">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">Receipts</h2>
+        <div className="border-t border-slate-200 px-6 py-4 dark:border-slate-700">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Receipts</h2>
           {payment.receipts.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 py-6 text-center text-sm text-slate-500">No receipts yet</p>
+            <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 py-8 text-center dark:border-slate-600 dark:bg-slate-800/30">
+              <p className="text-sm text-slate-500 dark:text-slate-400">No receipts yet</p>
+            </div>
           ) : (
             <div className="overflow-hidden rounded-lg border border-slate-200">
               <table className="min-w-full divide-y divide-slate-200 text-sm">

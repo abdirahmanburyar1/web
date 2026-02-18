@@ -16,7 +16,18 @@ export async function GET(
   const payment = await prisma.payment.findFirst({
     where: { id, tenantId: user.tenantId! },
     include: {
-      meter: { select: { id: true, meterNumber: true, customerName: true } },
+      meter: {
+        select: {
+          id: true,
+          meterNumber: true,
+          customerName: true,
+          section: true,
+          subSection: true,
+          address: true,
+          zoneId: true,
+          zone: { select: { name: true } },
+        },
+      },
       collector: { select: { id: true, fullName: true } },
       invoice: { select: { id: true, amount: true, balance: true, status: true } },
       receipts: { orderBy: { paidAt: 'asc' }, include: { receivedBy: { select: { fullName: true } } } },

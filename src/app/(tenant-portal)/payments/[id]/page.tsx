@@ -15,7 +15,15 @@ type PaymentDetail = {
   status?: string;
   reference: string | null;
   recordedAt: string;
-  meter?: { id: string; meterNumber: string; customerName: string } | null;
+  meter?: {
+    id: string;
+    meterNumber: string;
+    customerName: string;
+    section?: string | null;
+    subSection?: string | null;
+    address?: string | null;
+    zone?: { name: string } | null;
+  } | null;
   collector?: { id: string; fullName: string } | null;
   invoice?: { id: string; amount: unknown; balance: unknown; status: string } | null;
   receipts: Array<{
@@ -238,16 +246,16 @@ export default function PaymentDetailPage() {
         }
       `}</style>
 
-      {/* Page header: back link, title, actions */}
-      <div className="no-print mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      {/* Page header */}
+      <div className="no-print mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <Link
             href="/payments"
-            className="mb-2 inline-flex items-center text-sm font-medium text-slate-500 hover:text-teal-600 dark:hover:text-teal-400"
+            className="inline-flex items-center text-sm font-medium text-slate-500 transition hover:text-teal-600 dark:text-slate-400 dark:hover:text-teal-400"
           >
-            ← Payments
+            ← Back to payments
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">
             Payment #{payment.paymentNumber ?? payment.id.slice(0, 8)}
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{meterLabel}</p>
@@ -264,13 +272,13 @@ export default function PaymentDetailPage() {
         </div>
       </div>
 
-      {/* Invoice-style payment details */}
+      {/* Payment details card — structured and print-friendly */}
       <div className="payment-detail-print rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/30">
-        {/* Header: company left, PAYMENT # and date right */}
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-6 py-5 dark:border-slate-700">
+        {/* Header row */}
+        <div className="flex flex-wrap items-start justify-between gap-6 border-b border-slate-200 px-6 py-5 dark:border-slate-700">
           <div>
             <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">{tenantName || "Company Name"}</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Payment record</p>
+            <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Payment record</p>
           </div>
           <div className="text-right">
             <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">PAYMENT</p>
@@ -279,62 +287,85 @@ export default function PaymentDetailPage() {
           </div>
         </div>
 
-        {/* TO: customer / meter */}
-        <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-700">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">TO:</p>
+        {/* Customer & meter section */}
+        <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-700">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Customer</p>
           <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">{payment.meter?.customerName ?? "—"}</p>
-          <p className="text-sm text-slate-600 dark:text-slate-300">Meter: {payment.meter?.meterNumber ?? "—"}</p>
+          <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-300">Meter: {payment.meter?.meterNumber ?? "—"}</p>
+
+          {(payment.meter?.section ?? payment.meter?.subSection ?? payment.meter?.zone?.name ?? payment.meter?.address) && (
+            <div className="mt-4 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+              {payment.meter?.section != null && payment.meter.section !== "" && (
+                <div>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Section</p>
+                  <p className="mt-0.5 text-sm text-slate-800 dark:text-slate-200">{payment.meter.section}</p>
+                </div>
+              )}
+              {payment.meter?.subSection != null && payment.meter.subSection !== "" && (
+                <div>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Subsection</p>
+                  <p className="mt-0.5 text-sm text-slate-800 dark:text-slate-200">{payment.meter.subSection}</p>
+                </div>
+              )}
+              {payment.meter?.zone?.name != null && payment.meter.zone.name !== "" && (
+                <div>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Zone</p>
+                  <p className="mt-0.5 text-sm text-slate-800 dark:text-slate-200">{payment.meter.zone.name}</p>
+                </div>
+              )}
+              {payment.meter?.address != null && payment.meter.address !== "" && (
+                <div className="sm:col-span-2">
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Address</p>
+                  <p className="mt-0.5 text-sm text-slate-800 dark:text-slate-200">{payment.meter.address}</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Metadata table: Collector, Reference, Account(s), Status */}
+        {/* Payment metadata */}
         <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-700">
-          <table className="min-w-full text-sm">
-            <tbody>
-              <tr>
-                <th className="w-1/4 py-1 pr-4 text-left font-semibold text-slate-600 dark:text-slate-400">Collector</th>
-                <td className="py-1 text-slate-900 dark:text-slate-100">{payment.collector?.fullName ?? "—"}</td>
-                <th className="w-1/4 py-1 pr-4 text-left font-semibold text-slate-600 dark:text-slate-400">Reference</th>
-                <td className="py-1 text-slate-900 dark:text-slate-100">{payment.reference || "—"}</td>
-              </tr>
-              <tr>
-                <th className="py-1 pr-4 text-left font-semibold text-slate-600 dark:text-slate-400">Account(s)</th>
-                <td className="py-1 text-slate-900 dark:text-slate-100">
-                  {payment.receipts.length > 0
-                    ? [...new Set(payment.receipts.map((r) => r.paymentAccount).filter(Boolean))].join(", ") || "—"
-                    : "—"}
-                </td>
-                <th className="py-1 pr-4 text-left font-semibold text-slate-600 dark:text-slate-400">Status</th>
-                <td className="py-1">
-                  <span
-                    className={
-                      typeLabel === "Full"
-                        ? "inline-flex rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-800 dark:bg-teal-900/40 dark:text-teal-300"
-                        : typeLabel === "Partial"
-                          ? "inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
-                          : typeLabel === "Transferred"
-                            ? "inline-flex rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800 dark:bg-sky-900/40 dark:text-sky-300"
-                            : typeLabel === "Refunded"
-                              ? "inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800 dark:bg-rose-900/40 dark:text-rose-300"
-                              : "inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300"
-                    }
-                  >
-                    {typeLabel}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Collector</p>
+              <p className="mt-0.5 text-sm text-slate-900 dark:text-slate-100">{payment.collector?.fullName ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Reference</p>
+              <p className="mt-0.5 text-sm text-slate-900 dark:text-slate-100">{payment.reference || "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Status</p>
+              <p className="mt-0.5">
+                <span
+                  className={
+                    typeLabel === "Full"
+                      ? "inline-flex rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-medium text-teal-800 dark:bg-teal-900/40 dark:text-teal-300"
+                      : typeLabel === "Partial"
+                        ? "inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
+                        : typeLabel === "Transferred"
+                          ? "inline-flex rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-medium text-sky-800 dark:bg-sky-900/40 dark:text-sky-300"
+                          : typeLabel === "Refunded"
+                            ? "inline-flex rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-800 dark:bg-rose-900/40 dark:text-rose-300"
+                            : "inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                  }
+                >
+                  {typeLabel}
+                </span>
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Line items: receipts (Quantity, Description, Unit price, Total) */}
-        <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-700">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Receipts</h2>
+        {/* Receipts table */}
+        <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-700">
+          <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Receipts</h2>
           {payment.receipts.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-sm text-slate-500 dark:border-slate-600 dark:text-slate-400">
+            <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 py-10 text-center text-sm text-slate-500 dark:border-slate-600 dark:bg-slate-800/20 dark:text-slate-400">
               No receipts yet
             </div>
           ) : (
-            <div className="overflow-hidden rounded-lg border border-slate-200">
+            <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-600">
               <table className="min-w-full text-sm">
                 <thead className="bg-slate-50 dark:bg-slate-800/50">
                   <tr>
@@ -373,25 +404,25 @@ export default function PaymentDetailPage() {
           )}
         </div>
 
-        {/* Financial summary: Amount, Paid, Balance */}
-        <div className="flex justify-end px-6 py-4">
-          <dl className="min-w-[200px] space-y-1 text-sm">
-            <div className="flex justify-between">
+        {/* Financial summary */}
+        <div className="flex justify-end px-6 py-5">
+          <dl className="min-w-[220px] space-y-2 rounded-lg bg-slate-50 px-4 py-4 dark:bg-slate-800/30">
+            <div className="flex justify-between text-sm">
               <dt className="text-slate-600 dark:text-slate-400">Amount</dt>
               <dd className="font-medium text-slate-900 dark:text-slate-100">${Number(payment.amount).toFixed(2)}</dd>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between text-sm">
               <dt className="text-slate-600 dark:text-slate-400">Paid</dt>
               <dd className="text-slate-700 dark:text-slate-300">${paidAmount.toFixed(2)}</dd>
             </div>
-            <div className="flex justify-between border-t border-slate-200 pt-2 font-semibold dark:border-slate-700">
+            <div className="flex justify-between border-t border-slate-200 pt-2 text-sm font-semibold dark:border-slate-600">
               <dt className="text-slate-700 dark:text-slate-300">Balance due</dt>
               <dd className="text-slate-900 dark:text-slate-100">${balance.toFixed(2)}</dd>
             </div>
           </dl>
         </div>
 
-        <div className="border-t border-slate-200 px-6 py-3 text-center text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
+        <div className="rounded-b-2xl border-t border-slate-200 bg-slate-50/50 px-6 py-4 text-center text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800/20 dark:text-slate-400">
           Thank you for your business.
         </div>
       </div>

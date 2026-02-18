@@ -335,6 +335,7 @@ model Meter {
   @@unique([tenantId, plateNumber])
   @@index([tenantId])
   @@index([tenantId, status])
+  @@index([tenantId, meterNumber(sort: Asc)])
   @@index([meterNumber])
   @@index([plateNumber])
   @@index([zoneId])
@@ -355,6 +356,7 @@ model MeterReading {
 
   @@map("meter_readings")
   @@index([meterId])
+  @@index([meterId, recordedAt(sort: Desc)])
   @@index([recordedById])
 }
 

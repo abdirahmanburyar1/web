@@ -48,7 +48,14 @@ export async function GET(req: Request) {
       skip,
       take: limit,
       orderBy: { recordedAt: 'desc' },
-      include: {
+      select: {
+        id: true,
+        value: true,
+        unit: true,
+        pricePerCubic: true,
+        recordedAt: true,
+        meterId: true,
+        recordedById: true,
         meter: { select: { id: true, meterNumber: true, customerName: true, price: { select: { id: true, name: true, pricePerCubic: true } } } },
         recordedBy: { select: { id: true, fullName: true } },
       },

@@ -83,7 +83,14 @@ export async function GET(req: Request) {
       skip,
       take: limit,
       orderBy: { recordedAt: 'desc' },
-      include: {
+      select: {
+        id: true,
+        paymentNumber: true,
+        amount: true,
+        method: true,
+        status: true,
+        reference: true,
+        recordedAt: true,
         meter: {
           select: {
             id: true,

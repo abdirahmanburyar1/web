@@ -52,7 +52,16 @@ export async function GET(req: Request) {
       skip,
       take: limit,
       orderBy: { meterNumber: 'asc' },
-      include: {
+      select: {
+        id: true,
+        meterNumber: true,
+        customerName: true,
+        customerPhone: true,
+        residentPhone: true,
+        section: true,
+        subSection: true,
+        status: true,
+        zoneId: true,
         zone: { select: { id: true, name: true } },
         collector: { select: { id: true, fullName: true } },
         price: { select: { id: true, name: true, pricePerCubic: true } },

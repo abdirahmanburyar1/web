@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { PageLoading } from "@/components/ui/loading";
@@ -62,6 +62,8 @@ export default function TenantMetersPage() {
   const [collectorId, setCollectorId] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
   const [zones, setZones] = useState<Array<{ id: string; name: string }>>([]);
   const [collectors, setCollectors] = useState<Array<{ id: string; fullName: string }>>([]);
 
@@ -75,11 +77,11 @@ export default function TenantMetersPage() {
     return () => clearTimeout(t);
   }, [search]);
 
-  const load = useCallback(() => {
+  const load = useCallback((pageNum: number) => {
     const t = getToken();
     if (!t) return;
     const params = new URLSearchParams();
-    params.set("page", String(page));
+    params.set("page", String(pageNum));
     params.set("limit", String(limit));
     if (searchDebounced) params.set("search", searchDebounced);
     if (zoneId) params.set("zoneId", zoneId);
@@ -94,14 +96,47 @@ export default function TenantMetersPage() {
           setData({
             meters: d.meters ?? [],
             total: d.total ?? 0,
-            page: d.page ?? page,
+            page: d.page ?? pageNum,
             limit: d.limit ?? limit,
             summary: d.summary ?? null,
           });
       })
       .catch(() => setError("Failed to load"))
       .finally(() => setLoading(false));
-  }, [page, limit, searchDebounced, zoneId, statusFilter, collectorId]);
+  }, [limit, searchDebounced, zoneId, statusFilter, collectorId]);
+
+  const loadMore = useCallback(() => {
+    const t = getToken();
+    if (!t || !data || loadingMore || loading) return;
+    const totalPages = Math.max(1, Math.ceil(data.total / data.limit));
+    if (data.page >= totalPages) return;
+    const nextPage = data.page + 1;
+    setLoadingMore(true);
+    const params = new URLSearchParams();
+    params.set("page", String(nextPage));
+    params.set("limit", String(limit));
+    if (searchDebounced) params.set("search", searchDebounced);
+    if (zoneId) params.set("zoneId", zoneId);
+    if (statusFilter) params.set("status", statusFilter);
+    if (collectorId) params.set("collectorId", collectorId);
+    fetch(`/api/tenant/meters?${params}`, { headers: { Authorization: `Bearer ${t}` } })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.error) return;
+        setData((prev) =>
+          prev
+            ? {
+                ...prev,
+                meters: [...prev.meters, ...(d.meters ?? [])],
+                total: d.total ?? prev.total,
+                page: d.page ?? nextPage,
+                limit: d.limit ?? prev.limit,
+              }
+            : prev
+        );
+      })
+      .finally(() => setLoadingMore(false));
+  }, [data, limit, searchDebounced, zoneId, statusFilter, collectorId, loadingMore, loading]);
 
   useEffect(() => {
     if (!getToken()) {
@@ -109,8 +144,21 @@ export default function TenantMetersPage() {
       setLoading(false);
       return;
     }
-    load();
+    load(1);
   }, [load]);
+
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el || !data?.meters.length) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) loadMore();
+      },
+      { rootMargin: "200px", threshold: 0 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [data?.meters.length, data?.page, data?.total, data?.limit, loadMore]);
 
   useEffect(() => {
     const t = getToken();
@@ -140,8 +188,6 @@ export default function TenantMetersPage() {
 
   const statusVariant = (s: string) =>
     s === "ACTIVE" ? "success" : s === "OVERDUE" || s === "SUSPENDED" ? "warning" : "default";
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
-  const currentPage = data?.page ?? 1;
   const summary = data?.summary ?? {};
 
   return (
@@ -356,31 +402,17 @@ export default function TenantMetersPage() {
           </TableWrapper>
           <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800/30 dark:text-slate-400">
             <span>
-              Showing {(currentPage - 1) * (data?.limit ?? 0) + 1}–
-              {Math.min(currentPage * (data?.limit ?? 0), data?.total ?? 0)} of {data?.total ?? 0} meters
+              Showing 1–{data?.meters.length ?? 0} of {data?.total ?? 0} meters
             </span>
             <div className="flex items-center gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={currentPage <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                Previous
-              </Button>
-              <span className="px-2">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={currentPage >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              >
-                Next
-              </Button>
+              {(data?.meters.length ?? 0) < (data?.total ?? 0) && (
+                <Button variant="secondary" size="sm" disabled={loadingMore} onClick={loadMore}>
+                  {loadingMore ? "Loading…" : "Load more"}
+                </Button>
+              )}
             </div>
           </div>
+          {(data?.meters.length ?? 0) < (data?.total ?? 0) && <div ref={loadMoreRef} className="h-2" aria-hidden />}
         </div>
       )}
     </div>

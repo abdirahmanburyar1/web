@@ -130,50 +130,77 @@ export function TenantSidebar({
           border-r border-slate-200 bg-white
           dark:border-slate-700 dark:bg-slate-900
           transition-[width,transform] duration-200 ease-out
+          pt-[env(safe-area-inset-top)]
+          pl-[env(safe-area-inset-left)]
           lg:translate-x-0
           ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
-          ${collapsed ? "w-[4.5rem]" : "w-64 max-w-[85vw]"}
+          ${collapsed ? "w-[4.5rem]" : "w-64 max-w-[min(320px,85vw)]"}
         `}
       >
-        {/* User profile section */}
-        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200/80 px-3 dark:border-slate-700/80">
-          <div className="relative shrink-0">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-500 text-sm font-semibold text-white shadow-md dark:bg-teal-600">
-              {initials}
+        {/* Top: user + close (mobile) or collapse (desktop) */}
+        <div
+          className={`flex h-14 min-h-[3.5rem] shrink-0 items-center border-b border-slate-200/80 dark:border-slate-700/80 ${
+            collapsed ? "justify-center gap-1 px-1" : "justify-between gap-2 px-3"
+          }`}
+        >
+          <div className={`flex min-w-0 items-center ${collapsed ? "flex-1 justify-center" : "flex-1 gap-3"}`}>
+            <div className="relative shrink-0">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-teal-500 text-xs font-semibold text-white shadow-sm dark:bg-teal-600">
+                {initials}
+              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-900" title="Online" aria-hidden />
             </div>
-            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-900" title="Online" />
+            {!collapsed && (
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
+                  {user?.fullName ?? "User"}
+                </p>
+                <p className="truncate text-xs text-slate-500 dark:text-slate-400">{roleLabel}</p>
+              </div>
+            )}
           </div>
           {!collapsed && (
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
-                {user?.fullName ?? "User"}
-              </p>
-              <p className="truncate text-xs text-slate-500 dark:text-slate-400">{roleLabel}</p>
-            </div>
+            <>
+              {/* Mobile: close drawer (large touch target) */}
+              <button
+                type="button"
+                onClick={() => onClose?.()}
+                className="flex h-10 min-h-[2.75rem] w-10 min-w-[2.75rem] shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200 lg:hidden"
+                aria-label="Close menu"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              {/* Desktop: collapse (subtle icon button) */}
+              <div className="hidden shrink-0 lg:block">
+                <button
+                  type="button"
+                  onClick={() => setCollapsed(true)}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-teal-600 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-teal-400"
+                  aria-label="Collapse sidebar"
+                >
+                  <IconChevronLeft className="size-5" />
+                </button>
+              </div>
+            </>
           )}
-          {collapsed ? (
-            <button
-              type="button"
-              onClick={() => setCollapsed(false)}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-500 text-white transition hover:bg-teal-600 dark:bg-teal-600 dark:hover:bg-teal-500"
-              aria-label="Expand sidebar"
-            >
-              <IconChevronRight className="size-5" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setCollapsed(true)}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-500 text-white transition hover:bg-teal-600 dark:bg-teal-600 dark:hover:bg-teal-500"
-              aria-label="Collapse sidebar"
-            >
-              <IconChevronLeft className="size-5" />
-            </button>
+          {collapsed && (
+            <div className="hidden lg:block">
+              <button
+                type="button"
+                onClick={() => setCollapsed(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-teal-600 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-teal-400"
+                aria-label="Expand sidebar"
+              >
+                <IconChevronRight className="size-5" />
+              </button>
+            </div>
           )}
         </div>
 
-        {/* Main nav */}
-        <nav className="flex-1 overflow-y-auto p-3">
+        {/* Main nav: scrollable on mobile when many items */}
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden p-3 overscroll-contain">
           {!collapsed && (
             <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
               Main

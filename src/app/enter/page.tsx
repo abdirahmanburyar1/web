@@ -5,7 +5,10 @@ export default function EnterTenantPage() {
     <div className="min-h-screen bg-gradient-to-br from-teal-50 to-cyan-50 flex flex-col">
       <header className="border-b border-slate-200 bg-white/80">
         <div className="mx-auto flex h-14 max-w-6xl items-center px-4">
-          <Link href="/" className="font-semibold text-cyan-800">AquaTrack</Link>
+          <Link href="/" className="flex items-center gap-2 font-semibold text-cyan-800">
+            <img src="/assets/aquatrack.jpg" alt="AquaTrack" className="h-8 w-8 rounded-lg object-contain" />
+            AquaTrack
+          </Link>
         </div>
       </header>
       <main className="flex-1 flex items-center justify-center p-4">

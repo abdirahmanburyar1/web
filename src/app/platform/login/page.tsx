@@ -54,7 +54,8 @@ export default function PlatformLoginPage() {
       <Card className="w-full max-w-md shadow-xl shadow-slate-200/50">
         <CardContent className="p-6 sm:p-8">
           <div className="mb-6">
-            <Link href="/" className="text-lg font-semibold text-cyan-700 hover:text-cyan-800">
+            <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-cyan-700 hover:text-cyan-800">
+              <img src="/assets/aquatrack.jpg" alt="AquaTrack" className="h-9 w-9 rounded-lg object-contain" />
               AquaTrack
             </Link>
             <p className="mt-1 text-xs text-slate-500">Platform Admin</p>

@@ -36,7 +36,8 @@ export async function GET(req: Request) {
   if (meterSearch) {
     where.meter = {
       OR: [
-        { meterNumber: { contains: meterSearch, mode: 'insensitive' } },
+        { meterNumber: meterSearch },
+        { plateNumber: meterSearch },
         { customerName: { contains: meterSearch, mode: 'insensitive' } },
       ],
     };
@@ -65,7 +66,8 @@ export async function GET(req: Request) {
   if (meterSearch) {
     baseWhereNoStatus.meter = {
       OR: [
-        { meterNumber: { contains: meterSearch, mode: 'insensitive' } },
+        { meterNumber: meterSearch },
+        { plateNumber: meterSearch },
         { customerName: { contains: meterSearch, mode: 'insensitive' } },
       ],
     };

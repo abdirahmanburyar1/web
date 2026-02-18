@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "AquaTrack – Water Supplier SaaS",
   description: "Multi-tenant water supplier platform",
   metadataBase: new URL("https://aquatrack.so"),
+  icons: { icon: "/assets/aquatrack.jpg" },
   openGraph: {
     title: "AquaTrack – Water Supplier SaaS",
     description: "Multi-tenant water supplier platform",

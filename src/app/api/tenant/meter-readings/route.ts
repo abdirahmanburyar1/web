@@ -19,11 +19,12 @@ export async function GET(req: Request) {
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '25', 10)));
   const skip = (page - 1) * limit;
   const tenantId = user.tenantId!;
-  const meterWhere: { tenantId: string; id?: string; OR?: Array<{ meterNumber?: { contains: string; mode: 'insensitive' }; customerName?: { contains: string; mode: 'insensitive' } }> } = { tenantId };
+  const meterWhere: { tenantId: string; id?: string; OR?: Array<{ meterNumber?: string; plateNumber?: string; customerName?: { contains: string; mode: 'insensitive' } }> } = { tenantId };
   if (meterId) meterWhere.id = meterId;
   else if (searchMeter) {
     meterWhere.OR = [
-      { meterNumber: { contains: searchMeter, mode: 'insensitive' } },
+      { meterNumber: searchMeter },
+      { plateNumber: searchMeter },
       { customerName: { contains: searchMeter, mode: 'insensitive' } },
     ];
   }
@@ -84,14 +85,16 @@ export async function POST(req: Request) {
   });
   if (!meter) return NextResponse.json({ error: 'Meter not found' }, { status: 404 });
 
+  // Current period = current calendar month (date-only, no time). Use UTC so the check is consistent.
   const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfMonthUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+  const startOfNextMonthUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0, 0));
   const existingThisMonth = await prisma.meterReading.findFirst({
     where: {
       meterId,
-      recordedAt: { gte: startOfMonth },
+      recordedAt: { gte: startOfMonthUTC, lt: startOfNextMonthUTC },
     },
-    select: { id: true },
+    select: { id: true, value: true, unit: true, recordedAt: true },
   });
 
   // Unpaid balance from last month: last payment amount minus what was paid (receipts)
@@ -109,7 +112,16 @@ export async function POST(req: Request) {
 
   if (existingThisMonth && !isTransferFlow) {
     return NextResponse.json(
-      { error: 'This meter has already been read this month. Please move on to the next meter.' },
+      {
+        error: 'This meter has already been read this month. Please move on to the next meter.',
+        alreadyGeneratedCurrentMonth: true,
+        existingReading: {
+          id: existingThisMonth.id,
+          value: Number(existingThisMonth.value),
+          unit: existingThisMonth.unit ?? 'm³',
+          recordedAt: existingThisMonth.recordedAt,
+        },
+      },
       { status: 400 }
     );
   }
@@ -144,7 +156,7 @@ export async function POST(req: Request) {
   // When transferring: use last reading before this month so current-month usage = new value - end of last month
   const previousReading = await prisma.meterReading.findFirst({
     where: isTransferFlow
-      ? { meterId, recordedAt: { lt: startOfMonth } }
+      ? { meterId, recordedAt: { lt: startOfMonthUTC } }
       : { meterId },
     orderBy: { recordedAt: 'desc' },
     select: { value: true },

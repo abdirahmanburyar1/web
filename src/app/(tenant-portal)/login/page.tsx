@@ -79,7 +79,10 @@ export default function TenantLoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-teal-50/50 via-white to-cyan-50/30 flex flex-col items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-xl shadow-slate-200/50">
         <CardContent className="p-6 sm:p-8">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Sign in</h1>
+          <div className="mb-6 flex items-center gap-3">
+            <img src="/assets/aquatrack.jpg" alt="AquaTrack" className="h-10 w-10 rounded-lg object-contain" />
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Sign in</h1>
+          </div>
           {isPlatformDomain && (
             <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               You're on the platform domain. This form is for company users.{" "}

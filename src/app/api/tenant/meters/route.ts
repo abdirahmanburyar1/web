@@ -18,14 +18,15 @@ export async function GET(req: Request) {
   const where: Record<string, unknown> = {
     tenantId: user.tenantId!,
   };
+  // Use equality (=) for meterNumber and plateNumber so "21" does not match "21555". Use contains for name/address/phone.
   if (search) {
     where.OR = [
-      { meterNumber: { contains: search, mode: 'insensitive' } },
+      { meterNumber: search },
+      { plateNumber: search },
       { customerName: { contains: search, mode: 'insensitive' } },
       { customerPhone: { contains: search, mode: 'insensitive' } },
       { residentPhone: { contains: search, mode: 'insensitive' } },
       { address: { contains: search, mode: 'insensitive' } },
-      { plateNumber: { contains: search, mode: 'insensitive' } },
     ];
   }
   if (zoneId) where.zoneId = zoneId;
@@ -35,12 +36,12 @@ export async function GET(req: Request) {
   const baseWhere: Record<string, unknown> = { tenantId: user.tenantId! };
   if (search) {
     baseWhere.OR = [
-      { meterNumber: { contains: search, mode: 'insensitive' } },
+      { meterNumber: search },
+      { plateNumber: search },
       { customerName: { contains: search, mode: 'insensitive' } },
       { customerPhone: { contains: search, mode: 'insensitive' } },
       { residentPhone: { contains: search, mode: 'insensitive' } },
       { address: { contains: search, mode: 'insensitive' } },
-      { plateNumber: { contains: search, mode: 'insensitive' } },
     ];
   }
   if (zoneId) baseWhere.zoneId = zoneId;

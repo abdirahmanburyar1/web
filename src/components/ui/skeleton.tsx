@@ -72,6 +72,24 @@ export function PaymentDetailSkeleton() {
   );
 }
 
+/** Skeleton for payment filter/summary cards (6 cards in a row) */
+export function PaymentCardsSkeleton() {
+  return (
+    <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <div key={i} className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-4 w-4 rounded" />
+            <Skeleton className="h-4 w-20" />
+          </div>
+          <Skeleton className="mt-2 h-6 w-16" />
+          <Skeleton className="mt-1 h-3 w-14" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** Skeleton for payments list: header + table rows */
 export function PaymentsListSkeleton() {
   return (

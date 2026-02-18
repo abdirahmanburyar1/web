@@ -5,7 +5,7 @@ import Link from "next/link";
 import * as XLSX from "xlsx";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
-import { PaymentsListSkeleton } from "@/components/ui/skeleton";
+import { PaymentCardsSkeleton, PaymentsListSkeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { TableWrapper } from "@/components/ui/table-responsive";
 
@@ -144,10 +144,12 @@ export default function PaymentsPage() {
       setLoading(false);
       return;
     }
-    const today = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
     if (!from && !to) {
-      setFrom(today);
-      setTo(today);
+      setFrom(startOfMonth);
+      setTo(endOfMonth);
       return;
     }
     loadPayments();
@@ -404,7 +406,9 @@ export default function PaymentsPage() {
         }
       />
 
-      {data?.summary && (
+      {loading && !data ? (
+        <PaymentCardsSkeleton />
+      ) : data?.summary ? (
         <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {STATUS_FILTERS.map((f) => {
             const sum = f.key === "" ? data.summary!.all : data.summary![f.key];
@@ -433,12 +437,12 @@ export default function PaymentsPage() {
             );
           })}
         </div>
-      )}
+      ) : null}
 
       <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-slate-200/80 bg-white px-3 py-2">
         <Input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} className="min-w-0 flex-1 basis-28 sm:max-w-[140px]" />
         <Input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} className="min-w-0 flex-1 basis-28 sm:max-w-[140px]" />
-        <Input type="text" value={meterSearch} onChange={(e) => { setMeterSearch(e.target.value); setPage(1); }} placeholder="Meter or customer" className="min-w-0 flex-1 basis-40 sm:max-w-[180px]" />
+        <Input type="text" value={meterSearch} onChange={(e) => { setMeterSearch(e.target.value); setPage(1); }} placeholder="Meter or customer" className="min-w-0 flex-1 basis-52 sm:min-w-[220px] sm:max-w-[320px]" />
         <select value={collectorId} onChange={(e) => { setCollectorId(e.target.value); setPage(1); }} className="min-w-0 flex-1 basis-36 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 sm:max-w-[140px]">
           <option value="">All collectors</option>
           {collectors.map((c) => (

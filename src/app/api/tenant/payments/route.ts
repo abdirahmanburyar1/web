@@ -20,6 +20,7 @@ export async function GET(req: Request) {
   const meterId = searchParams.get('meterId')?.trim();
   const collectorId = searchParams.get('collectorId')?.trim();
   const method = searchParams.get('method')?.trim();
+  const status = searchParams.get('status')?.trim();
 
   const where: Record<string, unknown> = { tenantId };
   if (from || to) {
@@ -36,8 +37,14 @@ export async function GET(req: Request) {
   if (method && ['CASH', 'MOBILE_MONEY', 'BANK_TRANSFER', 'OTHER'].includes(method)) {
     where.method = method;
   }
+  const statusList = ['PENDING', 'PAID', 'PARTIALLY_PAID', 'TRANSFERRED', 'REFUNDED'] as const;
+  if (status && statusList.includes(status as (typeof statusList)[number])) {
+    where.status = status;
+  }
 
-  const [paymentsRaw, total, sumResult] = await Promise.all([
+  const baseWhereNoStatus = { tenantId, ...(from || to ? { recordedAt: { ...(from ? { gte: new Date(from) } : {}), ...(to ? { lte: (() => { const d = new Date(to); d.setHours(23, 59, 59, 999); return d; })() } : {}) } : {}), ...(meterId ? { meterId } : {}), ...(collectorId ? { collectorId } : {}), ...(method && ['CASH', 'MOBILE_MONEY', 'BANK_TRANSFER', 'OTHER'].includes(method) ? { method } : {}) };
+
+  const [paymentsRaw, total, sumResult, summaryByStatus, allAgg] = await Promise.all([
     prisma.payment.findMany({
       where,
       skip,
@@ -53,8 +60,23 @@ export async function GET(req: Request) {
     }),
     prisma.payment.count({ where }),
     prisma.payment.aggregate({ where, _sum: { amount: true } }),
+    prisma.payment.groupBy({
+      by: ['status'],
+      where: baseWhereNoStatus,
+      _count: { id: true },
+      _sum: { amount: true },
+    }),
+    prisma.payment.aggregate({ where: baseWhereNoStatus, _count: true, _sum: { amount: true } }),
   ]);
   const totalAmount = sumResult._sum.amount ?? 0;
+  const summary: Record<string, { count: number; totalAmount: number }> = { all: { count: allAgg._count, totalAmount: allAgg._sum.amount ?? 0 } };
+  summaryByStatus.forEach((row) => {
+    summary[row.status] = { count: row._count.id, totalAmount: row._sum.amount ?? 0 };
+  });
+  statusList.forEach((s) => {
+    if (!summary[s]) summary[s] = { count: 0, totalAmount: 0 };
+  });
+
   const payments = paymentsRaw.map((p) => {
     const paidAmount = p.receipts.reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
     const amount = Number(p.amount);
@@ -66,7 +88,7 @@ export async function GET(req: Request) {
       receipts: undefined,
     };
   });
-  return NextResponse.json({ payments, total, page, limit, totalAmount });
+  return NextResponse.json({ payments, total, page, limit, totalAmount, summary });
 }
 
 export async function POST(req: Request) {

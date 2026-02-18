@@ -38,6 +38,17 @@ type Receipt = {
 const PAYMENT_METHODS = ["CASH", "MOBILE_MONEY", "BANK_TRANSFER", "OTHER"] as const;
 const PAGE_SIZES = [10, 25, 50, 100] as const;
 
+type Summary = Record<string, { count: number; totalAmount: number }>;
+
+const STATUS_FILTERS: { key: "" | "PENDING" | "PAID" | "PARTIALLY_PAID" | "TRANSFERRED" | "REFUNDED"; label: string; bg: string; icon: "all" | "pending" | "full" | "partial" | "transferred" | "refunded" }[] = [
+  { key: "", label: "All payments", bg: "bg-violet-50", icon: "all" },
+  { key: "PAID", label: "Full", bg: "bg-emerald-50", icon: "full" },
+  { key: "PENDING", label: "Pending", bg: "bg-amber-50", icon: "pending" },
+  { key: "PARTIALLY_PAID", label: "Partial", bg: "bg-amber-50", icon: "partial" },
+  { key: "TRANSFERRED", label: "Transferred", bg: "bg-sky-50", icon: "transferred" },
+  { key: "REFUNDED", label: "Refunded", bg: "bg-rose-50", icon: "refunded" },
+];
+
 function paymentStatusLabel(p: Payment): string {
   const status = p.status as string | undefined;
   if (status === "PAID") return "Full";
@@ -53,15 +64,18 @@ function paymentStatusLabel(p: Payment): string {
 }
 
 export default function PaymentsPage() {
-  const [data, setData] = useState<{ payments: Payment[]; total: number; page: number; limit: number; totalAmount?: number } | null>(null);
+  const [data, setData] = useState<{ payments: Payment[]; total: number; page: number; limit: number; totalAmount?: number; summary?: Summary } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [meterId, setMeterId] = useState("");
   const [collectorId, setCollectorId] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"" | "PENDING" | "PAID" | "PARTIALLY_PAID" | "TRANSFERRED" | "REFUNDED">("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [openRowId, setOpenRowId] = useState<string | null>(null);
   const [meters, setMeters] = useState<Array<{ id: string; meterNumber: string; customerName: string }>>([]);
   const [collectors, setCollectors] = useState<Array<{ id: string; fullName: string }>>([]);
   const [tenantName, setTenantName] = useState("");
@@ -105,16 +119,24 @@ export default function PaymentsPage() {
     if (to) params.set("to", to);
     if (meterId) params.set("meterId", meterId);
     if (collectorId) params.set("collectorId", collectorId);
+    if (statusFilter) params.set("status", statusFilter);
     setLoading(true);
     fetch(`/api/tenant/payments?${params}`, { headers: { Authorization: `Bearer ${t}` } })
       .then((r) => r.json())
       .then((d) => {
         if (d.error) setError(d.error);
-        else setData({ payments: d.payments ?? [], total: d.total ?? 0, page: d.page ?? page, limit: d.limit ?? limit, totalAmount: d.totalAmount ?? 0 });
+        else setData({
+          payments: d.payments ?? [],
+          total: d.total ?? 0,
+          page: d.page ?? page,
+          limit: d.limit ?? limit,
+          totalAmount: d.totalAmount ?? 0,
+          summary: d.summary ?? {},
+        });
       })
       .catch(() => setError("Failed to load"))
       .finally(() => setLoading(false));
-  }, [page, limit, from, to, meterId, collectorId]);
+  }, [page, limit, from, to, meterId, collectorId, statusFilter]);
 
   useEffect(() => {
     if (!getToken()) {
@@ -191,6 +213,7 @@ export default function PaymentsPage() {
     if (to) params.set("to", to);
     if (meterId) params.set("meterId", meterId);
     if (collectorId) params.set("collectorId", collectorId);
+    if (statusFilter) params.set("status", statusFilter);
     fetch(`/api/tenant/payments?${params}`, { headers: { Authorization: `Bearer ${t}` } })
       .then((r) => r.json())
       .then((d) => {
@@ -362,83 +385,81 @@ export default function PaymentsPage() {
     <div>
       <PageHeader
         title="Payments"
-        description="View and record payments, print receipts, and export data. Summary reflects current filters."
+        description="View and record payments, print receipts, and export data."
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={() => setRecordModalOpen(true)}>
-              Record payment
-            </Button>
             <Button variant="ghost" size="sm" onClick={handleExport} disabled={exporting || !data}>
-              {exporting ? "Exporting…" : "Export XLSX"}
+              {exporting ? "Exporting…" : "Export"}
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => setRecordModalOpen(true)}>
+              New payment
             </Button>
           </div>
         }
       />
 
-      {data && (
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Total collected (filtered)</p>
-            <p className="mt-1 text-2xl font-semibold text-slate-900">${Number(data.totalAmount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Payments (filtered)</p>
-            <p className="mt-1 text-2xl font-semibold text-slate-900">{data.total.toLocaleString()}</p>
-          </div>
+      {data?.summary && (
+        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {STATUS_FILTERS.map((f) => {
+            const sum = f.key === "" ? data.summary!.all : data.summary![f.key];
+            const count = sum?.count ?? 0;
+            const totalAmount = sum?.totalAmount ?? 0;
+            const active = statusFilter === f.key;
+            return (
+              <button
+                key={f.key || "all"}
+                type="button"
+                onClick={() => { setStatusFilter(f.key); setPage(1); }}
+                className={`rounded-xl border p-4 text-left shadow-sm transition hover:opacity-90 ${f.bg} ${active ? "ring-2 ring-violet-400 border-violet-200" : "border-slate-200/80"}`}
+              >
+                <span className="flex items-center gap-2">
+                  {f.icon === "all" && <span className="text-violet-600" aria-hidden>◇</span>}
+                  {f.icon === "full" && <span className="text-emerald-600" aria-hidden>✓</span>}
+                  {f.icon === "pending" && <span className="text-amber-600" aria-hidden>○</span>}
+                  {f.icon === "partial" && <span className="text-amber-600" aria-hidden>◐</span>}
+                  {f.icon === "transferred" && <span className="text-sky-600" aria-hidden>→</span>}
+                  {f.icon === "refunded" && <span className="text-rose-600" aria-hidden>✕</span>}
+                  <span className="text-sm font-medium text-slate-700">{f.label}</span>
+                </span>
+                <p className="mt-1 text-lg font-semibold text-slate-900">${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className="text-xs text-slate-500">{count} records</p>
+              </button>
+            );
+          })}
         </div>
       )}
 
-      <div className="mb-6 flex flex-wrap items-end gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm">
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-500">From date</label>
-          <Input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} className="min-w-[140px]" />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-500">To date</label>
-          <Input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} className="min-w-[140px]" />
-        </div>
-        <div className="min-w-[180px]">
-          <label className="mb-1 block text-xs font-medium text-slate-500">Meter</label>
-          <select
-            value={meterId}
-            onChange={(e) => { setMeterId(e.target.value); setPage(1); }}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          >
-            <option value="">All meters</option>
-            {meters.map((m) => (
-              <option key={m.id} value={m.id}>{m.meterNumber} — {m.customerName}</option>
-            ))}
-          </select>
-        </div>
-        <div className="min-w-[140px]">
-          <label className="mb-1 block text-xs font-medium text-slate-500">Collector</label>
-          <select
-            value={collectorId}
-            onChange={(e) => { setCollectorId(e.target.value); setPage(1); }}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          >
-            <option value="">All</option>
-            {collectors.map((c) => (
-              <option key={c.id} value={c.id}>{c.fullName}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-500">Per page</label>
-          <select
-            value={limit}
-            onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          >
-            {PAGE_SIZES.map((n) => (
-              <option key={n} value={n}>{n}</option>
-            ))}
-          </select>
-        </div>
-        <Button variant="secondary" size="sm" onClick={() => { setFrom(""); setTo(""); setMeterId(""); setCollectorId(""); setPage(1); }}>
-          Clear filters
-        </Button>
+      <div className="mb-4 flex flex-wrap items-end gap-3">
+        <Input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} className="min-w-[130px]" placeholder="From" />
+        <Input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} className="min-w-[130px]" placeholder="To" />
+        <select value={meterId} onChange={(e) => { setMeterId(e.target.value); setPage(1); }} className="min-w-[160px] rounded-lg border border-slate-300 px-3 py-2 text-sm">
+          <option value="">All meters</option>
+          {meters.map((m) => (
+            <option key={m.id} value={m.id}>{m.meterNumber} — {m.customerName}</option>
+          ))}
+        </select>
+        <select value={collectorId} onChange={(e) => { setCollectorId(e.target.value); setPage(1); }} className="min-w-[120px] rounded-lg border border-slate-300 px-3 py-2 text-sm">
+          <option value="">All collectors</option>
+          {collectors.map((c) => (
+            <option key={c.id} value={c.id}>{c.fullName}</option>
+          ))}
+        </select>
+        <select value={limit} onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+          {PAGE_SIZES.map((n) => (
+            <option key={n} value={n}>{n} per page</option>
+          ))}
+        </select>
+        <Button variant="secondary" size="sm" onClick={() => { setFrom(""); setTo(""); setMeterId(""); setCollectorId(""); setStatusFilter(""); setPage(1); }}>Clear</Button>
       </div>
+
+      {selectedIds.size > 0 && data && (
+        <p className="mb-2 text-sm text-slate-600">
+          {selectedIds.size} selected payments | ${Array.from(selectedIds).reduce((sum, id) => {
+            const p = data.payments.find((x) => x.id === id);
+            return sum + (p ? Number(p.amount) : 0);
+          }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} total amount
+        </p>
+      )}
 
       {loading && !data ? (
         <PaymentsListSkeleton />
@@ -448,84 +469,138 @@ export default function PaymentsPage() {
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Payment #</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Meter</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Customer</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Amount</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Paid</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Balance</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Collector</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Reference</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-slate-500">Status</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-slate-500">Receipts</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Actions</th>
+                  <th className="w-10 px-3 py-3">
+                    <input
+                      type="checkbox"
+                      checked={data?.payments.length ? data.payments.every((p) => selectedIds.has(p.id)) : false}
+                      onChange={(e) => {
+                        if (!data) return;
+                        if (e.target.checked) setSelectedIds(new Set(data.payments.map((p) => p.id)));
+                        else setSelectedIds(new Set());
+                      }}
+                      className="h-4 w-4 rounded border-slate-300"
+                    />
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Code</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Status</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Description</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Time</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Date</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Customer</th>
+                  <th className="px-3 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Amount</th>
+                  <th className="w-12 px-3 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 bg-white">
-                {(data?.payments ?? []).map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50/50">
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
-                      {new Date(p.recordedAt).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-sm">
-                      <Link href={`/payments/${p.id}`} className="text-teal-600 hover:text-teal-700 hover:underline">
-                        {p.paymentNumber ?? "—"}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-sm text-slate-700">{p.meter?.meterNumber ?? "—"}</td>
-                    <td className="px-4 py-3 text-sm text-slate-900">{p.meter?.customerName ?? "—"}</td>
-                    <td className="px-4 py-3 text-right font-medium text-slate-900">${Number(p.amount).toFixed(2)}</td>
-                    <td className="px-4 py-3 text-right text-sm text-slate-700">${Number(p.paidAmount ?? 0).toFixed(2)}</td>
-                    <td className="px-4 py-3 text-right text-sm font-medium text-slate-800">${Number(p.balance ?? p.amount).toFixed(2)}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{p.collector?.fullName ?? "—"}</td>
-                    <td className="px-4 py-3 text-sm text-slate-500 max-w-[120px] truncate" title={p.reference ?? ""}>{p.reference ?? "—"}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        paymentStatusLabel(p) === "Full" ? "bg-teal-100 text-teal-800" :
-                        paymentStatusLabel(p) === "Partial" ? "bg-amber-100 text-amber-800" :
-                        paymentStatusLabel(p) === "Transferred" ? "bg-sky-100 text-sky-800" :
-                        paymentStatusLabel(p) === "Refunded" ? "bg-rose-100 text-rose-800" : "bg-slate-100 text-slate-600"
-                      }`}>
-                        {paymentStatusLabel(p)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center text-sm text-slate-600">{p._count?.receipts ?? 0}</td>
-                    <td className="px-4 py-3 text-right">
-                      <Link href={`/payments/${p.id}`} className="mr-2 text-sm font-medium text-teal-600 hover:text-teal-700 hover:underline">
-                        View
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => openReceipts(
-                          p.id,
-                          p.paymentNumber,
-                          p.meter ? `${p.meter.meterNumber} — ${p.meter.customerName}` : "Payment",
-                          Number(p.amount),
-                          p.method,
-                          p.recordedAt
+                {(data?.payments ?? []).map((p) => {
+                  const label = paymentStatusLabel(p);
+                  const showReceipts = !(p.status === "TRANSFERRED" && (p._count?.receipts ?? 0) === 0);
+                  const isOpen = openRowId === p.id;
+                  return (
+                    <tr key={p.id} className="hover:bg-slate-50/50">
+                      <td className="w-10 px-3 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(p.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedIds((s) => new Set([...s, p.id]));
+                            else setSelectedIds((s) => { const n = new Set(s); n.delete(p.id); return n; });
+                          }}
+                          className="h-4 w-4 rounded border-slate-300"
+                        />
+                      </td>
+                      <td className="px-3 py-3">
+                        <Link href={`/payments/${p.id}`} className="font-mono text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline">
+                          #{p.paymentNumber ?? p.id.slice(0, 6)}
+                        </Link>
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                          label === "Full" ? "bg-emerald-100 text-emerald-800" :
+                          label === "Partial" ? "bg-amber-100 text-amber-800" :
+                          label === "Transferred" ? "bg-sky-100 text-sky-800" :
+                          label === "Refunded" ? "bg-rose-100 text-rose-800" : "bg-slate-100 text-slate-600"
+                        }`}>
+                          {label}
+                        </span>
+                      </td>
+                      <td className="max-w-[160px] truncate px-3 py-3 text-sm text-slate-600" title={p.reference ?? ""}>
+                        {p.reference || (p.invoice ? "Payment for invoice" : "—")}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 text-sm text-slate-600">
+                        {new Date(p.recordedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 text-sm text-slate-600">
+                        {new Date(p.recordedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                      </td>
+                      <td className="px-3 py-3 text-sm text-slate-900">{p.meter?.customerName ?? "—"}</td>
+                      <td className="px-3 py-3 text-right text-sm font-medium text-slate-900">${Number(p.amount).toFixed(2)}</td>
+                      <td className="relative w-12 px-3 py-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => setOpenRowId(isOpen ? null : p.id)}
+                          className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                          aria-label="Actions"
+                        >
+                          <span className="inline-block">⋮</span>
+                        </button>
+                        {isOpen && (
+                          <>
+                            <div className="fixed inset-0 z-10" aria-hidden onClick={() => setOpenRowId(null)} />
+                            <div className="absolute right-2 top-full z-20 mt-1 min-w-[120px] rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                              <Link href={`/payments/${p.id}`} className="block px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50" onClick={() => setOpenRowId(null)}>
+                                View
+                              </Link>
+                              {showReceipts && (
+                                <button
+                                  type="button"
+                                  className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                                  onClick={() => {
+                                    setOpenRowId(null);
+                                    openReceipts(p.id, p.paymentNumber, p.meter ? `${p.meter.meterNumber} — ${p.meter.customerName}` : "Payment", Number(p.amount), p.method, p.recordedAt);
+                                  }}
+                                >
+                                  Receipts
+                                </button>
+                              )}
+                            </div>
+                          </>
                         )}
-                        className="text-sm font-medium text-slate-600 hover:text-slate-700 hover:underline"
-                      >
-                        Receipts
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </TableWrapper>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 bg-slate-50/50 px-4 py-3 text-sm text-slate-600">
             <span>
-              Showing {(currentPage - 1) * (data?.limit ?? 0) + 1}–{Math.min(currentPage * (data?.limit ?? 0), data?.total ?? 0)} of {data?.total ?? 0} payments
+              Show {(currentPage - 1) * (data?.limit ?? 0) + 1} to {Math.min(currentPage * (data?.limit ?? 0), data?.total ?? 0)} of {data?.total ?? 0} results
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <Button variant="secondary" size="sm" disabled={currentPage <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                Previous
+                ‹
               </Button>
-              <span className="px-2">Page {currentPage} of {totalPages}</span>
+              {(() => {
+                const pages: (number | "ellipsis")[] = [];
+                if (totalPages <= 5) for (let i = 1; i <= totalPages; i++) pages.push(i);
+                else {
+                  pages.push(1);
+                  const low = Math.max(2, currentPage - 1);
+                  const high = Math.min(totalPages - 1, currentPage + 1);
+                  if (low > 2) pages.push("ellipsis");
+                  for (let i = low; i <= high; i++) pages.push(i);
+                  if (high < totalPages - 1) pages.push("ellipsis");
+                  if (totalPages > 1) pages.push(totalPages);
+                }
+                return pages.map((n, i) =>
+                  n === "ellipsis" ? <span key={`e-${i}`} className="px-2 text-slate-400">…</span> : (
+                    <Button key={n} variant={currentPage === n ? "primary" : "secondary"} size="sm" onClick={() => setPage(n)}>{n}</Button>
+                  )
+                );
+              })()}
               <Button variant="secondary" size="sm" disabled={currentPage >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
-                Next
+                ›
               </Button>
             </div>
           </div>

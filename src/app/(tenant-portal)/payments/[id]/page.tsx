@@ -252,7 +252,7 @@ export default function PaymentDetailPage() {
           <Button variant="primary" size="sm" onClick={printA4} className="bg-blue-600 hover:bg-blue-700 focus:ring-blue-500">
             Print payment (A4)
           </Button>
-          {balance > 0 && (
+          {balance > 0 && payment.status !== "TRANSFERRED" && payment.status !== "REFUNDED" && (
             <Button variant="secondary" size="sm" onClick={openAddReceiptModal} className="border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-900/20">
               Add receipt
             </Button>
@@ -260,100 +260,98 @@ export default function PaymentDetailPage() {
         </div>
       </div>
 
-      {/* Payment details card */}
+      {/* Invoice-style payment details */}
       <div className="payment-detail-print rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/30">
-        <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-700">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-            {tenantName || "Payment"} — Payment #{payment.paymentNumber ?? "—"}
-          </h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Recorded {new Date(payment.recordedAt).toLocaleString()}
-          </p>
-        </div>
-        <div className="grid gap-6 p-6 sm:grid-cols-2">
-          <dl className="space-y-4">
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Meter / Customer</dt>
-              <dd className="mt-1 font-medium text-slate-900 dark:text-slate-100">{meterLabel}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Amount</dt>
-              <dd className="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100">${Number(payment.amount).toFixed(2)}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Paid (from receipts)</dt>
-              <dd className="mt-1 text-slate-700 dark:text-slate-300">${paidAmount.toFixed(2)}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Balance</dt>
-              <dd className="mt-1 font-semibold text-slate-900 dark:text-slate-100">${balance.toFixed(2)}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Status</dt>
-              <dd className="mt-1">
-                <span
-                  className={
-                    typeLabel === "Full"
-                      ? "inline-flex rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-medium text-teal-800 dark:bg-teal-900/40 dark:text-teal-300"
-                      : typeLabel === "Partial"
-                        ? "inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
-                        : typeLabel === "Transferred"
-                          ? "inline-flex rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-medium text-sky-800 dark:bg-sky-900/40 dark:text-sky-300"
-                          : typeLabel === "Refunded"
-                            ? "inline-flex rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-800 dark:bg-rose-900/40 dark:text-rose-300"
-                            : "inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300"
-                  }
-                >
-                  {typeLabel}
-                </span>
-              </dd>
-            </div>
-          </dl>
-          <dl className="space-y-4">
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Collector</dt>
-              <dd className="mt-1 text-slate-700 dark:text-slate-300">{payment.collector?.fullName ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Reference</dt>
-              <dd className="mt-1 text-slate-700 dark:text-slate-300">{payment.reference || "—"}</dd>
-            </div>
-          </dl>
+        {/* Header: company left, PAYMENT # and date right */}
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-6 py-5 dark:border-slate-700">
+          <div>
+            <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">{tenantName || "Company Name"}</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Payment record</p>
+          </div>
+          <div className="text-right">
+            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">PAYMENT</p>
+            <p className="mt-1 text-sm font-medium text-slate-700 dark:text-slate-300">#{payment.paymentNumber ?? "—"}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">DATE: {new Date(payment.recordedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</p>
+          </div>
         </div>
 
-        <div className="border-t border-slate-200 px-6 py-4 dark:border-slate-700">
+        {/* TO: customer / meter */}
+        <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-700">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">TO:</p>
+          <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">{payment.meter?.customerName ?? "—"}</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300">Meter: {payment.meter?.meterNumber ?? "—"}</p>
+        </div>
+
+        {/* Metadata table: Collector, Reference, Method (Terms) */}
+        <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-700">
+          <table className="min-w-full text-sm">
+            <tbody>
+              <tr>
+                <th className="w-1/4 py-1 pr-4 text-left font-semibold text-slate-600 dark:text-slate-400">Collector</th>
+                <td className="py-1 text-slate-900 dark:text-slate-100">{payment.collector?.fullName ?? "—"}</td>
+                <th className="w-1/4 py-1 pr-4 text-left font-semibold text-slate-600 dark:text-slate-400">Reference</th>
+                <td className="py-1 text-slate-900 dark:text-slate-100">{payment.reference || "—"}</td>
+              </tr>
+              <tr>
+                <th className="py-1 pr-4 text-left font-semibold text-slate-600 dark:text-slate-400">Method</th>
+                <td className="py-1 text-slate-900 dark:text-slate-100">{METHOD_SOMALI[payment.method] ?? payment.method}</td>
+                <th className="py-1 pr-4 text-left font-semibold text-slate-600 dark:text-slate-400">Status</th>
+                <td className="py-1">
+                  <span
+                    className={
+                      typeLabel === "Full"
+                        ? "inline-flex rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-800 dark:bg-teal-900/40 dark:text-teal-300"
+                        : typeLabel === "Partial"
+                          ? "inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
+                          : typeLabel === "Transferred"
+                            ? "inline-flex rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800 dark:bg-sky-900/40 dark:text-sky-300"
+                            : typeLabel === "Refunded"
+                              ? "inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800 dark:bg-rose-900/40 dark:text-rose-300"
+                              : "inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                    }
+                  >
+                    {typeLabel}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Line items: receipts (Quantity, Description, Unit price, Total) */}
+        <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-700">
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Receipts</h2>
           {payment.receipts.length === 0 ? (
-            <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 py-8 text-center dark:border-slate-600 dark:bg-slate-800/30">
-              <p className="text-sm text-slate-500 dark:text-slate-400">No receipts yet</p>
+            <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-sm text-slate-500 dark:border-slate-600 dark:text-slate-400">
+              No receipts yet
             </div>
           ) : (
             <div className="overflow-hidden rounded-lg border border-slate-200">
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50">
+              <table className="min-w-full text-sm">
+                <thead className="bg-slate-50 dark:bg-slate-800/50">
                   <tr>
-                    <th className="px-4 py-2.5 text-left font-medium text-slate-600">Receipt #</th>
-                    <th className="px-4 py-2.5 text-left font-medium text-slate-600">Amount</th>
-                    <th className="px-4 py-2.5 text-left font-medium text-slate-600">Account</th>
-                    <th className="px-4 py-2.5 text-left font-medium text-slate-600">Received by</th>
-                    <th className="px-4 py-2.5 text-left font-medium text-slate-600">Issued at</th>
-                    <th className="px-4 py-2.5 text-right font-medium text-slate-600 no-print">Print (mini)</th>
+                    <th className="px-4 py-2.5 text-left font-semibold text-slate-600 dark:text-slate-400">Quantity</th>
+                    <th className="px-4 py-2.5 text-left font-semibold text-slate-600 dark:text-slate-400">Description</th>
+                    <th className="px-4 py-2.5 text-right font-semibold text-slate-600 dark:text-slate-400">Unit price</th>
+                    <th className="px-4 py-2.5 text-right font-semibold text-slate-600 dark:text-slate-400">Total</th>
+                    <th className="px-4 py-2.5 text-right font-semibold text-slate-600 dark:text-slate-400 no-print">Print</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {payment.receipts.map((r) => {
+                <tbody className="divide-y divide-slate-200 bg-white dark:divide-slate-700 dark:bg-slate-900/20">
+                  {payment.receipts.map((r, idx) => {
                     const amt = r.amount ?? payment.amount;
                     const isPartial = amt < payment.amount;
                     return (
                       <tr key={r.id}>
-                        <td className="px-4 py-3 font-mono text-slate-900">{r.receiptNumber || "—"}</td>
-                        <td className="px-4 py-3 text-slate-700">${Number(amt).toFixed(2)}</td>
-                        <td className="px-4 py-3 text-slate-600">{r.paymentAccount ?? "—"}</td>
-                        <td className="px-4 py-3 text-slate-600">{r.receivedBy ?? "—"}</td>
-                        <td className="px-4 py-3 text-slate-600">{new Date(r.paidAt).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{idx + 1}</td>
+                        <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                          {r.paymentAccount ? `Receipt ${r.receiptNumber ?? ""} — ${r.paymentAccount}`.trim() : `Receipt ${r.receiptNumber ?? "—"}`}
+                        </td>
+                        <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-300">${Number(amt).toFixed(2)}</td>
+                        <td className="px-4 py-3 text-right font-medium text-slate-900 dark:text-slate-100">${Number(amt).toFixed(2)}</td>
                         <td className="px-4 py-3 text-right no-print">
                           <Button type="button" size="sm" variant="secondary" onClick={() => printMiniReceipt(r, isPartial)}>
-                            Print (mini)
+                            Print
                           </Button>
                         </td>
                       </tr>
@@ -363,6 +361,28 @@ export default function PaymentDetailPage() {
               </table>
             </div>
           )}
+        </div>
+
+        {/* Financial summary: Amount, Paid, Balance */}
+        <div className="flex justify-end px-6 py-4">
+          <dl className="min-w-[200px] space-y-1 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-slate-600 dark:text-slate-400">Amount</dt>
+              <dd className="font-medium text-slate-900 dark:text-slate-100">${Number(payment.amount).toFixed(2)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-slate-600 dark:text-slate-400">Paid</dt>
+              <dd className="text-slate-700 dark:text-slate-300">${paidAmount.toFixed(2)}</dd>
+            </div>
+            <div className="flex justify-between border-t border-slate-200 pt-2 font-semibold dark:border-slate-700">
+              <dt className="text-slate-700 dark:text-slate-300">Balance due</dt>
+              <dd className="text-slate-900 dark:text-slate-100">${balance.toFixed(2)}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="border-t border-slate-200 px-6 py-3 text-center text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          Thank you for your business.
         </div>
       </div>
 

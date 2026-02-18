@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 const MAIN_HOST = "aquatrack.so";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const host = request.headers.get("host") ?? "";
   const hostname = host.split(":")[0];
   const url = request.nextUrl.clone();

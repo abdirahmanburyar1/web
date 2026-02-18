@@ -435,11 +435,11 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      <div className="mb-4 flex flex-nowrap items-center gap-2 overflow-x-auto rounded-lg border border-slate-200/80 bg-white px-3 py-2">
-        <Input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} className="w-[140px] shrink-0" />
-        <Input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} className="w-[140px] shrink-0" />
-        <Input type="text" value={meterSearch} onChange={(e) => { setMeterSearch(e.target.value); setPage(1); }} placeholder="Meter or customer name" className="min-w-[160px] max-w-[200px] shrink-0" />
-        <select value={collectorId} onChange={(e) => { setCollectorId(e.target.value); setPage(1); }} className="w-[130px] shrink-0 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-slate-200/80 bg-white px-3 py-2">
+        <Input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} className="min-w-0 flex-1 basis-28 sm:max-w-[140px]" />
+        <Input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} className="min-w-0 flex-1 basis-28 sm:max-w-[140px]" />
+        <Input type="text" value={meterSearch} onChange={(e) => { setMeterSearch(e.target.value); setPage(1); }} placeholder="Meter or customer" className="min-w-0 flex-1 basis-40 sm:max-w-[180px]" />
+        <select value={collectorId} onChange={(e) => { setCollectorId(e.target.value); setPage(1); }} className="min-w-0 flex-1 basis-36 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 sm:max-w-[140px]">
           <option value="">All collectors</option>
           {collectors.map((c) => (
             <option key={c.id} value={c.id}>{c.fullName}</option>
@@ -447,7 +447,7 @@ export default function PaymentsPage() {
         </select>
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <Button variant="secondary" size="sm" onClick={() => { setFrom(""); setTo(""); setMeterSearch(""); setCollectorId(""); setStatusFilter(""); setPage(1); }}>Clear</Button>
-          <select value={limit} onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }} className="w-[110px] rounded-lg border border-slate-300 px-3 py-2 text-sm">
+          <select value={limit} onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }} className="w-[100px] shrink-0 rounded-lg border border-slate-300 px-3 py-2 text-sm">
             {PAGE_SIZES.map((n) => (
               <option key={n} value={n}>{n} per page</option>
             ))}

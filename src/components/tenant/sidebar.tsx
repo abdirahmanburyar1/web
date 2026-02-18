@@ -135,10 +135,10 @@ export function TenantSidebar({
       <aside
         className={`
           fixed inset-y-0 left-0 z-50 flex shrink-0 flex-col
-          border-r border-slate-200/80 bg-white shadow-lg
-          dark:border-slate-700/80 dark:bg-slate-900
+          border-r border-slate-200 bg-white
+          dark:border-slate-700 dark:bg-slate-900
           transition-[width] duration-200 ease-out
-          lg:static lg:z-0 lg:shadow-none
+          lg:static lg:z-0 lg:border-r lg:shadow-none
           ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
           ${collapsed ? "w-[4.5rem]" : "w-64 max-w-[85vw]"}
         `}

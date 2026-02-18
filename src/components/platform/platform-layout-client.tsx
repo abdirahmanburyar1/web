@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import Link from "next/link";
 import { ThemeProvider } from "@/lib/theme";
 import { PlatformSidebar } from "./sidebar";
+import { AppNavbar, NavbarSignOut } from "@/components/ui/app-navbar";
+import { getPlatformNavTitle } from "@/lib/nav-titles";
 
 function getToken() {
   if (typeof window === "undefined") return null;
@@ -46,7 +47,7 @@ export function PlatformLayoutClient({ children }: { children: React.ReactNode }
 
   if (!mounted) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-900">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-cyan-600" />
       </div>
     );
@@ -55,40 +56,35 @@ export function PlatformLayoutClient({ children }: { children: React.ReactNode }
   if (!getToken()) return null;
   if (!sessionChecked && !isLogin) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-900">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-cyan-600" />
       </div>
     );
   }
 
+  const navTitle = getPlatformNavTitle(pathname);
+
   return (
     <ThemeProvider>
       <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">
         <PlatformSidebar mobileOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className="flex flex-1 flex-col min-w-0">
-          <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 sm:px-6">
-            <button
-              type="button"
-              onClick={() => setSidebarOpen(true)}
-              className="flex items-center justify-center rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 lg:hidden"
-              aria-label="Open menu"
-            >
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <span className="text-sm font-medium text-slate-500 dark:text-slate-400 lg:ml-0">Platform Admin</span>
-            <Link
-              href="/platform/login"
-              onClick={() => {
-                localStorage.removeItem("token");
-                localStorage.removeItem("portal");
-              }}
-              className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-cyan-700 dark:text-slate-300 dark:hover:bg-slate-700"
-            >
-              Sign out
-            </Link>
-          </header>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <AppNavbar
+            title={navTitle.title}
+            subtitle={navTitle.subtitle}
+            onMenuClick={() => setSidebarOpen(true)}
+            showMenuButton={true}
+            right={
+              <NavbarSignOut
+                href="/platform/login"
+                accent="cyan"
+                onClick={() => {
+                  localStorage.removeItem("token");
+                  localStorage.removeItem("portal");
+                }}
+              />
+            }
+          />
           <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
         </div>
       </div>

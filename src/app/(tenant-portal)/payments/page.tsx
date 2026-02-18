@@ -14,6 +14,7 @@ type Payment = {
   paymentNumber: string | null;
   amount: number | string;
   method: string;
+  status?: string; // PENDING | PAID | PARTIALLY_PAID | TRANSFERRED | REFUNDED
   reference: string | null;
   recordedAt: string;
   paidAmount?: number;
@@ -27,21 +28,28 @@ type Payment = {
 type Receipt = {
   id: string;
   receiptNumber: string | null;
-  amountReceived: number | null;
-  paymentMethod: string | null;
-  account: string | null;
+  amount: number;
+  paymentAccount: string | null;
   receivedBy: string | null;
-  issuedAt: string;
+  paidAt: string;
   createdAt?: string;
 };
 
 const PAYMENT_METHODS = ["CASH", "MOBILE_MONEY", "BANK_TRANSFER", "OTHER"] as const;
 const PAGE_SIZES = [10, 25, 50, 100] as const;
 
-function paymentType(p: Payment): "Full" | "Partial" | "—" {
-  if (!p.invoice) return "—";
-  const balance = Number(p.invoice.balance);
-  return balance <= 0 ? "Full" : "Partial";
+function paymentStatusLabel(p: Payment): string {
+  const status = p.status as string | undefined;
+  if (status === "PAID") return "Full";
+  if (status === "PARTIALLY_PAID") return "Partial";
+  if (status === "TRANSFERRED") return "Transferred";
+  if (status === "REFUNDED") return "Refunded";
+  if (status === "PENDING") return "Pending";
+  if (p.invoice) {
+    const balance = Number(p.invoice.balance);
+    return balance <= 0 ? "Full" : "Partial";
+  }
+  return "—";
 }
 
 export default function PaymentsPage() {
@@ -199,7 +207,7 @@ export default function PaymentsPage() {
           Number(p.balance ?? p.amount).toFixed(2),
           p.collector?.fullName ?? "",
           p.reference ?? "",
-          paymentType(p),
+          paymentStatusLabel(p),
         ]);
         const data = [headers, ...rows];
         const wb = XLSX.utils.book_new();
@@ -256,11 +264,11 @@ export default function PaymentsPage() {
     fetch(`/api/tenant/payments/${receiptsModal.paymentId}/receipts`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-      body: JSON.stringify({ amountReceived: amount, account: addAccount || undefined }),
+      body: JSON.stringify({ amount, amountReceived: amount, account: addAccount || undefined }),
     })
       .then((r) => r.json())
       .then((receipt) => {
-        if (receipt.id) setReceipts((prev) => [{ ...receipt, account: receipt.account ?? null, issuedAt: receipt.issuedAt ?? new Date().toISOString() }, ...prev]);
+        if (receipt.id) setReceipts((prev) => [{ ...receipt, paymentAccount: receipt.paymentAccount ?? null, paidAt: receipt.paidAt ?? new Date().toISOString() }, ...prev]);
         setAddAmountReceived(String(receiptsModal.paymentAmount));
         setAddAccount(moneyAccounts[0]?.name ?? "");
         setAddReceiptModalOpen(false);
@@ -277,15 +285,14 @@ export default function PaymentsPage() {
 
   function printReceipt(receipt: Receipt, isPartial: boolean) {
     if (!receiptsModal) return;
-    const amount = receipt.amountReceived ?? receiptsModal.paymentAmount;
-    const methodKey = (receipt.paymentMethod ?? receiptsModal.paymentMethod) as string;
+    const amount = receipt.amount ?? receiptsModal.paymentAmount;
     const methodSomali: Record<string, string> = {
       CASH: "Lacag cad",
       MOBILE_MONEY: "Lacag mobil",
       BANK_TRANSFER: "Wareejinta bangiga",
       OTHER: "Kale",
     };
-    const method = receipt.account ?? methodSomali[methodKey] ?? methodKey.replace(/_/g, " ");
+    const method = receipt.paymentAccount ?? "—";
     // Somali labels for paper receipt (warqad lacag)
     const labels = {
       company: tenantName || "Warqad Lacag",
@@ -316,7 +323,7 @@ export default function PaymentsPage() {
         <div style="text-align: center; font-weight: bold; margin-bottom: 12px; font-size: 14px;">${labels.company}</div>
         <div style="border-bottom: 1px solid #333; margin-bottom: 8px;"></div>
         <div>${labels.receiptNo}: ${receipt.receiptNumber || "—"}</div>
-        <div>${labels.date}: ${new Date(receipt.issuedAt).toLocaleString()}</div>
+        <div>${labels.date}: ${new Date(receipt.paidAt).toLocaleString()}</div>
         <div>${labels.paymentNo}: ${receiptsModal.paymentNumber ?? "—"}</div>
         <div>${labels.customer}: ${receiptsModal.meterLabel}</div>
         <div style="margin: 8px 0;">${labels.amount}: $${Number(amount).toFixed(2)}</div>
@@ -450,7 +457,7 @@ export default function PaymentsPage() {
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Balance</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Collector</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Reference</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-slate-500">Type</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-slate-500">Status</th>
                   <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-slate-500">Receipts</th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Actions</th>
                 </tr>
@@ -475,10 +482,12 @@ export default function PaymentsPage() {
                     <td className="px-4 py-3 text-sm text-slate-500 max-w-[120px] truncate" title={p.reference ?? ""}>{p.reference ?? "—"}</td>
                     <td className="px-4 py-3 text-center">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        paymentType(p) === "Full" ? "bg-teal-100 text-teal-800" :
-                        paymentType(p) === "Partial" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"
+                        paymentStatusLabel(p) === "Full" ? "bg-teal-100 text-teal-800" :
+                        paymentStatusLabel(p) === "Partial" ? "bg-amber-100 text-amber-800" :
+                        paymentStatusLabel(p) === "Transferred" ? "bg-sky-100 text-sky-800" :
+                        paymentStatusLabel(p) === "Refunded" ? "bg-rose-100 text-rose-800" : "bg-slate-100 text-slate-600"
                       }`}>
-                        {paymentType(p)}
+                        {paymentStatusLabel(p)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center text-sm text-slate-600">{p._count?.receipts ?? 0}</td>
@@ -534,7 +543,7 @@ export default function PaymentsPage() {
             </div>
             <div className="max-h-[60vh] overflow-y-auto p-4">
               {(() => {
-                const paid = receipts.reduce((sum, r) => sum + Number(r.amountReceived ?? 0), 0);
+                const paid = receipts.reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
                 const remainingBalance = Math.round((receiptsModal.paymentAmount - paid) * 100) / 100;
                 return remainingBalance > 0 ? (
                   <div className="mb-4">
@@ -563,15 +572,15 @@ export default function PaymentsPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-200 bg-white">
                       {receipts.map((r) => {
-                        const amt = r.amountReceived ?? receiptsModal.paymentAmount;
+                        const amt = r.amount ?? receiptsModal.paymentAmount;
                         const isPartial = amt < receiptsModal.paymentAmount;
                         return (
                           <tr key={r.id}>
                             <td className="px-3 py-2 font-mono text-slate-900">{r.receiptNumber || "—"}</td>
                             <td className="px-3 py-2 text-slate-700">${Number(amt).toFixed(2)}</td>
-                            <td className="px-3 py-2 text-slate-600">{r.account ?? (r.paymentMethod ? (r.paymentMethod as string).replace(/_/g, " ") : "—")}</td>
+                            <td className="px-3 py-2 text-slate-600">{r.paymentAccount ?? "—"}</td>
                             <td className="px-3 py-2 text-slate-600">{r.receivedBy ?? "—"}</td>
-                            <td className="px-3 py-2 text-slate-600">{new Date(r.issuedAt).toLocaleString()}</td>
+                            <td className="px-3 py-2 text-slate-600">{new Date(r.paidAt).toLocaleString()}</td>
                             <td className="px-3 py-2 text-right">
                               <Button type="button" size="sm" variant="secondary" onClick={() => printReceipt(r, isPartial)}>
                                 Print

@@ -48,7 +48,7 @@ export async function GET(req: Request) {
         collector: { select: { id: true, fullName: true } },
         invoice: { select: { id: true, amount: true, balance: true, status: true } },
         _count: { select: { receipts: true } },
-        receipts: { select: { amountReceived: true } },
+        receipts: { select: { amount: true } },
       },
     }),
     prisma.payment.count({ where }),
@@ -56,7 +56,7 @@ export async function GET(req: Request) {
   ]);
   const totalAmount = sumResult._sum.amount ?? 0;
   const payments = paymentsRaw.map((p) => {
-    const paidAmount = p.receipts.reduce((sum, r) => sum + Number(r.amountReceived ?? 0), 0);
+    const paidAmount = p.receipts.reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
     const amount = Number(p.amount);
     return {
       ...p,

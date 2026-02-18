@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import type { PaymentMethod } from '@prisma/client';
 import { getTenantUserOrNull } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { PERMISSIONS, userHasPermission } from '@/lib/permissions';
@@ -22,11 +21,10 @@ export async function GET(
   const receipts = payment.receipts.map((r) => ({
     id: r.id,
     receiptNumber: r.receiptNumber,
-    amountReceived: r.amountReceived != null ? Number(r.amountReceived) : null,
-    paymentMethod: r.paymentMethod,
-    account: r.account ?? null,
+    amount: Number(r.amount),
+    paymentAccount: r.paymentAccount ?? null,
     receivedBy: r.receivedBy?.fullName ?? null,
-    issuedAt: r.issuedAt,
+    paidAt: r.paidAt,
     createdAt: r.createdAt,
   }));
   return NextResponse.json(receipts);
@@ -47,20 +45,17 @@ export async function POST(
   });
   if (!payment) return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
   const body = await req.json().catch(() => ({}));
-  const { amountReceived, paymentMethod, account } = body as {
+  const { amountReceived, amount: amountBody, account } = body as {
     amountReceived?: number;
-    paymentMethod?: string;
+    amount?: number;
     account?: string | null;
   };
   const amount =
-    amountReceived != null && Number.isFinite(amountReceived)
-      ? amountReceived
+    (amountBody != null && Number.isFinite(amountBody)) ||
+    (amountReceived != null && Number.isFinite(amountReceived))
+      ? (Number.isFinite(amountBody) ? amountBody! : amountReceived!)
       : Number(payment.amount);
-  const method: PaymentMethod =
-    paymentMethod && ['CASH', 'MOBILE_MONEY', 'BANK_TRANSFER', 'OTHER'].includes(paymentMethod)
-      ? (paymentMethod as PaymentMethod)
-      : payment.method;
-  const accountStr = typeof account === 'string' ? account.trim() || null : null;
+  const paymentAccount = typeof account === 'string' ? account.trim() || null : null;
 
   const tenantId = payment.tenantId;
   const existing = await prisma.paymentReceipt.findMany({
@@ -75,21 +70,36 @@ export async function POST(
   const nextNum = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
   const receiptNumber = `R-${String(nextNum).padStart(6, '0')}`;
 
-  const receipt = await prisma.paymentReceipt.create({
-    data: {
-      paymentId,
-      receiptNumber,
-      amountReceived: amount,
-      paymentMethod: method,
-      account: accountStr,
-      receivedById: user.id,
-    },
+  const [receipt] = await prisma.$transaction(async (tx) => {
+    const r = await tx.paymentReceipt.create({
+      data: {
+        tenantId,
+        paymentId,
+        receiptNumber,
+        amount,
+        paymentAccount,
+        receivedById: user.id,
+      },
+    });
+    const receipts = await tx.paymentReceipt.findMany({
+      where: { paymentId },
+      select: { amount: true },
+    });
+    const paidTotal = receipts.reduce((sum, x) => sum + Number(x.amount), 0);
+    const paymentAmount = Number(payment.amount);
+    const newStatus =
+      paidTotal >= paymentAmount ? 'PAID' : paidTotal > 0 ? 'PARTIALLY_PAID' : 'PENDING';
+    await tx.payment.update({
+      where: { id: paymentId },
+      data: { status: newStatus },
+    });
+    return [r] as const;
   });
+
   return NextResponse.json({
     ...receipt,
-    amountReceived: receipt.amountReceived != null ? Number(receipt.amountReceived) : null,
-    paymentMethod: receipt.paymentMethod,
-    account: receipt.account ?? null,
+    amount: Number(receipt.amount),
+    paymentAccount: receipt.paymentAccount ?? null,
     receivedBy: user.fullName,
   });
 }

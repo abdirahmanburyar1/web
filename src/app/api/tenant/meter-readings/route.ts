@@ -91,11 +91,11 @@ export async function POST(req: Request) {
   const previousPayment = await prisma.payment.findFirst({
     where: { meterId },
     orderBy: { recordedAt: 'desc' },
-    select: { id: true, amount: true, receipts: { select: { amountReceived: true } } },
+    select: { id: true, amount: true, receipts: { select: { amount: true } } },
   });
   let previousBalance = 0;
   if (previousPayment) {
-    const paid = previousPayment.receipts.reduce((sum, r) => sum + Number(r.amountReceived ?? 0), 0);
+    const paid = previousPayment.receipts.reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
     previousBalance = Math.max(0, Math.round((Number(previousPayment.amount) - paid) * 100) / 100);
   }
   const isTransferFlow = !!existingThisMonth && previousBalance > 0;
@@ -209,6 +209,7 @@ export async function POST(req: Request) {
       id: payment.id,
       paymentNumber: payment.paymentNumber,
       amount: Number(payment.amount),
+      status: payment.status,
       recordedAt: payment.recordedAt,
       reference: payment.reference,
       meter: payment.meter,

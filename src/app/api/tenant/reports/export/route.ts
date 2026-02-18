@@ -33,13 +33,14 @@ export async function GET(req: Request) {
     },
   });
 
-  const headers = ['date', 'paymentNumber', 'meterNumber', 'customerName', 'amount', 'method', 'collector'];
+  const headers = ['date', 'paymentNumber', 'meterNumber', 'customerName', 'amount', 'status', 'method', 'collector'];
   const rows = payments.map((p) => [
     new Date(p.recordedAt).toISOString().slice(0, 19),
     p.paymentNumber ?? '',
     p.meter?.meterNumber ?? '',
     p.meter?.customerName ?? '',
     Number(p.amount).toFixed(2),
+    p.status ?? 'PENDING',
     p.method ?? '',
     p.collector?.fullName ?? '',
   ]);

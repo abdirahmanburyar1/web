@@ -27,10 +27,11 @@ enum PaymentMethod {
 }
 
 enum PaymentStatus {
-  PENDING
-  PAID
-  PARTIAL
-  TRANSFERRED  // unpaid balance moved to next period
+  PENDING       // not yet paid
+  PAID          // current amount fully paid
+  PARTIALLY_PAID
+  TRANSFERRED   // unpaid balance moved to next period
+  REFUNDED
 }
 
 enum TenantStatus {
@@ -130,6 +131,7 @@ model Tenant {
   subSections       SubSection[]
   invoices          Invoice[]
   payments          Payment[]
+  paymentReceipts   PaymentReceipt[]
   platformPayments  PlatformPayment[]
   auditLogs         AuditLog[]
   moneyAccounts    TenantMoneyAccount[]
@@ -390,9 +392,12 @@ model Payment {
   collector      User?            @relation("CollectorPayments", fields: [collectorId], references: [id])
   amount         Decimal          @db.Decimal(10, 2)
   method         PaymentMethod    @default(CASH)
-  status         PaymentStatus    @default(PENDING)  // PENDING | PAID | PARTIAL | TRANSFERRED
+  status         PaymentStatus    @default(PENDING)
   reference      String?
+  notes          String?          // optional notes
   recordedAt     DateTime         @default(now())
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   receipts       PaymentReceipt[]
 
@@ -401,25 +406,30 @@ model Payment {
   @@index([meterId])
   @@index([collectorId])
   @@index([invoiceId])
+  @@index([status])
+  @@index([recordedAt])
 }
 
 model PaymentReceipt {
   id              String        @id @default(uuid())
+  tenantId        String
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   paymentId       String
   payment         Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  receiptNumber   String?       // official receipt number (e.g. from receipt book)
-  amountReceived  Decimal?      @db.Decimal(10, 2) // amount on this receipt; when null, use payment.amount
-  paymentMethod   PaymentMethod? // how this receipt was paid; when null, use payment.method
-  account         String?       // money account where amount was received (e.g. account name)
-  url             String?       // e.g. link to scanned receipt
-  receivedById    String?       // user who recorded this receipt
+  amount          Decimal       @db.Decimal(10, 2)
+  paymentAccount  String?       @map("payment_account")  // e.g. bank name, mobile money account
+  receivedById    String?
   receivedBy      User?         @relation(fields: [receivedById], references: [id])
-  issuedAt        DateTime     @default(now())
+  paidAt          DateTime      @default(now())  @map("paid_at")
+  receiptNumber   String?       // official receipt number (e.g. from receipt book)
+  url             String?       // e.g. link to scanned receipt
   createdAt       DateTime     @default(now())
 
   @@map("payment_receipts")
+  @@index([tenantId])
   @@index([paymentId])
   @@index([receivedById])
+  @@index([paidAt])
 }
 
 model AuditLog {

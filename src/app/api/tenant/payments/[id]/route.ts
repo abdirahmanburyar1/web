@@ -19,18 +19,17 @@ export async function GET(
       meter: { select: { id: true, meterNumber: true, customerName: true } },
       collector: { select: { id: true, fullName: true } },
       invoice: { select: { id: true, amount: true, balance: true, status: true } },
-      receipts: { orderBy: { issuedAt: 'asc' }, include: { receivedBy: { select: { fullName: true } } } },
+      receipts: { orderBy: { paidAt: 'asc' }, include: { receivedBy: { select: { fullName: true } } } },
     },
   });
   if (!payment) return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
   const receipts = payment.receipts.map((r) => ({
     id: r.id,
     receiptNumber: r.receiptNumber,
-    amountReceived: r.amountReceived != null ? Number(r.amountReceived) : null,
-    paymentMethod: r.paymentMethod,
-    account: r.account ?? null,
+    amount: Number(r.amount),
+    paymentAccount: r.paymentAccount ?? null,
     receivedBy: r.receivedBy?.fullName ?? null,
-    issuedAt: r.issuedAt,
+    paidAt: r.paidAt,
     createdAt: r.createdAt,
   }));
   return NextResponse.json({

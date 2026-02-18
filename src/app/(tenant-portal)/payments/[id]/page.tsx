@@ -13,6 +13,7 @@ type PaymentDetail = {
   paymentNumber: string | null;
   amount: number;
   method: string;
+  status?: string;
   reference: string | null;
   recordedAt: string;
   meter?: { id: string; meterNumber: string; customerName: string } | null;
@@ -21,11 +22,10 @@ type PaymentDetail = {
   receipts: Array<{
     id: string;
     receiptNumber: string | null;
-    amountReceived: number | null;
-    paymentMethod: string | null;
-    account: string | null;
+    amount: number;
+    paymentAccount: string | null;
     receivedBy: string | null;
-    issuedAt: string;
+    paidAt: string;
     createdAt?: string;
   }>;
 };
@@ -48,10 +48,18 @@ const RECEIPT_LABELS = {
   thanks: "Mahadsanid",
 };
 
-function paymentType(p: { invoice?: { balance: unknown } | null }): "Full" | "Partial" | "—" {
-  if (!p.invoice) return "—";
-  const balance = Number(p.invoice.balance);
-  return balance <= 0 ? "Full" : "Partial";
+function paymentStatusLabel(p: { status?: string; invoice?: { balance: unknown } | null }): string {
+  const status = p.status;
+  if (status === "PAID") return "Full";
+  if (status === "PARTIALLY_PAID") return "Partial";
+  if (status === "TRANSFERRED") return "Transferred";
+  if (status === "REFUNDED") return "Refunded";
+  if (status === "PENDING") return "Pending";
+  if (p.invoice) {
+    const balance = Number(p.invoice.balance);
+    return balance <= 0 ? "Full" : "Partial";
+  }
+  return "—";
 }
 
 export default function PaymentDetailPage() {
@@ -115,7 +123,7 @@ export default function PaymentDetailPage() {
     fetch(`/api/tenant/payments/${id}/receipts`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-      body: JSON.stringify({ amountReceived: amount, account: addAccount || undefined }),
+      body: JSON.stringify({ amount, amountReceived: amount, account: addAccount || undefined }),
     })
       .then((r) => r.json())
       .then((receipt) => {
@@ -129,11 +137,10 @@ export default function PaymentDetailPage() {
                     {
                       id: receipt.id,
                       receiptNumber: receipt.receiptNumber,
-                      amountReceived: receipt.amountReceived ?? amount,
-                      paymentMethod: receipt.paymentMethod ?? null,
-                      account: receipt.account ?? (addAccount || null),
+                      amount: receipt.amount ?? amount,
+                      paymentAccount: receipt.paymentAccount ?? (addAccount || null),
                       receivedBy: receipt.receivedBy ?? null,
-                      issuedAt: receipt.issuedAt ?? new Date().toISOString(),
+                      paidAt: receipt.paidAt ?? new Date().toISOString(),
                       createdAt: receipt.createdAt,
                     },
                   ],
@@ -153,12 +160,12 @@ export default function PaymentDetailPage() {
   }
 
   function printMiniReceipt(
-    receipt: { receiptNumber: string | null; amountReceived: number | null; paymentMethod: string | null; account: string | null; issuedAt: string },
+    receipt: { receiptNumber: string | null; amount: number; paymentAccount: string | null; paidAt: string },
     isPartial: boolean
   ) {
     if (!payment) return;
-    const amount = receipt.amountReceived ?? payment.amount;
-    const method = receipt.account ?? (METHOD_SOMALI[(receipt.paymentMethod ?? payment.method) as string] ?? (receipt.paymentMethod ?? payment.method)?.toString().replace(/_/g, " ") ?? "—");
+    const amount = receipt.amount ?? payment.amount;
+    const method = receipt.paymentAccount ?? "—";
     const paymentTypeLabel = isPartial ? RECEIPT_LABELS.partial : RECEIPT_LABELS.full;
     const meterLabel = payment.meter ? `${payment.meter.meterNumber} — ${payment.meter.customerName}` : "—";
     const accountLines = moneyAccounts.map((a) => [a.name, a.accountNumber].filter(Boolean).join(" ").trim());
@@ -174,7 +181,7 @@ export default function PaymentDetailPage() {
         <div style="text-align: center; font-weight: bold; margin-bottom: 12px; font-size: 14px;">${tenantName || RECEIPT_LABELS.company}</div>
         <div style="border-bottom: 1px solid #333; margin-bottom: 8px;"></div>
         <div>${RECEIPT_LABELS.receiptNo}: ${receipt.receiptNumber || "—"}</div>
-        <div>${RECEIPT_LABELS.date}: ${new Date(receipt.issuedAt).toLocaleString()}</div>
+        <div>${RECEIPT_LABELS.date}: ${new Date(receipt.paidAt).toLocaleString()}</div>
         <div>${RECEIPT_LABELS.paymentNo}: ${payment.paymentNumber ?? "—"}</div>
         <div>${RECEIPT_LABELS.customer}: ${meterLabel}</div>
         <div style="margin: 8px 0;">${RECEIPT_LABELS.amount}: $${Number(amount).toFixed(2)}</div>
@@ -211,9 +218,9 @@ export default function PaymentDetailPage() {
     );
   }
 
-  const typeLabel = paymentType(payment);
+  const typeLabel = paymentStatusLabel(payment);
   const meterLabel = payment.meter ? `${payment.meter.meterNumber} — ${payment.meter.customerName}` : "—";
-  const paidAmount = payment.receipts.reduce((sum, r) => sum + Number(r.amountReceived ?? 0), 0);
+  const paidAmount = payment.receipts.reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
   const balance = Math.round((Number(payment.amount) - paidAmount) * 100) / 100;
 
   return (
@@ -273,7 +280,7 @@ export default function PaymentDetailPage() {
               <dd className="font-medium text-slate-900">${balance.toFixed(2)}</dd>
             </div>
             <div>
-              <dt className="text-xs font-medium uppercase text-slate-400">Type</dt>
+              <dt className="text-xs font-medium uppercase text-slate-400">Status</dt>
               <dd>
                 <span
                   className={
@@ -281,7 +288,11 @@ export default function PaymentDetailPage() {
                       ? "rounded bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-800"
                       : typeLabel === "Partial"
                         ? "rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
-                        : "text-slate-500"
+                        : typeLabel === "Transferred"
+                          ? "rounded bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800"
+                          : typeLabel === "Refunded"
+                            ? "rounded bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800"
+                            : "rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
                   }
                 >
                   {typeLabel}
@@ -320,15 +331,15 @@ export default function PaymentDetailPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {payment.receipts.map((r) => {
-                    const amt = r.amountReceived ?? payment.amount;
+                    const amt = r.amount ?? payment.amount;
                     const isPartial = amt < payment.amount;
                     return (
                       <tr key={r.id}>
                         <td className="px-4 py-3 font-mono text-slate-900">{r.receiptNumber || "—"}</td>
                         <td className="px-4 py-3 text-slate-700">${Number(amt).toFixed(2)}</td>
-                        <td className="px-4 py-3 text-slate-600">{r.account ?? (r.paymentMethod ? (r.paymentMethod as string).replace(/_/g, " ") : "—")}</td>
+                        <td className="px-4 py-3 text-slate-600">{r.paymentAccount ?? "—"}</td>
                         <td className="px-4 py-3 text-slate-600">{r.receivedBy ?? "—"}</td>
-                        <td className="px-4 py-3 text-slate-600">{new Date(r.issuedAt).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-slate-600">{new Date(r.paidAt).toLocaleString()}</td>
                         <td className="px-4 py-3 text-right no-print">
                           <Button type="button" size="sm" variant="secondary" onClick={() => printMiniReceipt(r, isPartial)}>
                             Print (mini)

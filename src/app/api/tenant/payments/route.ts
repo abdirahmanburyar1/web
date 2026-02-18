@@ -42,7 +42,21 @@ export async function GET(req: Request) {
     where.status = status;
   }
 
-  const baseWhereNoStatus = { tenantId, ...(from || to ? { recordedAt: { ...(from ? { gte: new Date(from) } : {}), ...(to ? { lte: (() => { const d = new Date(to); d.setHours(23, 59, 59, 999); return d; })() } : {}) } : {}), ...(meterId ? { meterId } : {}), ...(collectorId ? { collectorId } : {}), ...(method && ['CASH', 'MOBILE_MONEY', 'BANK_TRANSFER', 'OTHER'].includes(method) ? { method } : {}) };
+  const baseWhereNoStatus: Record<string, unknown> = { tenantId };
+  if (from || to) {
+    baseWhereNoStatus.recordedAt = {};
+    if (from) (baseWhereNoStatus.recordedAt as { gte?: Date }).gte = new Date(from);
+    if (to) {
+      const toEnd = new Date(to);
+      toEnd.setHours(23, 59, 59, 999);
+      (baseWhereNoStatus.recordedAt as { lte?: Date }).lte = toEnd;
+    }
+  }
+  if (meterId) baseWhereNoStatus.meterId = meterId;
+  if (collectorId) baseWhereNoStatus.collectorId = collectorId;
+  if (method && ['CASH', 'MOBILE_MONEY', 'BANK_TRANSFER', 'OTHER'].includes(method)) {
+    baseWhereNoStatus.method = method;
+  }
 
   const [paymentsRaw, total, sumResult, summaryByStatus, allAgg] = await Promise.all([
     prisma.payment.findMany({
@@ -68,10 +82,12 @@ export async function GET(req: Request) {
     }),
     prisma.payment.aggregate({ where: baseWhereNoStatus, _count: true, _sum: { amount: true } }),
   ]);
-  const totalAmount = sumResult._sum.amount ?? 0;
-  const summary: Record<string, { count: number; totalAmount: number }> = { all: { count: allAgg._count, totalAmount: allAgg._sum.amount ?? 0 } };
+  const totalAmount = Number(sumResult._sum.amount ?? 0);
+  const summary: Record<string, { count: number; totalAmount: number }> = {
+    all: { count: allAgg._count, totalAmount: Number(allAgg._sum.amount ?? 0) },
+  };
   summaryByStatus.forEach((row) => {
-    summary[row.status] = { count: row._count.id, totalAmount: row._sum.amount ?? 0 };
+    summary[row.status] = { count: row._count.id, totalAmount: Number(row._sum.amount ?? 0) };
   });
   statusList.forEach((s) => {
     if (!summary[s]) summary[s] = { count: 0, totalAmount: 0 };

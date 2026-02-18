@@ -408,6 +408,9 @@ model Payment {
   @@index([invoiceId])
   @@index([status])
   @@index([recordedAt])
+  // Composite indexes for list/aggregate queries (tenant-scoped + date or status)
+  @@index([tenantId, recordedAt(sort: Desc)])
+  @@index([tenantId, status])
 }
 
 model PaymentReceipt {

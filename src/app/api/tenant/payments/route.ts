@@ -84,7 +84,16 @@ export async function GET(req: Request) {
       take: limit,
       orderBy: { recordedAt: 'desc' },
       include: {
-        meter: { select: { id: true, meterNumber: true, customerName: true } },
+        meter: {
+          select: {
+            id: true,
+            meterNumber: true,
+            customerName: true,
+            customerPhone: true,
+            residentPhone: true,
+            meterReadings: { orderBy: { recordedAt: 'desc' }, take: 1, select: { value: true, unit: true } },
+          },
+        },
         collector: { select: { id: true, fullName: true } },
         invoice: { select: { id: true, amount: true, balance: true, status: true } },
         _count: { select: { receipts: true } },

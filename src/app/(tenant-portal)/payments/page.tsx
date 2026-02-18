@@ -20,7 +20,14 @@ type Payment = {
   paidAmount?: number;
   balance?: number;
   receiptAccounts?: string[]; // money account(s) that received the payment (from receipts)
-  meter?: { id: string; meterNumber: string; customerName: string } | null;
+  meter?: {
+    id: string;
+    meterNumber: string;
+    customerName: string;
+    customerPhone?: string | null;
+    residentPhone?: string | null;
+    meterReadings?: Array<{ value: number | string; unit?: string | null }>;
+  } | null;
   collector?: { id: string; fullName: string } | null;
   invoice?: { id: string; amount: number | string; balance: number | string; status: string } | null;
   _count?: { receipts: number };
@@ -76,7 +83,6 @@ export default function PaymentsPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [openRowId, setOpenRowId] = useState<string | null>(null);
   const [meters, setMeters] = useState<Array<{ id: string; meterNumber: string; customerName: string }>>([]);
   const [collectors, setCollectors] = useState<Array<{ id: string; fullName: string }>>([]);
   const [tenantName, setTenantName] = useState("");
@@ -228,20 +234,27 @@ export default function PaymentsPage() {
       .then((d) => {
         if (d.error) return;
         const list = (d.payments ?? []) as Payment[];
-        const headers = ["Date", "Payment #", "Meter", "Customer", "Amount", "Paid", "Balance", "Collector", "Reference", "Account", "Type"];
-        const rows = list.map((p) => [
-          new Date(p.recordedAt).toLocaleString(),
-          p.paymentNumber ?? "",
-          p.meter?.meterNumber ?? "",
-          p.meter?.customerName ?? "",
-          Number(p.amount).toFixed(2),
-          Number(p.paidAmount ?? 0).toFixed(2),
-          Number(p.balance ?? p.amount).toFixed(2),
-          p.collector?.fullName ?? "",
-          p.reference ?? "",
-          (p.receiptAccounts?.length ? p.receiptAccounts.join(", ") : "") || p.method?.replace(/_/g, " ") || "",
-          paymentStatusLabel(p),
-        ]);
+        const headers = ["Date", "Payment #", "Meter", "Customer", "Phone", "Reading", "Amount", "Paid", "Balance", "Collector", "Reference", "Account", "Type"];
+        const rows = list.map((p) => {
+          const phone = [p.meter?.customerPhone, p.meter?.residentPhone].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(" / ") || "";
+          const reading = p.meter?.meterReadings?.[0];
+          const readingStr = reading != null ? `${Number(reading.value)} ${reading.unit ?? "m³"}` : "";
+          return [
+            new Date(p.recordedAt).toLocaleString(),
+            p.paymentNumber ?? "",
+            p.meter?.meterNumber ?? "",
+            p.meter?.customerName ?? "",
+            phone,
+            readingStr,
+            Number(p.amount).toFixed(2),
+            Number(p.paidAmount ?? 0).toFixed(2),
+            Number(p.balance ?? p.amount).toFixed(2),
+            p.collector?.fullName ?? "",
+            p.reference ?? "",
+            (p.receiptAccounts?.length ? p.receiptAccounts.join(", ") : "") || p.method?.replace(/_/g, " ") || "",
+            paymentStatusLabel(p),
+          ];
+        });
         const data = [headers, ...rows];
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet(data);
@@ -493,22 +506,20 @@ export default function PaymentsPage() {
                   <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Code</th>
                   <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Status</th>
                   <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Description</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Time</th>
                   <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Date</th>
                   <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Customer</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Phone</th>
                   <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Meter</th>
+                  <th className="px-3 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Reading</th>
                   <th className="px-3 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Paid</th>
                   <th className="px-3 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Amount</th>
                   <th className="px-3 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Balance</th>
                   <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Account</th>
-                  <th className="w-12 px-3 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 bg-white">
                 {(data?.payments ?? []).map((p) => {
                   const label = paymentStatusLabel(p);
-                  const showReceipts = !(p.status === "TRANSFERRED" && (p._count?.receipts ?? 0) === 0);
-                  const isOpen = openRowId === p.id;
                   const amt = Number(p.amount);
                   const paid = Number(p.paidAmount ?? 0);
                   const bal = Number(p.balance ?? amt);
@@ -524,6 +535,21 @@ export default function PaymentsPage() {
                     if (receiptCount > 0) parts.push(`${receiptCount} receipt${receiptCount !== 1 ? "s" : ""}`);
                     return parts.join(" · ") || "—";
                   })();
+                  const phoneDisplay = [p.meter?.customerPhone, p.meter?.residentPhone]
+                    .filter(Boolean)
+                    .filter((v, i, a) => a.indexOf(v) === i)
+                    .join(" / ") || "—";
+                  const currentReading = p.meter?.meterReadings?.[0];
+                  const readingDisplay = currentReading != null
+                    ? `${Number(currentReading.value)} ${currentReading.unit ?? "m³"}`
+                    : "—";
+                  const dateTimeDisplay = new Date(p.recordedAt).toLocaleString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
                   return (
                     <tr key={p.id} className="hover:bg-slate-50/50">
                       <td className="w-10 px-3 py-3">
@@ -555,50 +581,15 @@ export default function PaymentsPage() {
                       <td className="max-w-[220px] truncate px-3 py-3 text-sm text-slate-600" title={richDescription}>
                         {richDescription}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-3 text-sm text-slate-600">
-                        {new Date(p.recordedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-3 text-sm text-slate-600">
-                        {new Date(p.recordedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
-                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 text-sm text-slate-600">{dateTimeDisplay}</td>
                       <td className="px-3 py-3 text-sm text-slate-900">{p.meter?.customerName ?? "—"}</td>
+                      <td className="px-3 py-3 text-sm text-slate-600">{phoneDisplay}</td>
                       <td className="px-3 py-3 font-mono text-sm text-slate-600">{p.meter?.meterNumber ?? "—"}</td>
+                      <td className="px-3 py-3 text-right font-mono text-sm text-slate-700">{readingDisplay}</td>
                       <td className="px-3 py-3 text-right text-sm text-slate-700">${paid.toFixed(2)}</td>
                       <td className="px-3 py-3 text-right text-sm font-medium text-slate-900">${amt.toFixed(2)}</td>
                       <td className="px-3 py-3 text-right text-sm font-medium text-slate-800">${bal.toFixed(2)}</td>
                       <td className="max-w-[140px] truncate px-3 py-3 text-xs text-slate-600" title={accountLabel}>{accountLabel}</td>
-                      <td className="relative w-12 px-3 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setOpenRowId(isOpen ? null : p.id)}
-                          className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                          aria-label="Actions"
-                        >
-                          <span className="inline-block">⋮</span>
-                        </button>
-                        {isOpen && (
-                          <>
-                            <div className="fixed inset-0 z-10" aria-hidden onClick={() => setOpenRowId(null)} />
-                            <div className="absolute right-2 top-full z-20 mt-1 min-w-[120px] rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-                              <Link href={`/payments/${p.id}`} className="block px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50" onClick={() => setOpenRowId(null)}>
-                                View
-                              </Link>
-                              {showReceipts && (
-                                <button
-                                  type="button"
-                                  className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                                  onClick={() => {
-                                    setOpenRowId(null);
-                                    openReceipts(p.id, p.paymentNumber, p.meter ? `${p.meter.meterNumber} — ${p.meter.customerName}` : "Payment", Number(p.amount), p.method, p.recordedAt);
-                                  }}
-                                >
-                                  Receipts
-                                </button>
-                              )}
-                            </div>
-                          </>
-                        )}
-                      </td>
                     </tr>
                   );
                 })}

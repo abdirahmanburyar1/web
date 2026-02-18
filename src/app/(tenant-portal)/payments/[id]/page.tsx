@@ -235,7 +235,7 @@ export default function PaymentDetailPage() {
   const balance = Math.round((Number(payment.amount) - paidAmount) * 100) / 100;
 
   return (
-    <div>
+    <div className="min-w-0 w-full max-w-full overflow-x-hidden">
       <style>{`
         @media print {
           body * { visibility: hidden; }

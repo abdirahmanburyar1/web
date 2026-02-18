@@ -75,9 +75,9 @@ export function TenantSidebar({
     }
   }, [mobileOpen, onClose]);
 
+  // Exact match or any sub-route (e.g. /payments and /payments/123 both highlight Payments; /meters and /meters/123 highlight Meters)
   const isActive = (href: string) =>
-    pathname === href ||
-    (href !== "/meters" && pathname.startsWith(href + "/") && href !== "/");
+    pathname === href || (href !== "/" && pathname.startsWith(href + "/"));
 
   const initials = user?.fullName
     ? user.fullName

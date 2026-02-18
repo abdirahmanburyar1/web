@@ -265,7 +265,7 @@ export default function MeterDetailPage() {
   const statusVariant = (s: string) => (s === "ACTIVE" ? "success" : s === "OVERDUE" || s === "SUSPENDED" ? "warning" : "default");
 
   return (
-    <div>
+    <div className="min-w-0 w-full max-w-full overflow-x-hidden">
       <Link href="/meters" className="mb-4 inline-flex items-center text-sm font-medium text-slate-500 transition hover:text-teal-600 dark:hover:text-slate-400 dark:hover:text-teal-400">
         ← Back to meters
       </Link>

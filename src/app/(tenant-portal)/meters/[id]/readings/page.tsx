@@ -76,21 +76,33 @@ export default function MeterReadingsPage() {
       .then((r) => r.json())
       .then((data) => {
         const list: { value: number | string; recordedAt: string }[] = data.readings ?? [];
-        const byMonth: Record<string, { value: number; count: number }> = {};
+        const byMonth: Record<string, number> = {};
         list.forEach((r) => {
           const d = new Date(r.recordedAt);
           const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-          if (!byMonth[key]) byMonth[key] = { value: 0, count: 0 };
-          byMonth[key].value = Number(r.value);
-          byMonth[key].count += 1;
+          byMonth[key] = Number(r.value);
         });
-        const sorted = Object.entries(byMonth)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([month, { value }]) => ({
-            month,
-            value,
-            label: new Date(month + "-01").toLocaleDateString(undefined, { month: "short", year: "numeric" }),
-          }));
+        // Build all months in range (from monthFrom to monthTo) so chart shows every month even with no data
+        const [yFrom, mFrom] = monthFrom.split("-").map(Number);
+        const [yTo, mTo] = monthTo.split("-").map(Number);
+        const months: string[] = [];
+        let y = yFrom;
+        let m = mFrom;
+        const endY = yTo;
+        const endM = mTo;
+        while (y < endY || (y === endY && m <= endM)) {
+          months.push(`${y}-${String(m).padStart(2, "0")}`);
+          m += 1;
+          if (m > 12) {
+            m = 1;
+            y += 1;
+          }
+        }
+        const sorted = months.map((month) => ({
+          month,
+          value: byMonth[month] ?? 0,
+          label: new Date(month + "-01").toLocaleDateString(undefined, { month: "short", year: "numeric" }),
+        }));
         setChartData(sorted);
       })
       .catch(() => setChartData([]))
@@ -168,8 +180,8 @@ export default function MeterReadingsPage() {
   if (loading && readings.length === 0) return <PageLoading />;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100/80 dark:from-slate-900 dark:to-slate-800/80">
-      <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-screen min-w-0 w-full max-w-full overflow-x-hidden bg-gradient-to-b from-slate-50 to-slate-100/80 dark:from-slate-900 dark:to-slate-800/80">
+      <div className="mx-auto min-w-0 max-w-6xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>

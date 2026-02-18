@@ -224,7 +224,7 @@ export default function NewMeterPage() {
   }
 
   return (
-    <div>
+    <div className="min-w-0 w-full max-w-full overflow-x-hidden">
       <PageHeader
         title="Add meter"
         description="Create a new meter. Required: meter number and customer name."

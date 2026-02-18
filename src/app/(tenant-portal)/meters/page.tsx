@@ -191,7 +191,7 @@ export default function TenantMetersPage() {
   const summary = data?.summary ?? {};
 
   return (
-    <div>
+    <div className="min-w-0 w-full max-w-full overflow-x-hidden">
       <PageHeader
         title="Meters"
         description="Meter machines and account info."
@@ -244,13 +244,13 @@ export default function TenantMetersPage() {
       ) : null}
 
       {/* Single filter row */}
-      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-slate-200/80 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900/30">
+      <div className="mb-4 flex flex-wrap items-end gap-2 rounded-lg border border-slate-200/80 bg-white px-3 py-3 dark:border-slate-700 dark:bg-slate-900/30 sm:py-2">
         <Input
           type="search"
           placeholder="Search meter #, customer, phone…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="min-w-0 flex-1 basis-52 sm:min-w-[200px] sm:max-w-[280px]"
+          className="min-w-0 flex-1 basis-full sm:basis-52 sm:min-w-[180px] sm:max-w-[280px]"
         />
         <select
           value={zoneId}
@@ -282,7 +282,7 @@ export default function TenantMetersPage() {
             </option>
           ))}
         </select>
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
           <Button
             variant="secondary"
             size="sm"

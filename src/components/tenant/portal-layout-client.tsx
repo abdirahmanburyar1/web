@@ -73,7 +73,8 @@ export function TenantPortalLayoutClient({ children }: { children: React.ReactNo
   const navTitle = getTenantNavTitle(pathname);
 
   // All tenant users (including collectors) see sidebar + navbar + main. Sidebar is fixed; only main scrolls.
-  const contentLeft = sidebarCollapsed ? "pl-[4.5rem]" : "pl-64";
+  // On mobile: no left padding (sidebar is overlay). On lg+: reserve space for sidebar.
+  const contentLeft = sidebarCollapsed ? "pl-0 lg:pl-[4.5rem]" : "pl-0 lg:pl-64";
   return (
     <ThemeProvider>
       <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">
@@ -84,7 +85,7 @@ export function TenantPortalLayoutClient({ children }: { children: React.ReactNo
           collapsed={sidebarCollapsed}
           onCollapsedChange={setSidebarCollapsed}
         />
-        <div className={`flex min-h-0 min-w-0 flex-1 flex-col transition-[padding] duration-200 ${contentLeft}`}>
+        <div className={`flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-hidden transition-[padding] duration-200 ${contentLeft}`}>
           <AppNavbar
             title={navTitle.title}
             subtitle={navTitle.subtitle}
@@ -96,7 +97,7 @@ export function TenantPortalLayoutClient({ children }: { children: React.ReactNo
               localStorage.removeItem("portal");
             }}
           />
-          <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
+          <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6">{children}</main>
         </div>
       </div>
     </ThemeProvider>

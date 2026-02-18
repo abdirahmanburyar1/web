@@ -240,7 +240,27 @@ export default function PaymentDetailPage() {
         @media print {
           body * { visibility: hidden; }
           .payment-detail-print, .payment-detail-print * { visibility: visible; }
-          .payment-detail-print { position: absolute; left: 0; top: 0; width: 210mm; min-height: 297mm; padding: 15mm; font-size: 11pt; box-shadow: none; border: 1px solid #ccc; }
+          .payment-detail-print {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 18mm 20mm;
+            font-size: 11pt;
+            line-height: 1.4;
+            box-shadow: none;
+            border: none;
+            background: #fff;
+            color: #111;
+          }
+          .payment-detail-print .print-header { border-bottom: 2px solid #0d9488; padding-bottom: 10px; margin-bottom: 14px; }
+          .payment-detail-print .print-section { margin-bottom: 16px; }
+          .payment-detail-print table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+          .payment-detail-print th, .payment-detail-print td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+          .payment-detail-print th { font-weight: 600; color: #475569; text-transform: uppercase; font-size: 9pt; letter-spacing: 0.05em; }
+          .payment-detail-print .print-summary { background: #f8fafc; padding: 12px 16px; border-radius: 6px; margin-top: 12px; }
+          .payment-detail-print .print-footer { margin-top: 20px; padding-top: 12px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 10pt; color: #64748b; }
           .no-print, .no-print * { display: none !important; visibility: hidden !important; }
           th.no-print, td.no-print { display: none !important; }
         }
@@ -274,21 +294,21 @@ export default function PaymentDetailPage() {
 
       {/* Payment details card — structured and print-friendly */}
       <div className="payment-detail-print rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/30">
-        {/* Header row */}
-        <div className="flex flex-wrap items-start justify-between gap-6 border-b border-slate-200 px-6 py-5 dark:border-slate-700">
+        {/* Header row — print-header for professional print */}
+        <div className="print-header flex flex-wrap items-start justify-between gap-6 border-b-2 border-teal-500 px-6 py-5 dark:border-slate-700">
           <div>
-            <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">{tenantName || "Company Name"}</h1>
-            <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Payment record</p>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{tenantName || "Company Name"}</h1>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Payment record</p>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">PAYMENT</p>
-            <p className="mt-1 text-sm font-medium text-slate-700 dark:text-slate-300">#{payment.paymentNumber ?? "—"}</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400">DATE: {new Date(payment.recordedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</p>
+            <p className="text-2xl font-bold text-teal-700 dark:text-teal-400">PAYMENT</p>
+            <p className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-200">#{payment.paymentNumber ?? "—"}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Date: {new Date(payment.recordedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</p>
           </div>
         </div>
 
         {/* Customer & meter section */}
-        <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-700">
+        <div className="print-section border-b border-slate-200 px-6 py-5 dark:border-slate-700">
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Customer</p>
           <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">{payment.meter?.customerName ?? "—"}</p>
           <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-300">Meter: {payment.meter?.meterNumber ?? "—"}</p>
@@ -324,7 +344,7 @@ export default function PaymentDetailPage() {
         </div>
 
         {/* Payment metadata */}
-        <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-700">
+        <div className="print-section border-b border-slate-200 px-6 py-4 dark:border-slate-700">
           <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
             <div>
               <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Collector</p>
@@ -358,7 +378,7 @@ export default function PaymentDetailPage() {
         </div>
 
         {/* Receipts table */}
-        <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-700">
+        <div className="print-section border-b border-slate-200 px-6 py-5 dark:border-slate-700">
           <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Receipts</h2>
           {payment.receipts.length === 0 ? (
             <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 py-10 text-center text-sm text-slate-500 dark:border-slate-600 dark:bg-slate-800/20 dark:text-slate-400">
@@ -405,8 +425,8 @@ export default function PaymentDetailPage() {
         </div>
 
         {/* Financial summary */}
-        <div className="flex justify-end px-6 py-5">
-          <dl className="min-w-[220px] space-y-2 rounded-lg bg-slate-50 px-4 py-4 dark:bg-slate-800/30">
+        <div className="print-section flex justify-end px-6 py-5">
+          <dl className="print-summary min-w-[220px] space-y-2 rounded-lg bg-slate-50 px-4 py-4 dark:bg-slate-800/30">
             <div className="flex justify-between text-sm">
               <dt className="text-slate-600 dark:text-slate-400">Amount</dt>
               <dd className="font-medium text-slate-900 dark:text-slate-100">${Number(payment.amount).toFixed(2)}</dd>
@@ -422,7 +442,7 @@ export default function PaymentDetailPage() {
           </dl>
         </div>
 
-        <div className="rounded-b-2xl border-t border-slate-200 bg-slate-50/50 px-6 py-4 text-center text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800/20 dark:text-slate-400">
+        <div className="print-footer rounded-b-2xl border-t border-slate-200 bg-slate-50/50 px-6 py-4 text-center text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800/20 dark:text-slate-400">
           Thank you for your business.
         </div>
       </div>

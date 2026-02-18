@@ -43,7 +43,6 @@ type Receipt = {
   createdAt?: string;
 };
 
-const PAYMENT_METHODS = ["CASH", "MOBILE_MONEY", "BANK_TRANSFER", "OTHER"] as const;
 const PAGE_SIZES = [10, 25, 50, 100] as const;
 
 type Summary = Record<string, { count: number; totalAmount: number }>;
@@ -92,7 +91,6 @@ export default function PaymentsPage() {
   const [recordModalOpen, setRecordModalOpen] = useState(false);
   const [recordMeterId, setRecordMeterId] = useState("");
   const [recordAmount, setRecordAmount] = useState("");
-  const [recordMethod, setRecordMethod] = useState("CASH");
   const [recordReference, setRecordReference] = useState("");
   const [recordSubmitting, setRecordSubmitting] = useState(false);
   const [recordError, setRecordError] = useState("");
@@ -200,7 +198,6 @@ export default function PaymentsPage() {
       body: JSON.stringify({
         meterId: recordMeterId,
         amount: Number(recordAmount),
-        method: recordMethod,
         reference: recordReference.trim() || undefined,
       }),
     })
@@ -749,7 +746,7 @@ export default function PaymentsPage() {
           <div className="w-full max-w-md rounded-xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="border-b border-slate-200 px-4 py-3">
               <h2 className="text-lg font-semibold text-slate-900">Record payment</h2>
-              <p className="text-sm text-slate-500">Record a customer payment against a meter. Invoice (if any) will be updated.</p>
+              <p className="text-sm text-slate-500">Create a payment for a meter. Add one or more receipts (each with its own account) from the payment detail page. Invoice (if any) will be updated.</p>
             </div>
             <form onSubmit={handleRecordPayment} className="p-4 space-y-4">
               {recordError && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{recordError}</p>}
@@ -770,14 +767,6 @@ export default function PaymentsPage() {
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-500">Amount ($)</label>
                 <Input type="number" step="0.01" min="0.01" value={recordAmount} onChange={(e) => setRecordAmount(e.target.value)} placeholder="0.00" required />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500">Method</label>
-                <select value={recordMethod} onChange={(e) => setRecordMethod(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                  {PAYMENT_METHODS.map((m) => (
-                    <option key={m} value={m}>{m.replace(/_/g, " ")}</option>
-                  ))}
-                </select>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-500">Reference (optional)</label>

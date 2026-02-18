@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
@@ -10,6 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/input";
+
+type ReadingRow = {
+  id: string;
+  value: number | string;
+  unit: string | null;
+  recordedAt: string;
+};
 
 const STATUSES = ["PENDING", "ACTIVE", "SUSPENDED", "OVERDUE", "INACTIVE"] as const;
 
@@ -73,6 +80,19 @@ export default function MeterDetailPage() {
     collectorId: "",
     priceId: "",
   });
+
+  function getDefaultMonthRange() {
+    const now = new Date();
+    const to = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const fromDate = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    const from = `${fromDate.getFullYear()}-${String(fromDate.getMonth() + 1).padStart(2, "0")}`;
+    return { from, to };
+  }
+  const defaultRange = getDefaultMonthRange();
+  const [chartMonthFrom, setChartMonthFrom] = useState(defaultRange.from);
+  const [chartMonthTo, setChartMonthTo] = useState(defaultRange.to);
+  const [chartData, setChartData] = useState<{ month: string; value: number; label: string }[]>([]);
+  const [chartLoading, setChartLoading] = useState(false);
 
   function getToken() {
     if (typeof window === "undefined") return null;
@@ -186,6 +206,49 @@ export default function MeterDetailPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  const loadChartReadings = useCallback(() => {
+    const t = getToken();
+    if (!t || !id || !chartMonthFrom || !chartMonthTo) return;
+    const [yFrom, mFrom] = chartMonthFrom.split("-").map(Number);
+    const [yTo, mTo] = chartMonthTo.split("-").map(Number);
+    const fromDate = new Date(yFrom, mFrom - 1, 1);
+    const toDate = new Date(yTo, mTo, 0, 23, 59, 59, 999);
+    const from = fromDate.toISOString().slice(0, 10);
+    const to = toDate.toISOString().slice(0, 10);
+    setChartLoading(true);
+    fetch(
+      `/api/tenant/meter-readings?meterId=${encodeURIComponent(id)}&from=${from}&to=${to}&limit=500`,
+      { headers: { Authorization: `Bearer ${t}` } }
+    )
+      .then((r) => r.json())
+      .then((data) => {
+        const list: ReadingRow[] = data.readings ?? [];
+        const byMonth: Record<string, { value: number; count: number }> = {};
+        list.forEach((r) => {
+          const d = new Date(r.recordedAt);
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+          if (!byMonth[key]) byMonth[key] = { value: 0, count: 0 };
+          byMonth[key].value = Number(r.value);
+          byMonth[key].count += 1;
+        });
+        const sorted = Object.entries(byMonth)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([month, { value }]) => ({
+            month,
+            value,
+            label: new Date(month + "-01").toLocaleDateString(undefined, { month: "short", year: "numeric" }),
+          }));
+        setChartData(sorted);
+      })
+      .catch(() => setChartData([]))
+      .finally(() => setChartLoading(false));
+  }, [id, chartMonthFrom, chartMonthTo]);
+
+  useEffect(() => {
+    if (!id) return;
+    loadChartReadings();
+  }, [id, loadChartReadings]);
+
   function startEditing() {
     if (!meter) return;
     setForm({
@@ -264,28 +327,43 @@ export default function MeterDetailPage() {
 
   const statusVariant = (s: string) => (s === "ACTIVE" ? "success" : s === "OVERDUE" || s === "SUSPENDED" ? "warning" : "default");
 
+  const maxChartValue = chartData.length ? Math.max(...chartData.map((d) => d.value), 1) : 1;
+
   return (
     <div>
-      <div className="mb-6 flex items-center gap-3">
-        <Link href="/meters" className="text-slate-500 hover:text-slate-700 text-sm font-medium">
-          ← Meters
-        </Link>
-      </div>
-      <PageHeader
-        title={`Meter ${meter.meterNumber}`}
-        description={meter.customerName}
-        action={
-          !editing ? (
-            <div className="flex flex-wrap items-center gap-2">
+      <Link href="/meters" className="mb-4 inline-flex items-center text-sm font-medium text-slate-500 transition hover:text-teal-600 dark:hover:text-slate-400 dark:hover:text-teal-400">
+        ← Back to meters
+      </Link>
+
+      {/* Hero / header block */}
+      <div className="mb-8 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50/80 p-6 shadow-sm dark:border-slate-700 dark:from-slate-900/50 dark:to-slate-800/50">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">
+                Meter {meter.meterNumber}
+              </h1>
+              <Badge variant={statusVariant(meter.status)}>{meter.status}</Badge>
+            </div>
+            <p className="mt-1 text-lg text-slate-600 dark:text-slate-300">{meter.customerName}</p>
+            {(meter.zone?.name || meter.section || meter.address) && (
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {[meter.zone?.name, meter.section, meter.address].filter(Boolean).join(" · ")}
+              </p>
+            )}
+          </div>
+          {!editing && (
+            <div className="flex flex-wrap gap-2">
               <Link href={`/meters/${id}/readings`}>
                 <Button variant="secondary" size="sm">Meter readings</Button>
               </Link>
               <Button variant="secondary" onClick={startEditing}>Edit meter</Button>
             </div>
-          ) : null
-        }
-      />
-      {error && <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{error}</div>}
+          )}
+        </div>
+      </div>
+
+      {error && <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">{error}</div>}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="lg:col-span-2">
@@ -509,6 +587,67 @@ export default function MeterDetailPage() {
                   <dd className="mt-0.5 text-sm text-slate-600">{meter.price ? `${meter.price.name} (${Number(meter.price.pricePerCubic).toFixed(4)}/m³)` : "—"}</dd>
                 </div>
               </dl>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Readings by month chart */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <span className="font-semibold text-slate-900 dark:text-slate-100">Readings by month</span>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                From
+                <input
+                  type="month"
+                  value={chartMonthFrom}
+                  onChange={(e) => setChartMonthFrom(e.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                />
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                To
+                <input
+                  type="month"
+                  value={chartMonthTo}
+                  onChange={(e) => setChartMonthTo(e.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                />
+              </label>
+              <Button variant="secondary" size="sm" onClick={loadChartReadings} disabled={chartLoading}>
+                {chartLoading ? "Loading…" : "Apply"}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {chartLoading && chartData.length === 0 ? (
+              <div className="flex h-64 items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800/30">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-teal-600" />
+              </div>
+            ) : chartData.length === 0 ? (
+              <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 py-16 text-center text-sm text-slate-500 dark:border-slate-600 dark:bg-slate-800/20 dark:text-slate-400">
+                No readings in this range. Try a different month range or add readings from Meter readings.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-end gap-2 overflow-x-auto pb-2" style={{ minHeight: "220px" }}>
+                  {chartData.map((d) => (
+                    <div key={d.month} className="flex min-w-[48px] flex-1 flex-col items-center gap-2">
+                      <div className="w-full flex-1 flex flex-col justify-end">
+                        <div
+                          className="w-full rounded-t bg-teal-500 dark:bg-teal-600 transition hover:bg-teal-600 dark:hover:bg-teal-500"
+                          style={{ height: `${Math.max(8, (d.value / maxChartValue) * 180)}px` }}
+                          title={`${d.label}: ${d.value} m³`}
+                        />
+                      </div>
+                      <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{d.label}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+                  Reading value (m³) per month. Hover over bars for values.
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>

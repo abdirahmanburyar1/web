@@ -31,7 +31,22 @@ export async function GET(req: Request) {
   if (zoneId) where.zoneId = zoneId;
   if (status && METER_STATUSES.includes(status as typeof METER_STATUSES[number])) where.status = status;
   if (collectorId) where.collectorId = collectorId;
-  const [meters, total] = await Promise.all([
+
+  const baseWhere: Record<string, unknown> = { tenantId: user.tenantId! };
+  if (search) {
+    baseWhere.OR = [
+      { meterNumber: { contains: search, mode: 'insensitive' } },
+      { customerName: { contains: search, mode: 'insensitive' } },
+      { customerPhone: { contains: search, mode: 'insensitive' } },
+      { residentPhone: { contains: search, mode: 'insensitive' } },
+      { address: { contains: search, mode: 'insensitive' } },
+      { plateNumber: { contains: search, mode: 'insensitive' } },
+    ];
+  }
+  if (zoneId) baseWhere.zoneId = zoneId;
+  if (collectorId) baseWhere.collectorId = collectorId;
+
+  const [meters, total, summaryCounts] = await Promise.all([
     prisma.meter.findMany({
       where,
       skip,
@@ -44,8 +59,25 @@ export async function GET(req: Request) {
       },
     }),
     prisma.meter.count({ where }),
+    prisma.meter.groupBy({
+      by: ['status'],
+      where: baseWhere,
+      _count: { id: true },
+    }),
   ]);
-  return NextResponse.json({ meters, total, page, limit });
+
+  const summaryByStatus = Object.fromEntries(
+    METER_STATUSES.map((s) => [s, summaryCounts.find((g) => g.status === s)?._count.id ?? 0])
+  ) as Record<string, number>;
+  const summaryAll = Object.values(summaryByStatus).reduce((a, b) => a + b, 0);
+
+  return NextResponse.json({
+    meters,
+    total,
+    page,
+    limit,
+    summary: { all: summaryAll, ...summaryByStatus },
+  });
 }
 
 export async function POST(req: Request) {

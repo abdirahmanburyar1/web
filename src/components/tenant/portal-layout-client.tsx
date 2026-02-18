@@ -7,6 +7,8 @@ import { TenantSidebar } from "./sidebar";
 import { AppNavbar } from "@/components/ui/app-navbar";
 import { getTenantNavTitle } from "@/lib/nav-titles";
 
+const SIDEBAR_COLLAPSED_KEY = "aquatrack-sidebar-collapsed";
+
 function getToken() {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("token");
@@ -20,6 +22,9 @@ export function TenantPortalLayoutClient({ children }: { children: React.ReactNo
   const [mounted, setMounted] = useState(false);
   const [me, setMe] = useState<Me>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
+    typeof window !== "undefined" ? localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true" : false
+  );
   const isLogin = pathname === "/login";
   const isCollector = me?.roleType === "COLLECTOR";
   const isCollectorGate = pathname === "/collector";
@@ -67,7 +72,8 @@ export function TenantPortalLayoutClient({ children }: { children: React.ReactNo
 
   const navTitle = getTenantNavTitle(pathname);
 
-  // All tenant users (including collectors) see sidebar + navbar + main
+  // All tenant users (including collectors) see sidebar + navbar + main. Sidebar is fixed; only main scrolls.
+  const contentLeft = sidebarCollapsed ? "pl-[4.5rem]" : "pl-64";
   return (
     <ThemeProvider>
       <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">
@@ -75,8 +81,10 @@ export function TenantPortalLayoutClient({ children }: { children: React.ReactNo
           mobileOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           user={me}
+          collapsed={sidebarCollapsed}
+          onCollapsedChange={setSidebarCollapsed}
         />
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className={`flex min-h-0 min-w-0 flex-1 flex-col transition-[padding] duration-200 ${contentLeft}`}>
           <AppNavbar
             title={navTitle.title}
             subtitle={navTitle.subtitle}

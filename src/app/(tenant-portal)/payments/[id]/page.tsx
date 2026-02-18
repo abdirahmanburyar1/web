@@ -116,7 +116,9 @@ export default function PaymentDetailPage() {
   function handleAddReceipt(e: React.FormEvent) {
     e.preventDefault();
     if (!payment || !getToken() || addingReceipt) return;
-    const amount = addAmount.trim() ? parseFloat(addAmount) : payment.amount;
+    const paidSoFar = payment.receipts.reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
+    const balanceDue = Math.round((Number(payment.amount) - paidSoFar) * 100) / 100;
+    const amount = addAmount.trim() ? parseFloat(addAmount) : balanceDue;
     if (Number.isNaN(amount) || amount < 0) return;
     setAddingReceipt(true);
     fetch(`/api/tenant/payments/${id}/receipts`, {
@@ -153,7 +155,9 @@ export default function PaymentDetailPage() {
   }
 
   function openAddReceiptModal() {
-    setAddAmount(String(payment?.amount ?? ""));
+    const paid = payment?.receipts.reduce((sum, r) => sum + Number(r.amount ?? 0), 0) ?? 0;
+    const balanceDue = payment ? Math.round((Number(payment.amount) - paid) * 100) / 100 : 0;
+    setAddAmount(String(balanceDue));
     setAddAccount(moneyAccounts[0]?.name ?? "");
     setAddReceiptModalOpen(true);
   }
@@ -282,7 +286,7 @@ export default function PaymentDetailPage() {
           <p className="text-sm text-slate-600 dark:text-slate-300">Meter: {payment.meter?.meterNumber ?? "—"}</p>
         </div>
 
-        {/* Metadata table: Collector, Reference, Method (Terms) */}
+        {/* Metadata table: Collector, Reference, Account(s), Status */}
         <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-700">
           <table className="min-w-full text-sm">
             <tbody>
@@ -293,8 +297,12 @@ export default function PaymentDetailPage() {
                 <td className="py-1 text-slate-900 dark:text-slate-100">{payment.reference || "—"}</td>
               </tr>
               <tr>
-                <th className="py-1 pr-4 text-left font-semibold text-slate-600 dark:text-slate-400">Method</th>
-                <td className="py-1 text-slate-900 dark:text-slate-100">{METHOD_SOMALI[payment.method] ?? payment.method}</td>
+                <th className="py-1 pr-4 text-left font-semibold text-slate-600 dark:text-slate-400">Account(s)</th>
+                <td className="py-1 text-slate-900 dark:text-slate-100">
+                  {payment.receipts.length > 0
+                    ? [...new Set(payment.receipts.map((r) => r.paymentAccount).filter(Boolean))].join(", ") || "—"
+                    : "—"}
+                </td>
                 <th className="py-1 pr-4 text-left font-semibold text-slate-600 dark:text-slate-400">Status</th>
                 <td className="py-1">
                   <span

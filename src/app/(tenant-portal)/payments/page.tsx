@@ -304,7 +304,9 @@ export default function PaymentsPage() {
   function handleAddReceipt(e: React.FormEvent) {
     e.preventDefault();
     if (!receiptsModal || !getToken() || addingReceipt) return;
-    const amount = addAmountReceived.trim() ? parseFloat(addAmountReceived) : receiptsModal.paymentAmount;
+    const paidSoFar = receipts.reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
+    const remainingBalance = Math.round((receiptsModal.paymentAmount - paidSoFar) * 100) / 100;
+    const amount = addAmountReceived.trim() ? parseFloat(addAmountReceived) : remainingBalance;
     if (Number.isNaN(amount) || amount < 0) return;
     setAddingReceipt(true);
     fetch(`/api/tenant/payments/${receiptsModal.paymentId}/receipts`, {
@@ -314,8 +316,10 @@ export default function PaymentsPage() {
     })
       .then((r) => r.json())
       .then((receipt) => {
-        if (receipt.id) setReceipts((prev) => [{ ...receipt, paymentAccount: receipt.paymentAccount ?? null, paidAt: receipt.paidAt ?? new Date().toISOString() }, ...prev]);
-        setAddAmountReceived(String(receiptsModal.paymentAmount));
+        if (receipt.id) setReceipts((prev) => [{ ...receipt, paymentAccount: receipt.paymentAccount ?? null, receivedBy: receipt.receivedBy ?? null, paidAt: receipt.paidAt ?? new Date().toISOString() }, ...prev]);
+        const newPaid = receipts.reduce((sum, r) => sum + Number(r.amount ?? 0), 0) + Number(receipt.amount ?? amount);
+        const newBalance = Math.round((receiptsModal.paymentAmount - newPaid) * 100) / 100;
+        setAddAmountReceived(String(newBalance));
         setAddAccount(moneyAccounts[0]?.name ?? "");
         setAddReceiptModalOpen(false);
         loadPayments();
@@ -324,7 +328,9 @@ export default function PaymentsPage() {
   }
 
   function openAddReceiptModal() {
-    setAddAmountReceived(String(receiptsModal?.paymentAmount ?? ""));
+    const paid = receipts.reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
+    const remainingBalance = receiptsModal ? Math.round((receiptsModal.paymentAmount - paid) * 100) / 100 : 0;
+    setAddAmountReceived(String(remainingBalance));
     setAddAccount(moneyAccounts[0]?.name ?? "");
     setAddReceiptModalOpen(true);
   }

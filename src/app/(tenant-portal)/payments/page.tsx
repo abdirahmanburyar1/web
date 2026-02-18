@@ -19,6 +19,7 @@ type Payment = {
   recordedAt: string;
   paidAmount?: number;
   balance?: number;
+  receiptAccounts?: string[]; // money account(s) that received the payment (from receipts)
   meter?: { id: string; meterNumber: string; customerName: string } | null;
   collector?: { id: string; fullName: string } | null;
   invoice?: { id: string; amount: number | string; balance: number | string; status: string } | null;
@@ -227,7 +228,7 @@ export default function PaymentsPage() {
       .then((d) => {
         if (d.error) return;
         const list = (d.payments ?? []) as Payment[];
-        const headers = ["Date", "Payment #", "Meter", "Customer", "Amount", "Paid", "Balance", "Collector", "Reference", "Type"];
+        const headers = ["Date", "Payment #", "Meter", "Customer", "Amount", "Paid", "Balance", "Collector", "Reference", "Account", "Type"];
         const rows = list.map((p) => [
           new Date(p.recordedAt).toLocaleString(),
           p.paymentNumber ?? "",
@@ -238,6 +239,7 @@ export default function PaymentsPage() {
           Number(p.balance ?? p.amount).toFixed(2),
           p.collector?.fullName ?? "",
           p.reference ?? "",
+          (p.receiptAccounts?.length ? p.receiptAccounts.join(", ") : "") || p.method?.replace(/_/g, " ") || "",
           paymentStatusLabel(p),
         ]);
         const data = [headers, ...rows];
@@ -494,7 +496,11 @@ export default function PaymentsPage() {
                   <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Time</th>
                   <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Date</th>
                   <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Customer</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Meter</th>
+                  <th className="px-3 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Paid</th>
                   <th className="px-3 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Amount</th>
+                  <th className="px-3 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">Balance</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Account</th>
                   <th className="w-12 px-3 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500"></th>
                 </tr>
               </thead>
@@ -503,6 +509,21 @@ export default function PaymentsPage() {
                   const label = paymentStatusLabel(p);
                   const showReceipts = !(p.status === "TRANSFERRED" && (p._count?.receipts ?? 0) === 0);
                   const isOpen = openRowId === p.id;
+                  const amt = Number(p.amount);
+                  const paid = Number(p.paidAmount ?? 0);
+                  const bal = Number(p.balance ?? amt);
+                  const accountLabel = (p.receiptAccounts?.length ? p.receiptAccounts.join(", ") : null) ?? p.method?.replace(/_/g, " ") ?? "—";
+                  const receiptCount = p._count?.receipts ?? 0;
+                  const richDescription = (() => {
+                    const parts: string[] = [];
+                    if (p.reference?.trim()) parts.push(`Ref: ${p.reference.trim()}`);
+                    if (p.meter?.meterNumber) parts.push(`Meter ${p.meter.meterNumber}`);
+                    parts.push(accountLabel);
+                    parts.push(`Paid $${paid.toFixed(2)} / $${amt.toFixed(2)}`);
+                    if (bal !== 0) parts.push(`Bal. $${bal.toFixed(2)}`);
+                    if (receiptCount > 0) parts.push(`${receiptCount} receipt${receiptCount !== 1 ? "s" : ""}`);
+                    return parts.join(" · ") || "—";
+                  })();
                   return (
                     <tr key={p.id} className="hover:bg-slate-50/50">
                       <td className="w-10 px-3 py-3">
@@ -531,8 +552,8 @@ export default function PaymentsPage() {
                           {label}
                         </span>
                       </td>
-                      <td className="max-w-[160px] truncate px-3 py-3 text-sm text-slate-600" title={p.reference ?? ""}>
-                        {p.reference || (p.invoice ? "Payment for invoice" : "—")}
+                      <td className="max-w-[220px] truncate px-3 py-3 text-sm text-slate-600" title={richDescription}>
+                        {richDescription}
                       </td>
                       <td className="whitespace-nowrap px-3 py-3 text-sm text-slate-600">
                         {new Date(p.recordedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
@@ -541,7 +562,11 @@ export default function PaymentsPage() {
                         {new Date(p.recordedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                       </td>
                       <td className="px-3 py-3 text-sm text-slate-900">{p.meter?.customerName ?? "—"}</td>
-                      <td className="px-3 py-3 text-right text-sm font-medium text-slate-900">${Number(p.amount).toFixed(2)}</td>
+                      <td className="px-3 py-3 font-mono text-sm text-slate-600">{p.meter?.meterNumber ?? "—"}</td>
+                      <td className="px-3 py-3 text-right text-sm text-slate-700">${paid.toFixed(2)}</td>
+                      <td className="px-3 py-3 text-right text-sm font-medium text-slate-900">${amt.toFixed(2)}</td>
+                      <td className="px-3 py-3 text-right text-sm font-medium text-slate-800">${bal.toFixed(2)}</td>
+                      <td className="max-w-[140px] truncate px-3 py-3 text-xs text-slate-600" title={accountLabel}>{accountLabel}</td>
                       <td className="relative w-12 px-3 py-3 text-right">
                         <button
                           type="button"

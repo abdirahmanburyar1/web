@@ -82,6 +82,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.dark body {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  --card: #1e293b;
+  --border: #334155;
+}
+
 /* ==========================================================================
    Container queries – use @container on a parent, then @sm:/@md:/@lg: on children
    Example: <section class="@container"> ... <div class="@md:grid-cols-2"> ...

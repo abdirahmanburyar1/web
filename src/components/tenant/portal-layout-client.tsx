@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { ThemeProvider } from "@/lib/theme";
 import { TenantSidebar } from "./sidebar";
 import { CollectorSidebar } from "@/components/collector/sidebar";
 
@@ -11,7 +12,7 @@ function getToken() {
   return localStorage.getItem("token");
 }
 
-type Me = { id: string; roleType: string } | null;
+type Me = { id: string; roleType: string; fullName?: string } | null;
 
 export function TenantPortalLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -33,7 +34,7 @@ export function TenantPortalLayoutClient({ children }: { children: React.ReactNo
     fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((data) => {
-        if (data.id && data.roleType) setMe({ id: data.id, roleType: data.roleType });
+        if (data.id && data.roleType) setMe({ id: data.id, roleType: data.roleType, fullName: data.fullName });
       })
       .catch(() => setMe(null));
   }, [mounted, isLogin, router]);
@@ -66,10 +67,15 @@ export function TenantPortalLayoutClient({ children }: { children: React.ReactNo
   const headerLabel = isCollectorApp ? "Collector app" : "Tenant Portal";
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar mobileOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <ThemeProvider>
+      <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">
+        <Sidebar
+          mobileOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          user={me}
+        />
       <div className="flex flex-1 flex-col min-w-0">
-        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-6">
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 sm:px-6">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
@@ -80,7 +86,7 @@ export function TenantPortalLayoutClient({ children }: { children: React.ReactNo
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <span className="text-sm font-medium text-slate-500 lg:ml-0">{headerLabel}</span>
+          <span className="text-sm font-medium text-slate-500 dark:text-slate-400 lg:ml-0">{headerLabel}</span>
           {!isCollectorApp && (
             <Link
               href="/login"
@@ -88,7 +94,7 @@ export function TenantPortalLayoutClient({ children }: { children: React.ReactNo
                 localStorage.removeItem("token");
                 localStorage.removeItem("portal");
               }}
-              className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-teal-700"
+              className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-teal-700 dark:text-slate-300 dark:hover:bg-slate-700"
             >
               Sign out
             </Link>
@@ -96,6 +102,7 @@ export function TenantPortalLayoutClient({ children }: { children: React.ReactNo
         </header>
         <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
       </div>
-    </div>
+      </div>
+    </ThemeProvider>
   );
 }

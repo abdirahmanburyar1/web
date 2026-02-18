@@ -82,18 +82,10 @@ export default function PaymentsPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [meters, setMeters] = useState<Array<{ id: string; meterNumber: string; customerName: string }>>([]);
   const [collectors, setCollectors] = useState<Array<{ id: string; fullName: string }>>([]);
   const [tenantName, setTenantName] = useState("");
   // Snapshot of account name + number only (no id); used as plain text on receipt so it stays correct if accounts are changed later
   const [moneyAccounts, setMoneyAccounts] = useState<Array<{ id: string; name: string; accountNumber: string | null }>>([]);
-
-  const [recordModalOpen, setRecordModalOpen] = useState(false);
-  const [recordMeterId, setRecordMeterId] = useState("");
-  const [recordAmount, setRecordAmount] = useState("");
-  const [recordReference, setRecordReference] = useState("");
-  const [recordSubmitting, setRecordSubmitting] = useState(false);
-  const [recordError, setRecordError] = useState("");
   const [exporting, setExporting] = useState(false);
 
   const [receiptsModal, setReceiptsModal] = useState<{
@@ -169,10 +161,6 @@ export default function PaymentsPage() {
         if (me?.tenant?.name) setTenantName(me.tenant.name);
       })
       .catch(() => {});
-    fetch("/api/tenant/meters?limit=500", { headers: { Authorization: `Bearer ${t}` } })
-      .then((r) => r.json())
-      .then((d) => setMeters(d?.meters ?? []))
-      .catch(() => {});
     fetch("/api/tenant/users", { headers: { Authorization: `Bearer ${t}` } })
       .then((r) => r.json())
       .then((d) => setCollectors(d?.users ?? []))
@@ -185,36 +173,6 @@ export default function PaymentsPage() {
       })
       .catch(() => {});
   }, []);
-
-  function handleRecordPayment(e: React.FormEvent) {
-    e.preventDefault();
-    const t = getToken();
-    if (!t || !recordMeterId || !recordAmount || Number(recordAmount) <= 0) return;
-    setRecordSubmitting(true);
-    setRecordError("");
-    fetch("/api/tenant/payments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
-      body: JSON.stringify({
-        meterId: recordMeterId,
-        amount: Number(recordAmount),
-        reference: recordReference.trim() || undefined,
-      }),
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.error) {
-          setRecordError(d.error);
-          return;
-        }
-        setRecordModalOpen(false);
-        setRecordMeterId("");
-        setRecordAmount("");
-        setRecordReference("");
-        loadPayments();
-      })
-      .finally(() => setRecordSubmitting(false));
-  }
 
   function handleExport() {
     const t = getToken();
@@ -411,16 +369,11 @@ export default function PaymentsPage() {
     <div>
       <PageHeader
         title="Payments"
-        description="View and record payments, print receipts, and export data."
+        description="View payments, print receipts, and export data."
         action={
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={handleExport} disabled={exporting || !data}>
-              {exporting ? "Exporting…" : "Export"}
-            </Button>
-            <Button variant="primary" size="sm" onClick={() => setRecordModalOpen(true)}>
-              New payment
-            </Button>
-          </div>
+          <Button variant="ghost" size="sm" onClick={handleExport} disabled={exporting || !data}>
+            {exporting ? "Exporting…" : "Export"}
+          </Button>
         }
       />
 
@@ -735,48 +688,6 @@ export default function PaymentsPage() {
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="secondary" onClick={() => setAddReceiptModalOpen(false)}>Cancel</Button>
                 <Button type="submit" disabled={addingReceipt}>{addingReceipt ? "Adding…" : "Add receipt"}</Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {recordModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={() => !recordSubmitting && setRecordModalOpen(false)}>
-          <div className="w-full max-w-md rounded-xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="border-b border-slate-200 px-4 py-3">
-              <h2 className="text-lg font-semibold text-slate-900">Record payment</h2>
-              <p className="text-sm text-slate-500">Create a payment for a meter. Add one or more receipts (each with its own account) from the payment detail page. Invoice (if any) will be updated.</p>
-            </div>
-            <form onSubmit={handleRecordPayment} className="p-4 space-y-4">
-              {recordError && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{recordError}</p>}
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500">Meter</label>
-                <select
-                  value={recordMeterId}
-                  onChange={(e) => setRecordMeterId(e.target.value)}
-                  required
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                >
-                  <option value="">Select meter</option>
-                  {meters.map((m) => (
-                    <option key={m.id} value={m.id}>{m.meterNumber} — {m.customerName}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500">Amount ($)</label>
-                <Input type="number" step="0.01" min="0.01" value={recordAmount} onChange={(e) => setRecordAmount(e.target.value)} placeholder="0.00" required />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500">Reference (optional)</label>
-                <Input value={recordReference} onChange={(e) => setRecordReference(e.target.value)} placeholder="Transaction ID, note…" />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="secondary" onClick={() => !recordSubmitting && setRecordModalOpen(false)}>Cancel</Button>
-                <Button type="submit" disabled={recordSubmitting || !recordMeterId || !recordAmount || Number(recordAmount) <= 0}>
-                  {recordSubmitting ? "Recording…" : "Record payment"}
-                </Button>
               </div>
             </form>
           </div>

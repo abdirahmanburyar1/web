@@ -13,6 +13,8 @@ export default function TenantDashboardPage() {
     paymentsThisMonth: number;
     totalCollectedThisMonth: number;
     overdueInvoices: number;
+    outstandingBalance?: number;
+    openComplaints?: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -52,29 +54,40 @@ export default function TenantDashboardPage() {
   }
 
   const statCards = [
-    { label: "Active meters", value: stats!.metersCount, color: "text-slate-900" },
-    { label: "Payments this month", value: stats!.paymentsThisMonth, color: "text-slate-900" },
-    { label: "Collected this month", value: `$${Number(stats!.totalCollectedThisMonth).toFixed(2)}`, color: "text-emerald-600" },
-    { label: "Overdue invoices", value: stats!.overdueInvoices, color: "text-amber-600" },
+    { label: "Active meters", value: stats!.metersCount, color: "text-slate-900", href: "/meters" },
+    { label: "Payments this month", value: stats!.paymentsThisMonth, color: "text-slate-900", href: "/payments" },
+    { label: "Collected this month", value: `$${Number(stats!.totalCollectedThisMonth).toFixed(2)}`, color: "text-emerald-600", href: "/payments" },
+    { label: "Overdue invoices", value: stats!.overdueInvoices, color: "text-amber-600", href: "/invoices" },
+    { label: "Outstanding balance", value: `$${Number(stats!.outstandingBalance ?? 0).toFixed(2)}`, color: "text-amber-600", href: "/billing/revenue" },
+    { label: "Open complaints", value: stats!.openComplaints ?? 0, color: "text-slate-900", href: "/customers/complaints" },
   ];
 
   return (
     <div>
       <PageHeader
         title="Dashboard"
-        description="Overview of your meters and collections."
+        description="Overview of your meters, collections, and operations."
       />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {statCards.map((s) => (
-          <Card key={s.label} className="transition-shadow hover:shadow-md">
-            <CardContent className="p-5 sm:p-6">
-              <p className="text-sm font-medium text-slate-500">{s.label}</p>
-              <p className={`mt-2 text-2xl font-bold tracking-tight sm:text-3xl ${s.color}`}>
-                {s.value}
-              </p>
-            </CardContent>
-          </Card>
+          <Link key={s.label} href={s.href}>
+            <Card className="transition-shadow hover:shadow-md h-full">
+              <CardContent className="p-5 sm:p-6">
+                <p className="text-sm font-medium text-slate-500">{s.label}</p>
+                <p className={`mt-2 text-2xl font-bold tracking-tight sm:text-3xl ${s.color}`}>
+                  {s.value}
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
+      </div>
+      <div className="mt-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 p-4">
+        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Collector performance</p>
+        <p className="mt-1 text-sm text-slate-500">View metrics and leaderboard in Workforce → Performance.</p>
+        <Link href="/workforce/performance" className="mt-2 inline-block text-sm font-medium text-teal-600 dark:text-teal-400 hover:underline">
+          Go to Performance →
+        </Link>
       </div>
     </div>
   );

@@ -61,6 +61,36 @@ enum MeterStatus {
   INACTIVE
 }
 
+enum ComplaintStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum ServiceRequestStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ExpenseStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum PayableStatus {
+  DRAFT
+  PENDING
+  SCHEDULED
+  PAID
+  CANCELLED
+}
+
 // Platform Models
 
 model PlatformSetting {
@@ -134,7 +164,16 @@ model Tenant {
   paymentReceipts   PaymentReceipt[]
   platformPayments  PlatformPayment[]
   auditLogs         AuditLog[]
-  moneyAccounts    TenantMoneyAccount[]
+  moneyAccounts     TenantMoneyAccount[]
+  readingCycles     ReadingCycle[]
+  expenses          Expense[]
+  payables          Payable[]
+  receivables       Receivable[]
+  vendors           Vendor[]
+  complaints        Complaint[]
+  serviceRequests   ServiceRequest[]
+  commissionPolicies CollectorCommissionPolicy[]
+  collectorCommissions CollectorCommission[]
 
   @@map("tenants")
 }
@@ -197,6 +236,7 @@ model User {
   auditLogs         AuditLog[]
   meterReadings     MeterReading[]
   receivedReceipts  PaymentReceipt[]
+  collectorCommissions CollectorCommission[]
 
   @@map("users")
   @@index([tenantId])
@@ -455,4 +495,186 @@ model AuditLog {
   @@map("audit_logs")
   @@index([tenantId])
   @@index([userId])
+}
+
+// ----- Operations Module -----
+model ReadingCycle {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String   // e.g. "January 2025"
+  startDate   DateTime
+  endDate     DateTime
+  isClosed    Boolean  @default(false)  // lock readings after close
+  closedAt    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("reading_cycles")
+  @@index([tenantId])
+  @@index([tenantId, endDate(sort: Desc)])
+}
+
+// ----- Financial Management Module -----
+model Vendor {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  contactName String?
+  phone       String?
+  email       String?
+  address     String?
+  taxId       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  expenses    Expense[]
+  payables    Payable[]
+
+  @@map("vendors")
+  @@index([tenantId])
+}
+
+model Expense {
+  id          String       @id @default(uuid())
+  tenantId    String
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vendorId    String?
+  vendor      Vendor?      @relation(fields: [vendorId], references: [id])
+  amount      Decimal      @db.Decimal(10, 2)
+  currency    String       @default("USD")
+  status      ExpenseStatus @default(DRAFT)
+  category    String?      // e.g. fuel, maintenance, salary
+  zoneId      String?      // optional link to zone
+  description String?
+  expenseDate DateTime
+  paidAt      DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("expenses")
+  @@index([tenantId])
+  @@index([tenantId, expenseDate(sort: Desc)])
+  @@index([vendorId])
+}
+
+model Payable {
+  id          String        @id @default(uuid())
+  tenantId    String
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vendorId    String?
+  vendor      Vendor?       @relation(fields: [vendorId], references: [id])
+  amount      Decimal       @db.Decimal(10, 2)
+  currency    String        @default("USD")
+  status      PayableStatus @default(DRAFT)
+  dueDate     DateTime
+  description String?
+  paidAt      DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("payables")
+  @@index([tenantId])
+  @@index([tenantId, dueDate(sort: Asc)])
+  @@index([vendorId])
+}
+
+model Receivable {
+  id            String   @id @default(uuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  meterId       String?  // link to meter/customer
+  amount        Decimal  @db.Decimal(10, 2)
+  currency      String   @default("USD")
+  description   String?
+  dueDate       DateTime
+  receivedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("receivables")
+  @@index([tenantId])
+  @@index([tenantId, dueDate(sort: Asc)])
+}
+
+// ----- Workforce Module -----
+model CollectorCommissionPolicy {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  type        String   // PER_READING, PER_COLLECTION, PERCENTAGE, BONUS
+  value       Decimal  @db.Decimal(10, 4)  // amount or percentage
+  isActive    Boolean  @default(true)
+  validFrom   DateTime @default(now())
+  validTo     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  commissions CollectorCommission[]
+
+  @@map("collector_commission_policies")
+  @@index([tenantId])
+}
+
+model CollectorCommission {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  policyId    String?
+  policy      CollectorCommissionPolicy? @relation(fields: [policyId], references: [id])
+  collectorId String
+  collector   User     @relation(fields: [collectorId], references: [id])
+  amount      Decimal  @db.Decimal(10, 2)
+  type        String?  // reading, collection, bonus
+  referenceId String?  // meterReadingId or paymentId
+  periodStart DateTime?
+  periodEnd   DateTime?
+  createdAt   DateTime @default(now())
+
+  @@map("collector_commissions")
+  @@index([tenantId])
+  @@index([collectorId])
+  @@index([tenantId, createdAt(sort: Desc)])
+}
+
+// ----- Customer Management Module -----
+model Complaint {
+  id          String         @id @default(uuid())
+  tenantId    String
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  meterId     String?        // optional link to meter/customer
+  subject     String
+  description String?
+  status      ComplaintStatus @default(NEW)
+  priority    String?        // low, medium, high
+  assignedToId String?
+  resolvedAt  DateTime?
+  closedAt    DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("complaints")
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([meterId])
+}
+
+model ServiceRequest {
+  id          String              @id @default(uuid())
+  tenantId    String
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  meterId     String?
+  title       String
+  description String?
+  status      ServiceRequestStatus @default(OPEN)
+  requestedAt DateTime           @default(now())
+  completedAt DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@map("service_requests")
+  @@index([tenantId])
+  @@index([tenantId, status])
 }

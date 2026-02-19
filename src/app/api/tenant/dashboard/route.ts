@@ -12,7 +12,7 @@ export async function GET(req: Request) {
   const tenantId = user.tenantId!;
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const [metersCount, paymentsThisMonth, totalCollectedThisMonth, overdueInvoices] = await Promise.all([
+  const [metersCount, paymentsThisMonth, totalCollectedThisMonth, overdueInvoices, outstandingBalance, openComplaints] = await Promise.all([
     prisma.meter.count({ where: { tenantId, status: 'ACTIVE' } }),
     prisma.payment.count({
       where: { tenantId, recordedAt: { gte: startOfMonth } },
@@ -28,11 +28,24 @@ export async function GET(req: Request) {
         dueDate: { lt: now },
       },
     }),
+    prisma.invoice.aggregate({
+      where: {
+        tenantId,
+        status: { in: ['PENDING', 'PARTIAL', 'OVERDUE'] },
+        balance: { gt: 0 },
+      },
+      _sum: { balance: true },
+    }),
+    prisma.complaint.count({
+      where: { tenantId, status: { notIn: ['RESOLVED', 'CLOSED'] } },
+    }).catch(() => 0),
   ]);
   return NextResponse.json({
     metersCount,
     paymentsThisMonth,
     totalCollectedThisMonth: totalCollectedThisMonth._sum.amount ?? 0,
     overdueInvoices,
+    outstandingBalance: Number(outstandingBalance._sum.balance ?? 0),
+    openComplaints,
   });
 }

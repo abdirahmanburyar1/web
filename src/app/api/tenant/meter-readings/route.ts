@@ -11,6 +11,7 @@ export async function GET(req: Request) {
   }
   const { searchParams } = new URL(req.url);
   const meterId = searchParams.get('meterId')?.trim();
+  const zoneId = searchParams.get('zoneId')?.trim();
   const searchMeter = searchParams.get('search')?.trim(); // meter number or customer name
   const recordedById = searchParams.get('recordedById')?.trim();
   const from = searchParams.get('from')?.trim();
@@ -19,9 +20,10 @@ export async function GET(req: Request) {
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '25', 10)));
   const skip = (page - 1) * limit;
   const tenantId = user.tenantId!;
-  const meterWhere: { tenantId: string; id?: string; OR?: Array<{ meterNumber?: string; plateNumber?: string; customerName?: { contains: string; mode: 'insensitive' } }> } = { tenantId };
+  const meterWhere: { tenantId: string; id?: string; zoneId?: string; OR?: Array<{ meterNumber?: string; plateNumber?: string; customerName?: { contains: string; mode: 'insensitive' } }> } = { tenantId };
   if (meterId) meterWhere.id = meterId;
-  else if (searchMeter) {
+  if (zoneId) meterWhere.zoneId = zoneId;
+  if (searchMeter && !meterId) {
     meterWhere.OR = [
       { meterNumber: searchMeter },
       { plateNumber: searchMeter },
@@ -191,7 +193,7 @@ export async function POST(req: Request) {
       if (again) {
         throw new Error('DUPLICATE_READING_THIS_MONTH');
       }
-      return tx.meterReading.create({
+      const created = await tx.meterReading.create({
         data: {
           meterId,
           value,
@@ -203,6 +205,14 @@ export async function POST(req: Request) {
           meter: { select: { id: true, meterNumber: true, customerName: true, plateNumber: true, address: true } },
         },
       });
+      await tx.meter.update({
+        where: { id: meterId },
+        data: {
+          lastReadingValue: value,
+          lastReadingDate: new Date(),
+        },
+      });
+      return created;
     });
   } catch (err) {
     if (err instanceof Error && err.message === 'DUPLICATE_READING_THIS_MONTH') {

@@ -43,6 +43,8 @@ export default function MeterReadingsPage() {
   const [monthTo, setMonthTo] = useState(defaultRange.to);
   const [chartData, setChartData] = useState<ChartPoint[]>([]);
   const [chartLoading, setChartLoading] = useState(false);
+  const [comparison, setComparison] = useState<{ thisPeriod: number; previousPeriod: number } | null>(null);
+  const [comparisonLoading, setComparisonLoading] = useState(false);
 
   const [meterLabel, setMeterLabel] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -141,6 +143,45 @@ export default function MeterReadingsPage() {
     loadReadings();
   }, [loadReadings]);
 
+  const loadComparison = useCallback(() => {
+    const t = getToken();
+    if (!t || !id || !monthFrom || !monthTo) return;
+    const [yFrom, mFrom] = monthFrom.split("-").map(Number);
+    const [yTo, mTo] = monthTo.split("-").map(Number);
+    const fromDate = new Date(yFrom, mFrom - 1, 1);
+    const toDate = new Date(yTo, mTo, 0, 23, 59, 59, 999);
+    const monthsSpan = (yTo - yFrom) * 12 + (mTo - mFrom) + 1;
+    const prevEnd = new Date(fromDate);
+    prevEnd.setDate(0);
+    const prevStart = new Date(prevEnd.getFullYear(), prevEnd.getMonth() - monthsSpan + 1, 1);
+    setComparisonLoading(true);
+    Promise.all([
+      fetch(
+        `/api/tenant/meter-readings?meterId=${encodeURIComponent(id)}&from=${fromDate.toISOString().slice(0, 10)}&to=${toDate.toISOString().slice(0, 10)}&limit=500`,
+        { headers: { Authorization: `Bearer ${t}` } }
+      ).then((r) => r.json()),
+      fetch(
+        `/api/tenant/meter-readings?meterId=${encodeURIComponent(id)}&from=${prevStart.toISOString().slice(0, 10)}&to=${prevEnd.toISOString().slice(0, 10)}&limit=500`,
+        { headers: { Authorization: `Bearer ${t}` } }
+      ).then((r) => r.json()),
+    ])
+      .then(([current, previous]) => {
+        const curList = (current.readings ?? []) as { value: number | string; recordedAt: string }[];
+        const prevList = (previous.readings ?? []) as { value: number | string; recordedAt: string }[];
+        const curSorted = [...curList].sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
+        const prevSorted = [...prevList].sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
+        const thisConsumption = curSorted.length >= 2 ? Number(curSorted[curSorted.length - 1].value) - Number(curSorted[0].value) : curSorted.length === 1 ? Number(curSorted[0].value) : 0;
+        const prevConsumption = prevSorted.length >= 2 ? Number(prevSorted[prevSorted.length - 1].value) - Number(prevSorted[0].value) : prevSorted.length === 1 ? Number(prevSorted[0].value) : 0;
+        setComparison({ thisPeriod: thisConsumption, previousPeriod: prevConsumption });
+      })
+      .catch(() => setComparison(null))
+      .finally(() => setComparisonLoading(false));
+  }, [id, monthFrom, monthTo]);
+
+  useEffect(() => {
+    loadComparison();
+  }, [loadComparison]);
+
   useEffect(() => {
     const t = getToken();
     if (!t || !id) return;
@@ -205,6 +246,43 @@ export default function MeterReadingsPage() {
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
             {error}
           </div>
+        )}
+
+        {/* Period comparison */}
+        {(comparison !== null || comparisonLoading) && (
+          <Card className="mb-6 overflow-hidden border-0 bg-white shadow-lg shadow-slate-200/50 dark:bg-slate-800 dark:shadow-none">
+            <CardContent className="p-5">
+              <p className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Consumption comparison</p>
+              {comparisonLoading ? (
+                <div className="mt-2 h-12 animate-pulse rounded bg-slate-100 dark:bg-slate-700" />
+              ) : comparison ? (
+                <div className="mt-3 flex flex-wrap items-baseline gap-6">
+                  <div>
+                    <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                      {comparison.thisPeriod.toLocaleString(undefined, { maximumFractionDigits: 2 })} m³
+                    </span>
+                    <span className="ml-2 text-sm text-slate-500 dark:text-slate-400">this period</span>
+                  </div>
+                  <div>
+                    <span className="text-xl font-semibold text-slate-600 dark:text-slate-300">
+                      {comparison.previousPeriod.toLocaleString(undefined, { maximumFractionDigits: 2 })} m³
+                    </span>
+                    <span className="ml-2 text-sm text-slate-500 dark:text-slate-400">previous period</span>
+                  </div>
+                  {comparison.previousPeriod > 0 && (
+                    <div>
+                      <span className={`text-lg font-semibold ${comparison.thisPeriod >= comparison.previousPeriod ? "text-amber-600 dark:text-amber-400" : "text-teal-600 dark:text-teal-400"}`}>
+                        {((comparison.thisPeriod - comparison.previousPeriod) / comparison.previousPeriod * 100).toFixed(1)}%
+                      </span>
+                      <span className="ml-2 text-sm text-slate-500 dark:text-slate-400">
+                        {comparison.thisPeriod >= comparison.previousPeriod ? "vs previous" : "less than previous"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
         )}
 
         {/* Summary cards */}

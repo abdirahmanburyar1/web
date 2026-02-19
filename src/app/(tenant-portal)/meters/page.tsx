@@ -15,6 +15,7 @@ type Meter = {
   id: string;
   meterNumber: string;
   customerName: string;
+  customerEmail?: string | null;
   customerPhone: string | null;
   residentPhone: string | null;
   section: string | null;
@@ -26,6 +27,9 @@ type Meter = {
   meterModel: string | null;
   installationDate: string | null;
   serialNumber: string | null;
+  locationType?: string | null;
+  lastReadingValue?: number | string | null;
+  lastReadingDate?: string | null;
   zone: { id: string; name: string } | null;
   collector: { id: string; fullName: string } | null;
   price: { id: string; name: string; pricePerCubic: number | string } | null;
@@ -353,6 +357,9 @@ export default function TenantMetersPage() {
                     Status
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Last reading
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Collector
                   </th>
                 </tr>
@@ -391,6 +398,18 @@ export default function TenantMetersPage() {
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant={statusVariant(m.status)}>{m.status}</Badge>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
+                      {m.lastReadingValue != null && m.lastReadingDate ? (
+                        <Link href={`/meters/${m.id}/readings`} className="text-teal-600 hover:underline dark:text-teal-400">
+                          {Number(m.lastReadingValue).toLocaleString(undefined, { maximumFractionDigits: 2 })} m³
+                          <span className="block text-xs text-slate-500 dark:text-slate-400">
+                            {new Date(m.lastReadingDate).toLocaleDateString(undefined, { dateStyle: "short" })}
+                          </span>
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
                       {m.collector?.fullName ?? "—"}

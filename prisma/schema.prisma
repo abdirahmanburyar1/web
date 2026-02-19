@@ -351,6 +351,7 @@ model Meter {
 
   meterNumber       String
   customerName      String
+  customerEmail     String?     @map("customer_email")
   customerPhone     String?
   residentPhone     String?
   section           String?
@@ -358,10 +359,15 @@ model Meter {
   plateNumber       String?
   status            MeterStatus @default(PENDING)
   address           String?
+  notes             String?     @db.Text
   meterType         String?
   meterModel        String?
   installationDate  DateTime?
   serialNumber      String?
+  locationType      String?     @map("location_type")  // RESIDENTIAL, COMMERCIAL, INDUSTRIAL, OTHER
+  lastReadingValue  Decimal?    @db.Decimal(12, 4) @map("last_reading_value")
+  lastReadingDate   DateTime?   @map("last_reading_date")
+  nextReadingDueDate DateTime?  @map("next_reading_due_date")
 
   createdAt         DateTime    @default(now())
   updatedAt        DateTime    @updatedAt

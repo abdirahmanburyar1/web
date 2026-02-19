@@ -11,8 +11,9 @@ export async function GET(
   const user = await getTenantUserOrNull(req);
   if (!user) return NextResponse.json({ error: 'Unauthorized or tenant suspended' }, { status: 401 });
   const { id } = await params;
+  const tenantId = user.tenantId!;
   const meter = await prisma.meter.findFirst({
-    where: { id, tenantId: user.tenantId! },
+    where: { id, tenantId },
     include: {
       zone: true,
       price: { select: { id: true, name: true, pricePerCubic: true } },
@@ -20,7 +21,22 @@ export async function GET(
     },
   });
   if (!meter) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  return NextResponse.json(meter);
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  const consumptionThisMonth = await prisma.meterReading.aggregate({
+    where: {
+      meterId: id,
+      recordedAt: { gte: startOfMonth, lte: endOfMonth },
+    },
+    _sum: { value: true },
+    _count: true,
+  });
+  return NextResponse.json({
+    ...meter,
+    consumptionThisMonth: consumptionThisMonth._sum.value != null ? Number(consumptionThisMonth._sum.value) : 0,
+    readingsCountThisMonth: consumptionThisMonth._count,
+  });
 }
 
 export async function PATCH(
@@ -34,6 +50,7 @@ export async function PATCH(
   const {
     meterNumber,
     customerName,
+    customerEmail,
     customerPhone,
     residentPhone,
     section,
@@ -42,16 +59,20 @@ export async function PATCH(
     plateNumber,
     status,
     address,
+    notes,
     meterType,
     meterModel,
     installationDate,
     serialNumber,
+    locationType,
+    nextReadingDueDate,
     collectorId,
     priceId,
   } = body;
   const data: Record<string, unknown> = {};
   if (meterNumber !== undefined) data.meterNumber = String(meterNumber).trim();
   if (customerName !== undefined) data.customerName = String(customerName).trim();
+  if (customerEmail !== undefined) data.customerEmail = customerEmail?.trim() || null;
   if (customerPhone !== undefined) data.customerPhone = customerPhone?.trim() || null;
   if (residentPhone !== undefined) data.residentPhone = residentPhone?.trim() || null;
   if (section !== undefined) data.section = section?.trim() || null;
@@ -60,10 +81,13 @@ export async function PATCH(
   if (plateNumber !== undefined) data.plateNumber = plateNumber?.trim() || null;
   if (status !== undefined && METER_STATUSES.includes(status)) data.status = status;
   if (address !== undefined) data.address = address?.trim() || null;
+  if (notes !== undefined) data.notes = notes?.trim() || null;
   if (meterType !== undefined) data.meterType = meterType?.trim() || null;
   if (meterModel !== undefined) data.meterModel = meterModel?.trim() || null;
   if (installationDate !== undefined) data.installationDate = installationDate ? new Date(installationDate) : null;
   if (serialNumber !== undefined) data.serialNumber = serialNumber?.trim() || null;
+  if (locationType !== undefined) data.locationType = locationType?.trim() || null;
+  if (nextReadingDueDate !== undefined) data.nextReadingDueDate = nextReadingDueDate ? new Date(nextReadingDueDate) : null;
   if (collectorId !== undefined) data.collectorId = collectorId || null;
   if (priceId !== undefined) data.priceId = priceId?.trim() || null;
   const tenantId = user.tenantId!;

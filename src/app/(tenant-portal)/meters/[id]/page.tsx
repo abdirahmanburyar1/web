@@ -17,6 +17,7 @@ type Meter = {
   id: string;
   meterNumber: string;
   customerName: string;
+  customerEmail?: string | null;
   customerPhone: string | null;
   residentPhone: string | null;
   section: string | null;
@@ -24,13 +25,20 @@ type Meter = {
   plateNumber: string | null;
   status: string;
   address: string | null;
+  notes?: string | null;
   meterType: string | null;
   meterModel: string | null;
   installationDate: string | null;
   serialNumber: string | null;
+  locationType?: string | null;
+  lastReadingValue?: number | string | null;
+  lastReadingDate?: string | null;
+  nextReadingDueDate?: string | null;
   zone: { id: string; name: string } | null;
   collector: { id: string; fullName: string } | null;
   price?: { id: string; name: string; pricePerCubic: number | string } | null;
+  consumptionThisMonth?: number;
+  readingsCountThisMonth?: number;
 };
 
 export default function MeterDetailPage() {
@@ -58,6 +66,7 @@ export default function MeterDetailPage() {
   const [form, setForm] = useState({
     meterNumber: "",
     customerName: "",
+    customerEmail: "",
     customerPhone: "",
     residentPhone: "",
     section: "",
@@ -66,10 +75,13 @@ export default function MeterDetailPage() {
     plateNumber: "",
     status: "PENDING",
     address: "",
+    notes: "",
     meterType: "",
     meterModel: "",
     installationDate: "",
     serialNumber: "",
+    locationType: "",
+    nextReadingDueDate: "",
     collectorId: "",
     priceId: "",
   });
@@ -191,6 +203,7 @@ export default function MeterDetailPage() {
     setForm({
       meterNumber: meter.meterNumber,
       customerName: meter.customerName,
+      customerEmail: meter.customerEmail ?? "",
       customerPhone: meter.customerPhone ?? "",
       residentPhone: meter.residentPhone ?? "",
       section: meter.section ?? "",
@@ -199,10 +212,13 @@ export default function MeterDetailPage() {
       plateNumber: meter.plateNumber ?? "",
       status: meter.status,
       address: meter.address ?? "",
+      notes: meter.notes ?? "",
       meterType: meter.meterType ?? "",
       meterModel: meter.meterModel ?? "",
       installationDate: meter.installationDate ? new Date(meter.installationDate).toISOString().slice(0, 10) : "",
       serialNumber: meter.serialNumber ?? "",
+      locationType: meter.locationType ?? "",
+      nextReadingDueDate: meter.nextReadingDueDate ? new Date(meter.nextReadingDueDate).toISOString().slice(0, 10) : "",
       collectorId: meter.collector?.id ?? "",
       priceId: meter.price?.id ?? "",
     });
@@ -222,6 +238,7 @@ export default function MeterDetailPage() {
         body: JSON.stringify({
           meterNumber: form.meterNumber.trim(),
           customerName: form.customerName.trim(),
+          customerEmail: form.customerEmail.trim() || null,
           customerPhone: form.customerPhone.trim() || null,
           residentPhone: form.residentPhone.trim() || null,
           section: form.section.trim() || null,
@@ -230,10 +247,13 @@ export default function MeterDetailPage() {
           plateNumber: form.plateNumber.trim() || null,
           status: form.status,
           address: form.address.trim() || null,
+          notes: form.notes.trim() || null,
           meterType: form.meterType.trim() || null,
           meterModel: form.meterModel.trim() || null,
           installationDate: form.installationDate ? form.installationDate : null,
           serialNumber: form.serialNumber.trim() || null,
+          locationType: form.locationType || null,
+          nextReadingDueDate: form.nextReadingDueDate || null,
           collectorId: form.collectorId || null,
           priceId: form.priceId || null,
         }),
@@ -286,6 +306,19 @@ export default function MeterDetailPage() {
                 {[meter.zone?.name, meter.section, meter.address].filter(Boolean).join(" · ")}
               </p>
             )}
+            <div className="mt-4 flex flex-wrap gap-6 text-sm">
+              {(meter.lastReadingValue != null && meter.lastReadingDate) && (
+                <span className="text-slate-600 dark:text-slate-300">
+                  Last reading: <strong>{Number(meter.lastReadingValue).toLocaleString(undefined, { maximumFractionDigits: 2 })} m³</strong>
+                  {" "}({new Date(meter.lastReadingDate).toLocaleDateString(undefined, { dateStyle: "short" })})
+                </span>
+              )}
+              {(meter.consumptionThisMonth ?? 0) > 0 && (
+                <span className="text-slate-600 dark:text-slate-300">
+                  Consumption this month: <strong>{Number(meter.consumptionThisMonth).toLocaleString(undefined, { maximumFractionDigits: 2 })} m³</strong>
+                </span>
+              )}
+            </div>
           </div>
           {!editing && (
             <div className="flex flex-wrap gap-2">
@@ -324,6 +357,10 @@ export default function MeterDetailPage() {
                   <div>
                     <Label>Resident phone</Label>
                     <Input value={form.residentPhone} onChange={(e) => setForm((f) => ({ ...f, residentPhone: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Customer email</Label>
+                    <Input type="email" value={form.customerEmail} onChange={(e) => setForm((f) => ({ ...f, customerEmail: e.target.value }))} />
                   </div>
                   <div>
                     <Label>Section</Label>
@@ -413,6 +450,28 @@ export default function MeterDetailPage() {
                     <Label>Address</Label>
                     <Input value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} />
                   </div>
+                  <div className="sm:col-span-2">
+                    <Label>Notes (internal)</Label>
+                    <Input value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Optional" />
+                  </div>
+                  <div>
+                    <Label>Location type</Label>
+                    <select
+                      value={form.locationType}
+                      onChange={(e) => setForm((f) => ({ ...f, locationType: e.target.value }))}
+                      className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                    >
+                      <option value="">—</option>
+                      <option value="RESIDENTIAL">RESIDENTIAL</option>
+                      <option value="COMMERCIAL">COMMERCIAL</option>
+                      <option value="INDUSTRIAL">INDUSTRIAL</option>
+                      <option value="OTHER">OTHER</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label>Next reading due</Label>
+                    <Input type="date" value={form.nextReadingDueDate} onChange={(e) => setForm((f) => ({ ...f, nextReadingDueDate: e.target.value }))} />
+                  </div>
                   <div>
                     <Label>Meter type</Label>
                     <Input value={form.meterType} onChange={(e) => setForm((f) => ({ ...f, meterType: e.target.value }))} />
@@ -486,6 +545,10 @@ export default function MeterDetailPage() {
                   <dd className="mt-0.5 text-sm text-slate-600">{meter.residentPhone ?? "—"}</dd>
                 </div>
                 <div>
+                  <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Customer email</dt>
+                  <dd className="mt-0.5 text-sm text-slate-600">{meter.customerEmail ?? "—"}</dd>
+                </div>
+                <div>
                   <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Section / Sub-section</dt>
                   <dd className="mt-0.5 text-sm text-slate-600">{[meter.section, meter.subSection].filter(Boolean).join(" / ") || "—"}</dd>
                 </div>
@@ -521,6 +584,33 @@ export default function MeterDetailPage() {
                   <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Price (tariff)</dt>
                   <dd className="mt-0.5 text-sm text-slate-600">{meter.price ? `${meter.price.name} (${Number(meter.price.pricePerCubic).toFixed(4)}/m³)` : "—"}</dd>
                 </div>
+                {meter.notes && (
+                  <div className="sm:col-span-2">
+                    <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Notes</dt>
+                    <dd className="mt-0.5 text-sm text-slate-600">{meter.notes}</dd>
+                  </div>
+                )}
+                {meter.locationType && (
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Location type</dt>
+                    <dd className="mt-0.5 text-sm text-slate-600">{meter.locationType}</dd>
+                  </div>
+                )}
+                {meter.nextReadingDueDate && (
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Next reading due</dt>
+                    <dd className="mt-0.5 text-sm text-slate-600">{new Date(meter.nextReadingDueDate).toLocaleDateString()}</dd>
+                  </div>
+                )}
+                {(meter.lastReadingValue != null && meter.lastReadingDate) && (
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Last reading</dt>
+                    <dd className="mt-0.5 text-sm text-slate-600">
+                      {Number(meter.lastReadingValue).toLocaleString(undefined, { maximumFractionDigits: 2 })} m³
+                      {" "}({new Date(meter.lastReadingDate).toLocaleDateString()})
+                    </dd>
+                  </div>
+                )}
               </dl>
             )}
           </CardContent>

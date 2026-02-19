@@ -57,6 +57,7 @@ export async function GET(req: Request) {
         id: true,
         meterNumber: true,
         customerName: true,
+        customerEmail: true,
         customerPhone: true,
         residentPhone: true,
         section: true,
@@ -66,6 +67,9 @@ export async function GET(req: Request) {
         zone: { select: { id: true, name: true } },
         collector: { select: { id: true, fullName: true } },
         price: { select: { id: true, name: true, pricePerCubic: true } },
+        lastReadingValue: true,
+        lastReadingDate: true,
+        locationType: true,
       },
     }),
     prisma.meter.count({ where }),
@@ -108,6 +112,7 @@ export async function POST(req: Request) {
   const {
     meterNumber,
     customerName,
+    customerEmail,
     customerPhone,
     residentPhone,
     section,
@@ -116,15 +121,19 @@ export async function POST(req: Request) {
     plateNumber,
     status,
     address,
+    notes,
     meterType,
     meterModel,
     installationDate,
     serialNumber,
+    locationType,
+    nextReadingDueDate,
     collectorId,
     priceId,
   } = body as {
     meterNumber: string;
     customerName: string;
+    customerEmail?: string;
     customerPhone?: string;
     residentPhone?: string;
     section?: string;
@@ -133,10 +142,13 @@ export async function POST(req: Request) {
     plateNumber?: string;
     status?: string;
     address?: string;
+    notes?: string;
     meterType?: string;
     meterModel?: string;
     installationDate?: string;
     serialNumber?: string;
+    locationType?: string;
+    nextReadingDueDate?: string | null;
     collectorId?: string;
     priceId?: string | null;
   };
@@ -173,6 +185,7 @@ export async function POST(req: Request) {
       tenantId,
       meterNumber: num,
       customerName: customerName.trim(),
+      customerEmail: customerEmail?.trim() || null,
       customerPhone: customerPhone?.trim() || null,
       residentPhone: residentPhone?.trim() || null,
       section: section?.trim() || null,
@@ -182,10 +195,13 @@ export async function POST(req: Request) {
       priceId: priceId?.trim() || null,
       status: statusVal as 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'OVERDUE' | 'INACTIVE',
       address: address?.trim() || null,
+      notes: notes?.trim() || null,
       meterType: meterType?.trim() || null,
       meterModel: meterModel?.trim() || null,
       installationDate: installationDate ? new Date(installationDate) : null,
       serialNumber: serialNumber?.trim() || null,
+      locationType: locationType?.trim() || null,
+      nextReadingDueDate: nextReadingDueDate ? new Date(nextReadingDueDate) : null,
       collectorId: collectorId || null,
     },
     include: {

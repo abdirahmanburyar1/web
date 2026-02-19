@@ -13,9 +13,12 @@ import Swal from "sweetalert2";
 
 const STATUSES = ["PENDING", "ACTIVE", "SUSPENDED", "OVERDUE", "INACTIVE"] as const;
 
+const LOCATION_TYPES = ["", "RESIDENTIAL", "COMMERCIAL", "INDUSTRIAL", "OTHER"] as const;
+
 const initialForm = {
   meterNumber: "",
   customerName: "",
+  customerEmail: "",
   customerPhone: "",
   residentPhone: "",
   section: "",
@@ -24,10 +27,13 @@ const initialForm = {
   plateNumber: "",
   status: "PENDING",
   address: "",
+  notes: "",
   meterType: "",
   meterModel: "",
   installationDate: "",
   serialNumber: "",
+  locationType: "",
+  nextReadingDueDate: "",
   collectorId: "",
   priceId: "",
 };
@@ -183,6 +189,7 @@ export default function NewMeterPage() {
         body: JSON.stringify({
           meterNumber: form.meterNumber.trim(),
           customerName: form.customerName.trim(),
+          customerEmail: form.customerEmail.trim() || undefined,
           customerPhone: form.customerPhone.trim() || undefined,
           residentPhone: form.residentPhone.trim() || undefined,
           section: form.section.trim() || undefined,
@@ -191,10 +198,13 @@ export default function NewMeterPage() {
           plateNumber: form.plateNumber.trim() || undefined,
           status: form.status,
           address: form.address.trim() || undefined,
+          notes: form.notes.trim() || undefined,
           meterType: form.meterType.trim() || undefined,
           meterModel: form.meterModel.trim() || undefined,
           installationDate: form.installationDate || undefined,
           serialNumber: form.serialNumber.trim() || undefined,
+          locationType: form.locationType || undefined,
+          nextReadingDueDate: form.nextReadingDueDate || undefined,
           collectorId: form.collectorId || undefined,
           priceId: form.priceId.trim() || undefined,
         }),
@@ -246,6 +256,10 @@ export default function NewMeterPage() {
               <div>
                 <Label>Customer phone</Label>
                 <Input value={form.customerPhone} onChange={(e) => setForm((f) => ({ ...f, customerPhone: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Customer email</Label>
+                <Input type="email" value={form.customerEmail} onChange={(e) => setForm((f) => ({ ...f, customerEmail: e.target.value }))} placeholder="optional" />
               </div>
               <div>
                 <Label>Resident phone</Label>
@@ -338,6 +352,27 @@ export default function NewMeterPage() {
               <div className="sm:col-span-2">
                 <Label>Address</Label>
                 <Input value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Notes (internal)</Label>
+                <Input value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Optional notes" />
+              </div>
+              <div>
+                <Label>Location type</Label>
+                <select
+                  value={form.locationType}
+                  onChange={(e) => setForm((f) => ({ ...f, locationType: e.target.value }))}
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                >
+                  {LOCATION_TYPES.filter((t) => t !== "").map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                  <option value="">—</option>
+                </select>
+              </div>
+              <div>
+                <Label>Next reading due</Label>
+                <Input type="date" value={form.nextReadingDueDate} onChange={(e) => setForm((f) => ({ ...f, nextReadingDueDate: e.target.value }))} />
               </div>
               <div>
                 <Label>Meter type</Label>

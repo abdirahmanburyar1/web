@@ -1,7 +1,8 @@
 /** Page title and optional subtitle for navbar from pathname */
 export function getTenantNavTitle(pathname: string): { title: string; subtitle?: string } {
   if (pathname === "/dashboard" || pathname === "/") return { title: "Dashboard", subtitle: "Tenant Portal" };
-  if (pathname.startsWith("/setup")) return { title: "Setup", subtitle: "Zones & structure" };
+  if (pathname.startsWith("/setup/tariffs")) return { title: "Tariffs", subtitle: "Tariff rates" };
+  if (pathname.startsWith("/setup")) return { title: "Setup", subtitle: "Areas & zones" };
   if (pathname.startsWith("/meters")) return { title: "Meters", subtitle: pathname === "/meters" ? "Meter list" : "Meter details" };
   if (pathname.startsWith("/operations")) return { title: "Operations", subtitle: pathname.split("/").filter(Boolean).slice(1).join(" / ") || "Meter operations" };
   if (pathname.startsWith("/payments")) return { title: "Payments", subtitle: pathname === "/payments" ? "Payments & receipts" : "Payment details" };

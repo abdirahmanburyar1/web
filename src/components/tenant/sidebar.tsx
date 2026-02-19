@@ -123,7 +123,8 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Configuration",
     icon: IconSetup,
     items: [
-      { href: "/setup", label: "Tariffs & Zones", icon: IconSetup },
+      { href: "/setup", label: "Areas & Zones", icon: IconBuilding },
+      { href: "/setup/tariffs", label: "Tariff rates", icon: IconPayments },
     ],
   },
   {

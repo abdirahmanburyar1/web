@@ -390,20 +390,23 @@ model Meter {
 }
 
 model MeterReading {
-  id            String   @id @default(uuid())
-  meterId       String
-  meter         Meter    @relation(fields: [meterId], references: [id])
-  value         Decimal  @db.Decimal(12, 4)
-  unit          String?  @default("m³")
-  pricePerCubic Decimal? @db.Decimal(10, 4) // price per m³ at time of reading (from meter or tenant default)
-  recordedAt    DateTime @default(now())
-  recordedById  String?
-  recordedBy    User?    @relation(fields: [recordedById], references: [id])
+  id              String       @id @default(uuid())
+  meterId         String
+  meter           Meter        @relation(fields: [meterId], references: [id])
+  readingCycleId  String?      @map("reading_cycle_id")
+  readingCycle    ReadingCycle? @relation(fields: [readingCycleId], references: [id])
+  value           Decimal      @db.Decimal(12, 4)
+  unit            String?      @default("m³")
+  pricePerCubic   Decimal?     @db.Decimal(10, 4) // price per m³ at time of reading (from meter or tenant default)
+  recordedAt      DateTime    @default(now())
+  recordedById    String?
+  recordedBy      User?        @relation(fields: [recordedById], references: [id])
 
   @@map("meter_readings")
   @@index([meterId])
   @@index([meterId, recordedAt(sort: Desc)])
   @@index([recordedById])
+  @@index([readingCycleId])
 }
 
 model Invoice {
@@ -515,6 +518,8 @@ model ReadingCycle {
   closedAt    DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  readings    MeterReading[]
 
   @@map("reading_cycles")
   @@index([tenantId])

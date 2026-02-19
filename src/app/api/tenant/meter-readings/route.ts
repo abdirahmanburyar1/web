@@ -179,6 +179,23 @@ export async function POST(req: Request) {
   const nextNum = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
   const paymentNumber = String(nextNum).padStart(6, '0');
 
+  const nowForCycle = new Date();
+  const cycleForDate = await prisma.readingCycle.findFirst({
+    where: {
+      tenantId,
+      startDate: { lte: nowForCycle },
+      endDate: { gte: nowForCycle },
+    },
+    select: { id: true, isClosed: true, name: true },
+  });
+  if (cycleForDate?.isClosed) {
+    return NextResponse.json(
+      { error: `This period (${cycleForDate.name}) is closed. No new readings can be added.` },
+      { status: 400 }
+    );
+  }
+  const readingCycleId = cycleForDate?.id ?? null;
+
   // Re-check inside transaction to prevent race: two requests submitting at once can't both create.
   let reading;
   try {
@@ -196,6 +213,7 @@ export async function POST(req: Request) {
       const created = await tx.meterReading.create({
         data: {
           meterId,
+          readingCycleId,
           value,
           unit: unit ?? 'm³',
           pricePerCubic,

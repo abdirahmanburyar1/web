@@ -66,6 +66,8 @@ export async function PATCH(
     serialNumber,
     locationType,
     nextReadingDueDate,
+    latitude,
+    longitude,
     collectorId,
     priceId,
   } = body;
@@ -88,6 +90,8 @@ export async function PATCH(
   if (serialNumber !== undefined) data.serialNumber = serialNumber?.trim() || null;
   if (locationType !== undefined) data.locationType = locationType?.trim() || null;
   if (nextReadingDueDate !== undefined) data.nextReadingDueDate = nextReadingDueDate ? new Date(nextReadingDueDate) : null;
+  if (latitude !== undefined) data.latitude = latitude != null && latitude !== '' ? Number(latitude) : null;
+  if (longitude !== undefined) data.longitude = longitude != null && longitude !== '' ? Number(longitude) : null;
   if (collectorId !== undefined) data.collectorId = collectorId || null;
   if (priceId !== undefined) data.priceId = priceId?.trim() || null;
   const tenantId = user.tenantId!;

@@ -368,6 +368,8 @@ model Meter {
   lastReadingValue  Decimal?    @db.Decimal(12, 4) @map("last_reading_value")
   lastReadingDate   DateTime?   @map("last_reading_date")
   nextReadingDueDate DateTime?  @map("next_reading_due_date")
+  latitude          Decimal?    @db.Decimal(10, 7)  // optional geo for route planning / maps
+  longitude         Decimal?    @db.Decimal(10, 7)
 
   createdAt         DateTime    @default(now())
   updatedAt        DateTime    @updatedAt

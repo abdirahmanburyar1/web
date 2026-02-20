@@ -34,6 +34,8 @@ const initialForm = {
   serialNumber: "",
   locationType: "",
   nextReadingDueDate: "",
+  latitude: "",
+  longitude: "",
   collectorId: "",
   priceId: "",
 };
@@ -205,6 +207,8 @@ export default function NewMeterPage() {
           serialNumber: form.serialNumber.trim() || undefined,
           locationType: form.locationType || undefined,
           nextReadingDueDate: form.nextReadingDueDate || undefined,
+          latitude: form.latitude ? Number(form.latitude) : undefined,
+          longitude: form.longitude ? Number(form.longitude) : undefined,
           collectorId: form.collectorId || undefined,
           priceId: form.priceId.trim() || undefined,
         }),
@@ -373,6 +377,14 @@ export default function NewMeterPage() {
               <div>
                 <Label>Next reading due</Label>
                 <Input type="date" value={form.nextReadingDueDate} onChange={(e) => setForm((f) => ({ ...f, nextReadingDueDate: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Latitude</Label>
+                <Input type="number" step="any" value={form.latitude} onChange={(e) => setForm((f) => ({ ...f, latitude: e.target.value }))} placeholder="e.g. 9.5" />
+              </div>
+              <div>
+                <Label>Longitude</Label>
+                <Input type="number" step="any" value={form.longitude} onChange={(e) => setForm((f) => ({ ...f, longitude: e.target.value }))} placeholder="e.g. 45.3" />
               </div>
               <div>
                 <Label>Meter type</Label>

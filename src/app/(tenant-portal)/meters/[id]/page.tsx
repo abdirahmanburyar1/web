@@ -34,6 +34,8 @@ type Meter = {
   lastReadingValue?: number | string | null;
   lastReadingDate?: string | null;
   nextReadingDueDate?: string | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
   zone: { id: string; name: string } | null;
   collector: { id: string; fullName: string } | null;
   price?: { id: string; name: string; pricePerCubic: number | string } | null;
@@ -82,6 +84,8 @@ export default function MeterDetailPage() {
     serialNumber: "",
     locationType: "",
     nextReadingDueDate: "",
+    latitude: "",
+    longitude: "",
     collectorId: "",
     priceId: "",
   });
@@ -219,6 +223,8 @@ export default function MeterDetailPage() {
       serialNumber: meter.serialNumber ?? "",
       locationType: meter.locationType ?? "",
       nextReadingDueDate: meter.nextReadingDueDate ? new Date(meter.nextReadingDueDate).toISOString().slice(0, 10) : "",
+      latitude: meter.latitude != null ? String(meter.latitude) : "",
+      longitude: meter.longitude != null ? String(meter.longitude) : "",
       collectorId: meter.collector?.id ?? "",
       priceId: meter.price?.id ?? "",
     });
@@ -254,6 +260,8 @@ export default function MeterDetailPage() {
           serialNumber: form.serialNumber.trim() || null,
           locationType: form.locationType || null,
           nextReadingDueDate: form.nextReadingDueDate || null,
+          latitude: form.latitude ? Number(form.latitude) : null,
+          longitude: form.longitude ? Number(form.longitude) : null,
           collectorId: form.collectorId || null,
           priceId: form.priceId || null,
         }),
@@ -313,9 +321,19 @@ export default function MeterDetailPage() {
                   {" "}({new Date(meter.lastReadingDate).toLocaleDateString(undefined, { dateStyle: "short" })})
                 </span>
               )}
+              {meter.nextReadingDueDate && (
+                <span className="text-slate-600 dark:text-slate-300">
+                  Next due: <strong>{new Date(meter.nextReadingDueDate).toLocaleDateString(undefined, { dateStyle: "short" })}</strong>
+                </span>
+              )}
               {(meter.consumptionThisMonth ?? 0) > 0 && (
                 <span className="text-slate-600 dark:text-slate-300">
                   Consumption this month: <strong>{Number(meter.consumptionThisMonth).toLocaleString(undefined, { maximumFractionDigits: 2 })} m³</strong>
+                </span>
+              )}
+              {(meter.latitude != null || meter.longitude != null) && (
+                <span className="text-slate-600 dark:text-slate-300">
+                  Location: <strong>{[meter.latitude, meter.longitude].filter((v) => v != null).map((v) => Number(v).toFixed(5)).join(", ")}</strong>
                 </span>
               )}
             </div>
@@ -473,6 +491,14 @@ export default function MeterDetailPage() {
                     <Input type="date" value={form.nextReadingDueDate} onChange={(e) => setForm((f) => ({ ...f, nextReadingDueDate: e.target.value }))} />
                   </div>
                   <div>
+                    <Label>Latitude</Label>
+                    <Input type="number" step="any" value={form.latitude} onChange={(e) => setForm((f) => ({ ...f, latitude: e.target.value }))} placeholder="e.g. 9.5" />
+                  </div>
+                  <div>
+                    <Label>Longitude</Label>
+                    <Input type="number" step="any" value={form.longitude} onChange={(e) => setForm((f) => ({ ...f, longitude: e.target.value }))} placeholder="e.g. 45.3" />
+                  </div>
+                  <div>
                     <Label>Meter type</Label>
                     <Input value={form.meterType} onChange={(e) => setForm((f) => ({ ...f, meterType: e.target.value }))} />
                   </div>
@@ -584,33 +610,34 @@ export default function MeterDetailPage() {
                   <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Price (tariff)</dt>
                   <dd className="mt-0.5 text-sm text-slate-600">{meter.price ? `${meter.price.name} (${Number(meter.price.pricePerCubic).toFixed(4)}/m³)` : "—"}</dd>
                 </div>
-                {meter.notes && (
-                  <div className="sm:col-span-2">
-                    <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Notes</dt>
-                    <dd className="mt-0.5 text-sm text-slate-600">{meter.notes}</dd>
-                  </div>
-                )}
-                {meter.locationType && (
-                  <div>
-                    <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Location type</dt>
-                    <dd className="mt-0.5 text-sm text-slate-600">{meter.locationType}</dd>
-                  </div>
-                )}
-                {meter.nextReadingDueDate && (
-                  <div>
-                    <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Next reading due</dt>
-                    <dd className="mt-0.5 text-sm text-slate-600">{new Date(meter.nextReadingDueDate).toLocaleDateString()}</dd>
-                  </div>
-                )}
-                {(meter.lastReadingValue != null && meter.lastReadingDate) && (
-                  <div>
-                    <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Last reading</dt>
-                    <dd className="mt-0.5 text-sm text-slate-600">
-                      {Number(meter.lastReadingValue).toLocaleString(undefined, { maximumFractionDigits: 2 })} m³
-                      {" "}({new Date(meter.lastReadingDate).toLocaleDateString()})
-                    </dd>
-                  </div>
-                )}
+                <div className="sm:col-span-2">
+                  <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Notes</dt>
+                  <dd className="mt-0.5 text-sm text-slate-600">{meter.notes ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Location type</dt>
+                  <dd className="mt-0.5 text-sm text-slate-600">{meter.locationType ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Next reading due</dt>
+                  <dd className="mt-0.5 text-sm text-slate-600">{meter.nextReadingDueDate ? new Date(meter.nextReadingDueDate).toLocaleDateString() : "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Last reading</dt>
+                  <dd className="mt-0.5 text-sm text-slate-600">
+                    {(meter.lastReadingValue != null && meter.lastReadingDate)
+                      ? `${Number(meter.lastReadingValue).toLocaleString(undefined, { maximumFractionDigits: 2 })} m³ (${new Date(meter.lastReadingDate).toLocaleDateString()})`
+                      : "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">Coordinates (lat, lng)</dt>
+                  <dd className="mt-0.5 text-sm text-slate-600">
+                    {(meter.latitude != null || meter.longitude != null)
+                      ? [meter.latitude, meter.longitude].filter((v) => v != null).map((v) => Number(v).toFixed(5)).join(", ")
+                      : "—"}
+                  </dd>
+                </div>
               </dl>
             )}
           </CardContent>

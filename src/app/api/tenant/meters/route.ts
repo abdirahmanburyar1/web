@@ -70,6 +70,8 @@ export async function GET(req: Request) {
         lastReadingValue: true,
         lastReadingDate: true,
         locationType: true,
+        latitude: true,
+        longitude: true,
       },
     }),
     prisma.meter.count({ where }),
@@ -128,6 +130,8 @@ export async function POST(req: Request) {
     serialNumber,
     locationType,
     nextReadingDueDate,
+    latitude,
+    longitude,
     collectorId,
     priceId,
   } = body as {
@@ -149,6 +153,8 @@ export async function POST(req: Request) {
     serialNumber?: string;
     locationType?: string;
     nextReadingDueDate?: string | null;
+    latitude?: number | string | null;
+    longitude?: number | string | null;
     collectorId?: string;
     priceId?: string | null;
   };
@@ -202,6 +208,8 @@ export async function POST(req: Request) {
       serialNumber: serialNumber?.trim() || null,
       locationType: locationType?.trim() || null,
       nextReadingDueDate: nextReadingDueDate ? new Date(nextReadingDueDate) : null,
+      latitude: latitude != null && latitude !== '' ? Number(latitude) : null,
+      longitude: longitude != null && longitude !== '' ? Number(longitude) : null,
       collectorId: collectorId || null,
     },
     include: {

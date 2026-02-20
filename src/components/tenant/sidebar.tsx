@@ -50,7 +50,6 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/operations/reading-cycles", label: "Reading Cycles", icon: IconClipboard },
       { href: "/operations/reading-history", label: "Reading History", icon: IconClipboard },
       { href: "/setup", label: "Zones & Areas", icon: IconBuilding },
-      { href: "/operations/routes", label: "Route Planning", icon: IconClipboard },
       { href: "/operations/bulk-import", label: "Bulk Import", icon: IconClipboard },
       { href: "/operations/audit", label: "Reading Audit", icon: IconShield },
     ],
